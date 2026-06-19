@@ -21,9 +21,11 @@ private:
 	{
 		switch (msg)
 		{
+		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
 			m_keys[wParam] = true;
 			break;
+		case WM_SYSKEYUP:
 		case WM_KEYUP:
 			m_keys[wParam] = false;
 			break;

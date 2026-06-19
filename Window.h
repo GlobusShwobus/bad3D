@@ -71,6 +71,12 @@ public:
 			}
 		}
 
+		if (m_kb.m_keys[VK_F11])
+		{
+			on_fullscreen(!m_Fullscreen);
+			m_kb.m_keys[VK_F11] = false;
+		}
+
 		// handle events
 		switch (uMsg)
 		{
@@ -100,13 +106,13 @@ public:
 			}
 			return 0;
 
-		case WM_KEYDOWN:
-
-			if (wParam == VK_F11)
-			{
-				on_fullscreen(!m_Fullscreen);
-			}
-			return 0;
+		//case WM_KEYDOWN:
+		//
+		//	if (wParam == VK_F11)
+		//	{
+		//		on_fullscreen(!m_Fullscreen);
+		//	}
+		//	return 0;
 
 		default:
 			break; // default breaks switch and goes to DefWindowProc
