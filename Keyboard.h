@@ -29,7 +29,6 @@ private:
 			break;
 		}
 	}
-
 private:
 	bool m_keys[KEY_BUFFER_SIZE];
 };

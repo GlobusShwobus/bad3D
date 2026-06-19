@@ -71,18 +71,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 			DispatchMessage(&msg);
 		}
 	
-		auto keys = kb.get_keys();
-		auto m_x = mouse.pos_x();
-		auto m_y = mouse.pos_y();
-	
-		if (keys['W'])
-		{
-
-		}
-		if (keys['S'])
-		{
-
-		}
 
 		window.end_frame(dt);
 		renderer.render();

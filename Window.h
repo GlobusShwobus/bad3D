@@ -70,11 +70,6 @@ public:
 				ReleaseCapture();
 			}
 		}
-		// if fullscreen
-		if (m_kb.m_keys[VK_F11])
-		{
-			on_fullscreen(!m_Fullscreen);
-		}
 
 		// handle events
 		switch (uMsg)
@@ -104,6 +99,15 @@ public:
 				if (m_renderer_sync) m_renderer_sync->on_resize(m_width, m_height);
 			}
 			return 0;
+
+		case WM_KEYDOWN:
+
+			if (wParam == VK_F11)
+			{
+				on_fullscreen(!m_Fullscreen);
+			}
+			return 0;
+
 		default:
 			break; // default breaks switch and goes to DefWindowProc
 		}
@@ -135,18 +139,16 @@ private:
 		{
 			m_Fullscreen = fullscreen;
 
-			if (m_Fullscreen)
+			if (m_Fullscreen) // Switching to fullscreen.
 			{
-				RECT rc;
-
-				::GetWindowRect(m_hwnd, &rc);
+				// Store the current window dimensions so they can be restored 
+				// when switching out of fullscreen state.
+				::GetWindowRect(m_hwnd, &m_FullScreenSave);
 
 				// Set the window style to a borderless window so the client area fills
-				// the entire screen.
-
+				// the entire screen
 				UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 				::SetWindowLongW(m_hwnd, GWL_STYLE, windowStyle);
-
 
 				// Query the name of the nearest display device for the window.
 				// This is required to set the fullscreen dimensions of the window
@@ -167,19 +169,15 @@ private:
 			}
 			else
 			{
-				RECT rc;
-
-				::GetWindowRect(m_hwnd, &rc);
-
 				// Restore all the window decorators.
 				::SetWindowLong(m_hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
 				// THIS IS ACTUALLY BROKEN CURRENTLY, YOU CAN GO FULLSCREEN BUT NOT BACK TO NORMIE SCREEN
 				::SetWindowPos(m_hwnd, HWND_NOTOPMOST,
-					rc.left,
-					rc.top,
-					rc.right - rc.left,
-					rc.bottom - rc.top,
+					m_FullScreenSave.left,
+					m_FullScreenSave.top,
+					m_FullScreenSave.right - m_FullScreenSave.left,
+					m_FullScreenSave.bottom - m_FullScreenSave.top,
 					SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 				::ShowWindow(m_hwnd, SW_NORMAL);
@@ -192,10 +190,10 @@ private:
 	Keyboard& m_kb;
 	Mouse& m_mouse;
 
+	bool m_Fullscreen = false;
+	RECT m_FullScreenSave;
 	int m_width = 0;
 	int m_height = 0;
-
-	bool m_Fullscreen = false;
 
 	InterfaceRenderWindowSync* m_renderer_sync = nullptr;
 };
