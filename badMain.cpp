@@ -36,10 +36,34 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 
 	const float threshhold = 0.3f;
 
+
+
+	uint64_t frameCounter = 0;
+	double elapsedSeconds = 0.0;
+	std::chrono::high_resolution_clock cock;
+	auto t0 = cock.now();
+
+
 	MSG msg = {};
 	Stopwatch st;
 	while (msg.message != WM_QUIT)
 	{
+		frameCounter++;
+		auto t1 = cock.now();
+		auto deltaTime = t1 - t0;
+		t0 = t1;
+		
+		elapsedSeconds += deltaTime.count() * 1e-9;
+		if (elapsedSeconds > 1.0)
+		{
+			char buffer[500];
+			auto fps = frameCounter / elapsedSeconds;
+			sprintf_s(buffer, 500, "FPS: %f\n", fps);
+			SetWindowTextA(window.window(), buffer);
+			frameCounter = 0;
+			elapsedSeconds = 0.0;
+		}
+
 		float dt = st.dt_float();
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
@@ -60,16 +84,35 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 
 		}
 
-
-		std::wostringstream oss;
-		oss << "(" << window.get_width() << "," << window.get_height() << ")";
-		SetWindowText(window.window(), oss.str().c_str());
-
 		window.end_frame(dt);
 		renderer.render();
 	}
 
 	return 0;
+}
+// bvllshit
+void update()
+{
+	static uint64_t frameCounter = 0;
+	static double elapsedSeconds = 0.0;
+	static std::chrono::high_resolution_clock cock;
+	static auto t0 = cock.now();
+
+	frameCounter++;
+	auto t1 = cock.now();
+	auto deltaTime = t1 - t0;
+	t0 = t1;
+
+	elapsedSeconds += deltaTime.count() * 1e-9;
+	if (elapsedSeconds > 1.0)
+	{
+		char buffer[500];
+		auto fps = frameCounter / elapsedSeconds;
+		sprintf_s(buffer, 500, "FPS: %f\n", fps);
+		OutputDebugStringA(buffer);
+		frameCounter = 0;
+		elapsedSeconds = 0.0;
+	}
 }
 
 void EnableDebugLayer()

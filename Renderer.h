@@ -346,32 +346,6 @@ void wait_for_fence_value(Microsoft::WRL::ComPtr<ID3D12Fence> fence, uint64_t fe
 	}
 }
 
-// bvllshit
-void update()
-{
-	static uint64_t frameCounter = 0;
-	static double elapsedSeconds = 0.0;
-	static std::chrono::high_resolution_clock cock;
-	static auto t0 = cock.now();
-
-	frameCounter++;
-	auto t1 = cock.now();
-	auto deltaTime = t1 - t0;
-	t0 = t1;
-
-	elapsedSeconds += deltaTime.count() * 1e-9;
-	if (elapsedSeconds > 1.0)
-	{
-		char buffer[500];
-		auto fps = frameCounter / elapsedSeconds;
-		sprintf_s(buffer, 500, "FPS: %f\n", fps);
-		OutputDebugStringA(buffer);
-		frameCounter = 0;
-		elapsedSeconds = 0.0;
-	}
-}
-
-
 class Renderer : public InterfaceRenderWindowSync
 {
 public:
@@ -413,13 +387,13 @@ public:
 		m_window.sync_to_renderer_interface(nullptr);
 
 		// Make sure the command queue has finished all commands before closing.
-		flush();
+		flush_GPU();
 		::CloseHandle(m_fenceEvent);
 	}
 	// DONT FREE MEMORY THE GPU IS STILL READING
 // USE FLUSH BEFORE RESIZING THE SWAP CHAIN AND BEFORE SHUTDOWN
 // MEANING LET THE GPU FINISH WHATEVER IT IS DOING BEFORE DOING MEMES
-	void flush()
+	void flush_GPU()
 	{
 		uint64_t fenceValueForSignal = signal_fence(m_commandQueue, m_fence, m_FenceValue);
 		wait_for_fence_value(m_fence, m_FenceValue, m_fenceEvent);
@@ -514,7 +488,9 @@ protected:
 
 	void on_resize(uint32_t width, uint32_t height) override
 	{
-		flush();
+		// Flush the GPU queue to make sure the swap chain's back buffers
+		// are not being referenced by an in-flight command list.
+		flush_GPU();
 
 		for (int i = 0; i < s_NumFrames; ++i)
 		{
@@ -531,6 +507,8 @@ protected:
 		throw_if_failed(
 			m_swapChain->ResizeBuffers(s_NumFrames, width, height, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags)
 		);
+
+		m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
 		update_RTV();
 	}
