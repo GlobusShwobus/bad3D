@@ -10,6 +10,17 @@
 #include <stdexcept>
 #include "IRenderWindowSync.h"
 
+
+struct ModeHandle
+{
+	RECT preFullscreenRect{};
+
+	uint32_t width = 0;
+	uint32_t height = 0;
+
+	bool is_fullscreen = false;
+};
+
 class Window : public InterfaceWindow<Window>
 {
 public:
@@ -43,12 +54,6 @@ public:
 		// try to init this window using interface API
 		if (!initialize_window(class_name, hInstance, L"Main Window", WS_OVERLAPPEDWINDOW, NULL, windowX,windowY, windowWidth, windowHeight, NULL, NULL))
 			throw std::runtime_error("failed create");
-		// init width/height
-		RECT rc;
-		GetClientRect(m_hwnd, &rc);
-
-		m_width = rc.right - rc.left;
-		m_height = rc.bottom - rc.top;
 	}
 	Window(const Window&) = delete;
 	Window& operator=(const Window&) = delete;
@@ -90,22 +95,25 @@ public:
 		
 			if (wParam != SIZE_MINIMIZED)
 			{
-				RECT rc;
-				GetClientRect(m_hwnd, &rc);
+				RECT clientRect;
+				GetClientRect(m_hwnd, &clientRect);
 
-				m_width = rc.right - rc.left;
-				m_height = rc.bottom - rc.top;
+				m_modeHandle.width = clientRect.right - clientRect.left;
+				m_modeHandle.height = clientRect.bottom - clientRect.top;
 
-				if (m_renderer_sync) m_renderer_sync->on_resize(m_width, m_height);
+				if (m_renderer_sync) m_renderer_sync->on_resize(get_width(), get_height());
 			}
 			return 0;
 
+		// full screen toggle must be a special case becasue on messing with the window, something deep in win32 gets messed up.
+		// currently i think the best is to approach it as a special case, hence add the event into the main event handle and not on physical key down / up
 		case WM_KEYDOWN:
-		
+
 			if (wParam == VK_F11)
 			{
-				on_fullscreen(!m_Fullscreen);
+				on_fullscreen_toggle();
 			}
+
 			return 0;
 
 		default:
@@ -125,63 +133,60 @@ public:
 		m_mouse.end_frame(dt);
 	}
 
-	int get_width() const noexcept { return m_width; }
-	int get_height() const noexcept { return m_height; }
+	inline uint32_t get_width() const noexcept { return m_modeHandle.width; }
+	inline uint32_t get_height() const noexcept { return m_modeHandle.height; }
 	HWND window() const noexcept { return m_hwnd; }
 
 	void sync_to_renderer_interface(InterfaceRenderWindowSync* sync) { m_renderer_sync = sync; }
 
 private:
 
-	void on_fullscreen(bool fullscreen)
+	void on_fullscreen_toggle()
 	{
-		if (m_Fullscreen != fullscreen)
+		m_modeHandle.is_fullscreen = !m_modeHandle.is_fullscreen;
+
+		if (m_modeHandle.is_fullscreen) // Switching to fullscreen.
 		{
-			m_Fullscreen = fullscreen;
+			// Store the current window dimensions so they can be restored 
+			// when switching out of fullscreen state.
+			::GetWindowRect(m_hwnd, &m_modeHandle.preFullscreenRect);
 
-			if (m_Fullscreen) // Switching to fullscreen.
-			{
-				// Store the current window dimensions so they can be restored 
-				// when switching out of fullscreen state.
-				::GetWindowRect(m_hwnd, &m_FullScreenSave);
+			// Set the window style to a borderless window so the client area fills
+			// the entire screen
+			UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+			::SetWindowLongPtrA(m_hwnd, GWL_STYLE, windowStyle);
 
-				// Set the window style to a borderless window so the client area fills
-				// the entire screen
-				UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
-				::SetWindowLongW(m_hwnd, GWL_STYLE, windowStyle);
+			// Query the name of the nearest display device for the window.
+			// This is required to set the fullscreen dimensions of the window
+			// when using a multi-monitor setup.
+			HMONITOR hMonitor = ::MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+			MONITORINFOEX monitorInfo = {};
+			monitorInfo.cbSize = sizeof(MONITORINFOEX);
+			::GetMonitorInfo(hMonitor, &monitorInfo);
 
-				// Query the name of the nearest display device for the window.
-				// This is required to set the fullscreen dimensions of the window
-				// when using a multi-monitor setup.
-				HMONITOR hMonitor = ::MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
-				MONITORINFOEX monitorInfo = {};
-				monitorInfo.cbSize = sizeof(MONITORINFOEX);
-				::GetMonitorInfo(hMonitor, &monitorInfo);
+			::SetWindowPos(m_hwnd, HWND_TOP,
+				monitorInfo.rcMonitor.left,
+				monitorInfo.rcMonitor.top,
+				monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+				monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+				SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
-				::SetWindowPos(m_hwnd, HWND_TOP,
-					monitorInfo.rcMonitor.left,
-					monitorInfo.rcMonitor.top,
-					monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
-					monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
-					SWP_FRAMECHANGED | SWP_NOACTIVATE);
+			::ShowWindow(m_hwnd, SW_MAXIMIZE);
+		}
+		else
+		{
+			// Restore all the window decorators.
+			::SetWindowLongPtrA(m_hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
-				::ShowWindow(m_hwnd, SW_MAXIMIZE);
-			}
-			else
-			{
-				// Restore all the window decorators.
-				::SetWindowLong(m_hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+			// THIS IS ACTUALLY BROKEN CURRENTLY, YOU CAN GO FULLSCREEN BUT NOT BACK TO NORMIE SCREEN
+			::SetWindowPos(m_hwnd, HWND_NOTOPMOST,
+				m_modeHandle.preFullscreenRect.left,
+				m_modeHandle.preFullscreenRect.top,
+				m_modeHandle.preFullscreenRect.right - m_modeHandle.preFullscreenRect.left,
+				m_modeHandle.preFullscreenRect.bottom - m_modeHandle.preFullscreenRect.top,
+				SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
-				// THIS IS ACTUALLY BROKEN CURRENTLY, YOU CAN GO FULLSCREEN BUT NOT BACK TO NORMIE SCREEN
-				::SetWindowPos(m_hwnd, HWND_NOTOPMOST,
-					m_FullScreenSave.left,
-					m_FullScreenSave.top,
-					m_FullScreenSave.right - m_FullScreenSave.left,
-					m_FullScreenSave.bottom - m_FullScreenSave.top,
-					SWP_FRAMECHANGED | SWP_NOACTIVATE);
-
-				::ShowWindow(m_hwnd, SW_NORMAL);
-			}
+			::ShowWindow(m_hwnd, SW_NORMAL);
 		}
 	}
 
@@ -190,10 +195,7 @@ private:
 	Keyboard& m_kb;
 	Mouse& m_mouse;
 
-	bool m_Fullscreen = false;
-	RECT m_FullScreenSave;
-	int m_width = 0;
-	int m_height = 0;
+	ModeHandle m_modeHandle;
 
 	InterfaceRenderWindowSync* m_renderer_sync = nullptr;
 };

@@ -186,6 +186,7 @@ bool check_tearing_support()
 }
 
 // the swapchain is created using the command queue
+// probably inhereting width / height from window is wiser because 1 less potential fuck up
 Microsoft::WRL::ComPtr<IDXGISwapChain4> create_swap_chain(HWND hWnd, Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount)
 {
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> dxgiSwapChain4;
@@ -230,8 +231,7 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> create_swap_chain(HWND hWnd, Microsoft::
 	);
 
 	// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
-	// will be handled manually.
-
+	// will be handled manually. older dx prefered fullscreen mode, dx12 doesnt support it. dx12 prefers windowed borderless
 	throw_if_failed(
 		dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER)
 	);
