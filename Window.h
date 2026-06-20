@@ -10,17 +10,6 @@
 #include <stdexcept>
 #include "IRenderWindowSync.h"
 
-
-struct ModeHandle
-{
-	RECT preFullscreenRect{};
-
-	uint32_t width = 0;
-	uint32_t height = 0;
-
-	bool is_fullscreen = false;
-};
-
 class Window : public InterfaceWindow<Window>
 {
 public:
@@ -54,6 +43,9 @@ public:
 		// try to init this window using interface API
 		if (!initialize_window(class_name, hInstance, L"Main Window", WS_OVERLAPPEDWINDOW, NULL, windowX,windowY, windowWidth, windowHeight, NULL, NULL))
 			throw std::runtime_error("failed create");
+		
+		m_width = windowWidth;
+		m_height = windowHeight;
 	}
 	Window(const Window&) = delete;
 	Window& operator=(const Window&) = delete;
@@ -98,8 +90,8 @@ public:
 				RECT clientRect;
 				GetClientRect(m_hwnd, &clientRect);
 
-				m_modeHandle.width = clientRect.right - clientRect.left;
-				m_modeHandle.height = clientRect.bottom - clientRect.top;
+				m_width = clientRect.right - clientRect.left;
+				m_height = clientRect.bottom - clientRect.top;
 
 				if (m_renderer_sync) m_renderer_sync->on_resize(get_width(), get_height());
 			}
@@ -133,8 +125,8 @@ public:
 		m_mouse.end_frame(dt);
 	}
 
-	inline uint32_t get_width() const noexcept { return m_modeHandle.width; }
-	inline uint32_t get_height() const noexcept { return m_modeHandle.height; }
+	inline uint32_t get_width() const noexcept { return m_width; }
+	inline uint32_t get_height() const noexcept { return m_height; }
 	HWND window() const noexcept { return m_hwnd; }
 
 	void sync_to_renderer_interface(InterfaceRenderWindowSync* sync) { m_renderer_sync = sync; }
@@ -143,13 +135,13 @@ private:
 
 	void on_fullscreen_toggle()
 	{
-		m_modeHandle.is_fullscreen = !m_modeHandle.is_fullscreen;
+		m_isFullscreen = !m_isFullscreen;
 
-		if (m_modeHandle.is_fullscreen) // Switching to fullscreen.
+		if (m_isFullscreen) // Switching to fullscreen.
 		{
 			// Store the current window dimensions so they can be restored 
 			// when switching out of fullscreen state.
-			::GetWindowRect(m_hwnd, &m_modeHandle.preFullscreenRect);
+			::GetWindowRect(m_hwnd, &m_saveOnFullscreen);
 
 			// Set the window style to a borderless window so the client area fills
 			// the entire screen
@@ -180,10 +172,10 @@ private:
 
 			// THIS IS ACTUALLY BROKEN CURRENTLY, YOU CAN GO FULLSCREEN BUT NOT BACK TO NORMIE SCREEN
 			::SetWindowPos(m_hwnd, HWND_NOTOPMOST,
-				m_modeHandle.preFullscreenRect.left,
-				m_modeHandle.preFullscreenRect.top,
-				m_modeHandle.preFullscreenRect.right - m_modeHandle.preFullscreenRect.left,
-				m_modeHandle.preFullscreenRect.bottom - m_modeHandle.preFullscreenRect.top,
+				m_saveOnFullscreen.left,
+				m_saveOnFullscreen.top,
+				m_saveOnFullscreen.right - m_saveOnFullscreen.left,
+				m_saveOnFullscreen.bottom - m_saveOnFullscreen.top,
 				SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 			::ShowWindow(m_hwnd, SW_NORMAL);
@@ -195,7 +187,10 @@ private:
 	Keyboard& m_kb;
 	Mouse& m_mouse;
 
-	ModeHandle m_modeHandle;
+	RECT m_saveOnFullscreen{};
+	bool m_isFullscreen = false;
+	uint32_t m_width = 0;
+	uint32_t m_height = 0;
 
 	InterfaceRenderWindowSync* m_renderer_sync = nullptr;
 };
