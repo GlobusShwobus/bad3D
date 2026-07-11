@@ -23,12 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IWindow.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Window.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Keyboard.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -38,16 +32,22 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Stopwatch.h">
       <Filter>memes</Filter>
     </ClInclude>
-    <ClInclude Include="MemeUtils.h">
+    <ClInclude Include="GPU_CORE.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="IRenderWindowSync.h">
+    <ClInclude Include="DX12Window.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12Fence.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FRect.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

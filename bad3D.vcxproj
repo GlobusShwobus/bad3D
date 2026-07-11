@@ -136,15 +136,15 @@
     <ClCompile Include="badMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IRenderWindowSync.h" />
-    <ClInclude Include="MemeUtils.h" />
-    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="DX12Fence.h" />
+    <ClInclude Include="DX12Window.h" />
+    <ClInclude Include="GPU_CORE.h" />
+    <ClInclude Include="FRect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stopwatch.h" />
-    <ClInclude Include="IWindow.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Mouse.h" />
-    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="bad3D.rc" />
