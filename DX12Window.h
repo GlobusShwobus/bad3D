@@ -11,7 +11,7 @@
 #undef max
 #endif
 
-#include "DX12Fence.h"
+#include "DX12CommandQueue.h"
 
 static LRESULT CALLBACK reserved_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -113,11 +113,6 @@ public:
 		window_desc.hIconSm = nullptr;
 
 		// command queue description
-		D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
-		command_queue_desc.Type = command_list_type;                        // command queue and command list must be the same type
-		command_queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;  // don't think we're doing anything special which requires priviledge
-		command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;           // only 2 modes, the other being disabling timeouts
-		command_queue_desc.NodeMask = 0;                                    // for multi adapter systems
 
 		// swap chain description
 		DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
@@ -233,9 +228,7 @@ public:
 		}
 #endif
 		// create command queue
-		execute_test_throw(
-			mDevice->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&mCommand_queue))
-		);
+		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice, command_list_type);
 
 		// check if display supports tearing. set local variable for later use and update the swap chain desc
 		mSettings.tearing_supported = check_is_tearing_supported(factory);
@@ -245,7 +238,7 @@ public:
 		DXSwapChain1 swapchain1;
 		execute_test_throw(
 			factory->CreateSwapChainForHwnd(
-				mCommand_queue.Get(),	  // in directx 12 this IUnknown must be a command queue, not device
+				mCommand_queue->get_private(),	  // in directx 12 this IUnknown must be a command queue, not device
 				window, 				  // the window that is associated with the swap chain
 				&swap_chain_desc,				  // description
 				nullptr,			  // optional fullscreen desc. do windowed fullscreen instead
@@ -272,23 +265,15 @@ public:
 		reset_back_buffers();
 
 		// create command allocator
-		for (UINT i = 0; i < NUMBER_OF_BUFFERS; i++)
-		{
-			execute_test_throw(
-				mDevice->CreateCommandAllocator(command_list_type, IID_PPV_ARGS(&mCommand_allocators[i]))
-			);
-		}
 
 		// create command list
-		execute_test_throw(
-			mDevice->CreateCommandList(NULL, command_list_type, mCommand_allocators[mCurrent_back_buffer_index].Get(), nullptr, IID_PPV_ARGS(&mCommand_list))
-		);
+		mCommand_list = mCommand_queue->get_command_list();
+
 		execute_test_throw(
 			mCommand_list->Close()
 		);
 
 		// create fence
-		mFence.initialize(mDevice, mCommand_queue, D3D12_FENCE_FLAG_NONE);
 
 		// set is init which up until this point protecd against sytem commands
 		is_init = true;
@@ -300,7 +285,7 @@ public:
 	~DX12Window()
 	{
 		// finish any workload the GPU is doing before destruction
-		flush();
+		// flush();
 	}
 
 	void dispatch_event_reading()
@@ -317,11 +302,14 @@ public:
 	void setup_frame()
 	{
 		// reset command allocator and list to default state before recording new commands this frame
-		auto& command_allocator = mCommand_allocators[mCurrent_back_buffer_index];
+		// auto& command_allocator = mCommand_allocators[mCurrent_back_buffer_index];
 		auto& back_buffer       = mBack_buffers[mCurrent_back_buffer_index];
 
-		command_allocator->Reset();
-		mCommand_list->Reset(command_allocator.Get(), nullptr);
+		//command_allocator->Reset();
+		//mCommand_list->Reset(command_allocator.Get(), nullptr);
+		
+		// get new command list
+		mCommand_list = mCommand_queue->get_command_list();
 
 		// clear the render target
 		{
@@ -362,10 +350,11 @@ public:
 			mCommand_list->Close()
 		);
 		// eventually it will be cool to have multiple list. command queue wants an array of lists by defualt. right now it's just 1 though
-		ID3D12CommandList* const command_lists[] = { mCommand_list.Get() };
+		// ID3D12CommandList* const command_lists[] = { mCommand_list.Get() };
 
 		// execute list(s)
-		mCommand_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
+		UINT64 signal_val = mCommand_queue->execute(mCommand_list);
+		//mCommand_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
 
 		// present to display via swap chain
 		UINT syncInterval = mSettings.vsync ? 1 : 0;
@@ -375,12 +364,14 @@ public:
 		);
 
 		// ask for the GPU to signal when done rendering THIS frame
-		mExpected_fence_values[mCurrent_back_buffer_index] = mFence.signal();
+		// mExpected_fence_values[mCurrent_back_buffer_index] = mFence.signal();
 		
 		// swap chain will change its internal back buffer index after calling present
 		// the system is about to reuse a buffer. retrieve the new index of the buffer and stall the CPU in case the GPU is not yet done with it
 		mCurrent_back_buffer_index = mSwap_chain->GetCurrentBackBufferIndex();
-		mFence.wait(mExpected_fence_values[mCurrent_back_buffer_index]);
+
+		mCommand_queue->wait(signal_val);
+		//mFence.wait(mExpected_fence_values[mCurrent_back_buffer_index]);
 	}
 
 	bool is_open()const
@@ -473,11 +464,11 @@ private:
 	}
 
 	// this function force waits for the moment the GPU is done with the commands. use it for resetting moments like on resize
-	void flush()
-	{
-		UINT64 expected_value = mFence.signal();
-		mFence.wait(expected_value);
-	}
+	//	void flush()
+	//	{
+	//		UINT64 expected_value = mFence.signal();
+	//		mFence.wait(expected_value);
+	//	}
 
 	// gets the current handle ( behaves like an index actually ) of the descriptor
 	D3D12_CPU_DESCRIPTOR_HANDLE get_current_buffers_descriptor_index() const
@@ -496,7 +487,7 @@ private:
 			mSettings.client_height = std::max(1u, height);
 			
 			// make sure the resources are free before reuse
-			flush();
+			mCommand_queue->flush();
 
 			// any references to the back buffers must be released
 			// for proper bookkeeping the expected fence values are also set to whatever is the most current one 
@@ -504,7 +495,7 @@ private:
 			for (int i = 0; i < NUMBER_OF_BUFFERS; i++)
 			{
 				mBack_buffers[i].Reset();
-				mExpected_fence_values[i] = mExpected_fence_values[mCurrent_back_buffer_index];
+				// mExpected_fence_values[i] = mExpected_fence_values[mCurrent_back_buffer_index];
 			}
 
 			// reset swap chains back buffers
@@ -585,22 +576,21 @@ private:
 	// order matters
 	MSWindow           mWindow;
 	DXDevice2          mDevice;
-	DXCommandQueue     mCommand_queue;
+
+	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
+	
 	DXSwapChain4       mSwap_chain;
 	DXDescriptorHeap   mDescriptor_heap;
 	DXResource         mBack_buffers[NUMBER_OF_BUFFERS];
-	DXCommandAllocator mCommand_allocators[NUMBER_OF_BUFFERS];
-	DXCommandList      mCommand_list;
-	DX12Fence              mFence;
 
-	UINT        mExpected_fence_values[NUMBER_OF_BUFFERS];
+	DXCommandList2      mCommand_list;
+
 	std::size_t mCurrent_back_buffer_index = 0;
 	std::size_t mDescriptor_size = 0;
 
 	RECT mWindowed_rect{};
 
 	GFXSettings mSettings;
-
 
 	// guards from window proc running GPU side event resolutions before they're created and also acts as a 'is_open'
 	bool is_init = false; 

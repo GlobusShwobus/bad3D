@@ -134,8 +134,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="badMain.cpp" />
+    <ClCompile Include="DX12CommandQueue.cpp" />
+    <ClCompile Include="GPU_CORE.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX12CommandQueue.h" />
     <ClInclude Include="DX12Fence.h" />
     <ClInclude Include="DX12Window.h" />
     <ClInclude Include="GPU_CORE.h" />
