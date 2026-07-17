@@ -30,18 +30,18 @@ protected:
     )
     {
         WNDCLASSEX window_desc = {};
-        window_desc.cbSize = sizeof(window_desc);
-        window_desc.lpfnWndProc = IWin32Window::wnd_proc;
+        window_desc.cbSize        = sizeof(window_desc);
+        window_desc.lpfnWndProc   = IWin32Window::wnd_proc;
         window_desc.lpszClassName = class_name;
-        window_desc.style = class_style;
-        window_desc.hInstance = hInstance;
-        window_desc.cbClsExtra = NULL;
-        window_desc.cbWndExtra = NULL;
-        window_desc.hIcon = NULL;
-        window_desc.hCursor = NULL;
+        window_desc.style         = class_style;
+        window_desc.hInstance     = hInstance;
+        window_desc.cbClsExtra    = NULL;
+        window_desc.cbWndExtra    = NULL;
+        window_desc.hIcon         = NULL;
+        window_desc.hCursor       = NULL;
         window_desc.hbrBackground = NULL;
-        window_desc.lpszMenuName = NULL;
-        window_desc.hIconSm = NULL;
+        window_desc.lpszMenuName  = NULL;
+        window_desc.hIconSm       = NULL;
 
         // try create. can fail i think on re-registry so might be wiser to separate register and create
         return RegisterClassExW(&window_desc);
