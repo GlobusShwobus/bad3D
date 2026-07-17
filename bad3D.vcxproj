@@ -139,6 +139,7 @@
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX12Application.h" />
     <ClInclude Include="DX12CommandQueue.h" />
     <ClInclude Include="DX12Window.h" />
     <ClInclude Include="GPU_CORE.h" />
@@ -151,6 +152,7 @@
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="IWindowEventListener.h" />
+    <ClInclude Include="Win32Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="bad3D.rc" />
