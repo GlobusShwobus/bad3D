@@ -140,15 +140,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX12CommandQueue.h" />
-    <ClInclude Include="DX12Fence.h" />
     <ClInclude Include="DX12Window.h" />
     <ClInclude Include="GPU_CORE.h" />
-    <ClInclude Include="FRect.h" />
+    <ClInclude Include="IWin32Window.h" />
+    <ClInclude Include="ObserverPtr.h" />
+    <ClInclude Include="TypeRect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="IWindowEventListener.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="bad3D.rc" />
