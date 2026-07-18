@@ -60,8 +60,9 @@ protected:
         IWindowEventListener* listener
     )
     {
-        // wnd_proc will reassign handle. that's why mHwnd is not assigned to here. not an error but not 100% sexy either
-        if (!CreateWindowExW(
+        // mHwnd is assigned to here but it will also reassign to itself in NC_CREATE. it's not clean and it's easier to have it
+        // be confusing like that because otherwise it makes things difficult down the line.
+        mHwnd = CreateWindowExW(
             NULL,
             class_name,
             window_name,
@@ -74,7 +75,9 @@ protected:
             NULL,
             hInstance,
             this
-        ))
+        );
+        
+        if (!mHwnd)
             return false;
 
         mListener.observe_this(listener);

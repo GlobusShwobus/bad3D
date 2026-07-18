@@ -1,13 +1,17 @@
 #pragma once
 
 #include "GPU_CORE.h"
+#include "ObserverPtr.h"
 #include <queue>
 
 class DX12CommandQueue final
 {
 public:
-	DX12CommandQueue(DXDevice2 device, D3D12_COMMAND_LIST_TYPE type);
-
+	DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
+	DX12CommandQueue(const DX12CommandQueue&) = delete;
+	DX12CommandQueue& operator=(const DX12CommandQueue&) = delete;
+	DX12CommandQueue(DX12CommandQueue&&) = delete;
+	DX12CommandQueue& operator=(DX12CommandQueue&&) = delete;
 	virtual ~DX12CommandQueue();
 
 	// get an available command list from command queue
@@ -42,8 +46,8 @@ private:
 		DXCommandAllocator command_allocator;
 	};
 
-	DXDevice2      mDevice;
-	DXCommandQueue mCommandQueue;
+	ObserverPtr<ID3D12Device2>      mDevice;
+	DXCommandQueue                  mCommandQueue;
 
 	DXFence mFence;
 	UINT64  mFenceSignalCounter;

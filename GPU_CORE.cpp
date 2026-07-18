@@ -1,6 +1,6 @@
 #include "GPU_CORE.h"
 
-HRESULT find_adapter(DXFactory4& factory, bool use_warp, DXAdapter4& adapter_out)
+HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXAdapter4& adapter_out)
 {
 	HRESULT hr = E_FAIL;
 	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
@@ -66,7 +66,7 @@ HRESULT enable_GPU_debug_layer()
 	return hr;
 }
 
-bool check_is_tearing_supported(DXFactory4& factory4)
+bool check_is_tearing_supported(ObserverPtr<IDXGIFactory4> factory)
 {
 	BOOL allow_tearing = FALSE;
 	// Rather than create the 1.5 factory interface directly, we create the 1.4
@@ -74,11 +74,8 @@ bool check_is_tearing_supported(DXFactory4& factory4)
 	// debugging tools which might not support the 1.5 factory interface.
 	DXFactory5 factory5;
 
-	if (SUCCEEDED(factory4.As(&factory5)))
+	if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(&factory5))))
 	{
-		// hilariously in 2026 there's still just 1 feature lmao... so yeah, this func is to check if tearing is supported
-		// check feature support will fill the passed in BOOL but the method can also fail, which is why need manually set it as FALSE
-		// on fail to avoid garbage info...
 		if (FAILED(factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allow_tearing, sizeof(allow_tearing))))
 		{
 			allow_tearing = FALSE;

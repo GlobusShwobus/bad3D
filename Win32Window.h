@@ -1,27 +1,69 @@
 #pragma once
+#include "DX12SwapChain.h"
 #include "IWin32Window.h"
 #include "TypeRect.h"
 #include "Utils.h"
 #include <string>
 
+// a slightly more useful in terms of functionality window. also does RAII
+
 class Win32Window : public IWin32Window
 {
 public:
 
-	Win32Window(const std::wstring& window_name, int w, int h, bool fullscreen_mode)
+	Win32Window(const std::wstring& window_name, uint32_t client_width, uint32_t client_height, bool fullscreen_mode, IWindowEventListener* listener)
 	{
 		const std::wstring class_name = L"Win32Window class";
 		const DWORD class_style       = CS_HREDRAW | CS_VREDRAW;
-		const DWORD window_style      = WS_OVERLAPPEDWINDOW;
 		HINSTANCE hInstance           = ::GetModuleHandleW(nullptr);
 
+		// try register
 		if (!register_class(class_name.c_str(), class_style, hInstance))
 			throw_error_code_translation(::GetLastError());
 
-		if(!create_window(class_name.c_str(), window_name.c_str(), ))
+		// determine size
+		LRect size;
+		DWORD window_style;
+		if (fullscreen_mode)
+		{
+			size = get_window_size_from_display_mousepos();
+			window_style = 0;
+			mWidth = size.w;
+			mHeight = size.h;
+		}
+		else
+		{
+			size = get_window_size_from_client_size(client_width, client_height, WS_OVERLAPPEDWINDOW);
+			window_style = WS_OVERLAPPEDWINDOW;
+			mWidth = client_width;
+			mHeight = client_height;
+		}
+
+		// create window
+		if(!create_window(class_name.c_str(), window_name.c_str(), window_style, size.x,size.y,size.w,size.h, hInstance, listener))
 			throw_error_code_translation(::GetLastError());
+
+		// set local variables
+		mWindowedRect = size;
+		mStyle = window_style;
+		mIsFullscreen = fullscreen_mode;
 	}
 
+	Win32Window(const Win32Window&) = delete;
+	Win32Window& operator=(const Win32Window&) = delete;
+	Win32Window(Win32Window&& rhs)noexcept = delete;
+	Win32Window& operator=(Win32Window&& rhs) noexcept = delete;
+
+	~Win32Window()
+	{
+		if (mHwnd)
+			destroy();
+	}
+
+	void show_window()
+	{
+		::ShowWindow(mHwnd, mIsFullscreen ? SW_MAXIMIZE : SW_NORMAL);
+	}
 
 	void set_to_fullscreen()
 	{
@@ -81,6 +123,7 @@ public:
 	bool is_fullscreen()const { return mIsFullscreen; }
 	UINT32 get_width()const { return mWidth; }
 	UINT32 get_height()const { return mHeight; }
+	HWND get_HWND()const { return mHwnd; }
 
 private:
 
@@ -96,12 +139,12 @@ private:
 		mWindowedRect.h = current_rect.bottom - current_rect.top;
 	}
 
-	LRect client_size_to_full_size(int in_width, int in_height) const
+	LRect get_window_size_from_client_size(int in_width, int in_height, DWORD style) const
 	{
 		LRect result;
 		RECT client_area_rect = RECT{ 0, 0, in_width, in_height };
 		// adjust the client area to full area of the window including edges
-		::AdjustWindowRect(&client_area_rect, mStyle, FALSE);
+		::AdjustWindowRect(&client_area_rect, style, FALSE);
 		result.w = client_area_rect.right - client_area_rect.left;
 		result.h = client_area_rect.bottom - client_area_rect.top;
 
@@ -112,6 +155,25 @@ private:
 		result .y = std::max<LONG>(0, (sys_height - result.h) / 2);
 
 		return result;
+	}
+
+	LRect get_window_size_from_display_mousepos()
+	{
+		//query where the mouse is to determine the monitor: for example if the exe is in monitor2 therefor mouse is also in monitor2 to click it..
+		POINT cursor_pos;
+		::GetCursorPos(&cursor_pos);
+		// query the display monitor from the mouse cursor
+		HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
+		MONITORINFOEX monitorinfo = {};
+		monitorinfo.cbSize = sizeof(MONITORINFOEX);
+		::GetMonitorInfoW(hMonitor, &monitorinfo);
+
+		return LRect{
+			monitorinfo.rcMonitor.left,
+			monitorinfo.rcMonitor.top,
+			monitorinfo.rcMonitor.right - monitorinfo.rcMonitor.left,
+			monitorinfo.rcMonitor.bottom - monitorinfo.rcMonitor.top
+		};
 	}
 
 private:

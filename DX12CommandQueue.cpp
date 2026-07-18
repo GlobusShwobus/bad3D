@@ -2,8 +2,8 @@
 #include "Utils.h"
 
 
-DX12CommandQueue::DX12CommandQueue(DXDevice2 device, D3D12_COMMAND_LIST_TYPE type)
-	:mDevice(device), mType(type)
+DX12CommandQueue::DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
+	:mDevice(device), mType(type), mFenceSignalCounter(0)
 {
 	D3D12_COMMAND_QUEUE_DESC desc = {};
 	desc.Type = mType;                                // command queue and command list must be the same type

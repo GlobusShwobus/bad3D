@@ -2,7 +2,7 @@
 
 #include "Stopwatch.h"
 
-#include "DX12Window.h"
+#include "DX12Application.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -47,16 +47,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	enable_GPU_debug_layer();
 
 	try {
-		DX12Window gfx(hInstance, L"pepe", 1280, 720, WS_OVERLAPPEDWINDOW);
-
-		while (gfx.is_open())
-		{
-			gfx.dispatch_event_reading();
-			gfx.setup_frame();
-
-
-			gfx.present_frame();
-		}
+		DX12Application gfx(hInstance, L"pepe", 1280, 720);
+		gfx.run();
 	}
 	catch (const std::exception& e)
 	{

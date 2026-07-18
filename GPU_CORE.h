@@ -7,6 +7,7 @@
 
 #include <DirectXMath.h>
 #include <wrl.h>
+#include "ObserverPtr.h"
 //
 //                                                 +---------------+
 //                                                 |    FACTORY    |
@@ -601,9 +602,9 @@ using DXSwapChain4 = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
 using DXInfoQueue = Microsoft::WRL::ComPtr<ID3D12InfoQueue>;
 
 
-HRESULT find_adapter(DXFactory4& factory, bool use_warp, DXAdapter4& adapter_out);
+HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXAdapter4& adapter_out);
 
 // in release mode this function always returns S_OK
 HRESULT enable_GPU_debug_layer();
 
-bool check_is_tearing_supported(DXFactory4& factory4);
+bool check_is_tearing_supported(ObserverPtr<IDXGIFactory4> factory);

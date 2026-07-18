@@ -141,7 +141,7 @@
   <ItemGroup>
     <ClInclude Include="DX12Application.h" />
     <ClInclude Include="DX12CommandQueue.h" />
-    <ClInclude Include="DX12Window.h" />
+    <ClInclude Include="DX12SwapChain.h" />
     <ClInclude Include="GPU_CORE.h" />
     <ClInclude Include="IWin32Window.h" />
     <ClInclude Include="ObserverPtr.h" />

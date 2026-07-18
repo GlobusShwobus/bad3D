@@ -12,10 +12,11 @@
 #endif
 
 #include <memory>
+#include <string>
 #include "IWindowEventListener.h"
 #include "DX12CommandQueue.h"
 #include "Win32Window.h"
-
+#include "DX12SwapChain.h"
 
 class DX12Application : public IWindowEventListener
 {
@@ -36,18 +37,10 @@ class DX12Application : public IWindowEventListener
 
 public:
 
-	DX12Application(HINSTANCE module, const wchar_t* title, uint32_t width, uint32_t height, DWORD window_style)
+	DX12Application(HINSTANCE module, const std::wstring& window_title, uint32_t width, uint32_t height)
 	{
 		const wchar_t window_class_name[] = L"Graphics window";
 		const D3D12_COMMAND_LIST_TYPE command_list_type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-		// command queue description
-
-		// swap chain description
-
-
-		// descriptor heap description
-
 
 		// info queue description
 		D3D12_INFO_QUEUE_FILTER info_queue_deny_filter = {};
@@ -74,13 +67,6 @@ public:
 			info_queue_deny_filter.DenyList.pIDList = DenyIds;
 		}
 
-
-		// register the window class
-
-
-		// create window. the window is created as a temporary and actually assigned in window procedure on WM_NCCREATE
-
-
 		// create DXGI factory
 		DXFactory4 factory;
 		UINT create_factory_flags = 0;  // only 2 values are valid: 0 or debug.
@@ -91,14 +77,10 @@ public:
 			CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory))
 		);
 
-		// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
-		// will be handled manually.
-
-
 		// find a good adapter
 		DXAdapter4 adapter4;
 		execute_test_throw(
-			find_adapter(factory, G_IS_WARP, adapter4)
+			find_adapter(factory.Get(), G_IS_WARP, adapter4)
 		);
 
 		// create device
@@ -122,59 +104,182 @@ public:
 			);
 		}
 #endif
+
 		// create command queue
-		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice, command_list_type);
+		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_type);
 
-		// check if display supports tearing. set local variable for later use and update the swap chain desc
+		// create window
+		mWindow = std::make_unique<Win32Window>(window_title, width, height, false, this);
 
-		// create the swap chain
-
-
-		// set the the back buffer tracking index
-
-
-		// create descriptor heap and descriptor size
-
-		// cache the system descriptor size
-
-
-		// create RTV buffer handles and descriptors
-
-
-		// create command allocator
+		// create swapchain
+		mSwapChain = std::make_unique<DX12SwapChain>(factory.Get(), mDevice.Get(), mCommand_queue->get_private(), mWindow->get_HWND(), mWindow->get_width(), mWindow->get_height());
 
 		// create command list
-		mCommand_list = mCommand_queue->get_command_list();
+		// mCommand_list = mCommand_queue->get_command_list();
 
-		execute_test_throw(
-			mCommand_list->Close()
-		);
-
-		// create fence
+		//	execute_test_throw(
+		//		mCommand_list->Close()
+		//	);
 
 		// set is init which up until this point protecd against sytem commands
 		is_init = true;
 
 		// show window
-		ShowWindow(mWindow.mHwnd, SW_SHOW);
+		mWindow->show_window();
 	}
 
 	~DX12Application() override = default;
 
+
+	void run()
+	{
+
+		while (is_init)
+		{
+			// call wndproc
+			MSG msg = {};
+			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+			{
+				//TranslateMessage(&msg); // additional messages like WM_CHAR. checking wParam manually works too. but needs research
+				DispatchMessage(&msg);
+			}
+
+			begin();
+
+
+
+			end();
+		}
+
+	}
+
+	void begin()
+	{
+		mCommand_list = mCommand_queue->get_command_list();
+		D3D12_RESOURCE_BARRIER barrier = mSwapChain->barrier_from_present_to_rtv();
+
+		// add the command to the list
+		mCommand_list->ResourceBarrier(1, &barrier);
+		// index into the correct descriptor in the descriptor heap
+		D3D12_CPU_DESCRIPTOR_HANDLE index = mSwapChain->get_descriptor_index();
+		mCommand_list->ClearRenderTargetView(index, clear_color, 0, nullptr);
+	}
+
+
+
+	void end()
+	{
+		D3D12_RESOURCE_BARRIER barrier = mSwapChain->barrier_from_rtv_to_present();
+
+		// add the command to the list
+		mCommand_list->ResourceBarrier(1, &barrier);
+
+		// signal that the recording into the list is finished
+		execute_test_throw(
+			mCommand_list->Close()
+		);
+		// eventually it will be cool to have multiple list. command queue wants an array of lists by defualt. right now it's just 1 though
+		// ID3D12CommandList* const command_lists[] = { mCommand_list.Get() };
+
+		// execute list(s)
+		UINT64 signal_val = mCommand_queue->execute(mCommand_list);
+		//mCommand_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
+
+		// present to display via swap chain
+		execute_test_throw(
+			mSwapChain->present()
+		);
+
+		// ask for the GPU to signal when done rendering THIS frame
+		// mExpected_fence_values[mCurrent_back_buffer_index] = mFence.signal();
+
+		// swap chain will change its internal back buffer index after calling present
+		// the system is about to reuse a buffer. retrieve the new index of the buffer and stall the CPU in case the GPU is not yet done with it
+
+		mCommand_queue->wait(signal_val);
+		//mFence.wait(mExpected_fence_values[mCurrent_back_buffer_index]);
+	}
+
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		return 0;
+		if (is_init) {
+			switch (uMsg)
+			{
+			case WM_DESTROY:
+				PostQuitMessage(0);
+				is_init = false;
+				return 0;
+			case WM_PAINT:
+			{
+				// PAINTSTRUCT ps;
+				// BeginPaint(mWindow.get(), &ps);
+				// EndPaint(mWindow.get(), &ps);
+			}
+			break;
+
+			// on window resize get the width and height to the client area. alternative is width / height = LOPARAM / HIPARAM (lParam) but this gives entire size
+			case WM_SIZE:
+
+				if (wParam != SIZE_MINIMIZED)
+				{
+					//RECT clientRect;
+					//GetClientRect(mWindow->get_HWND(), &clientRect);
+
+					mCommand_queue->flush();
+
+					mSwapChain->resize_back_buffers(mWindow->get_width(), mWindow->get_height());
+				}
+				break;
+
+				// full screen toggle must be a special case becasue on messing with the window, something deep in win32 gets messed up.
+				// currently i think the best is to approach it as a special case, hence add the event into the main event handle and not on physical key down / up
+				// default window proc will play a system notification sound
+			case WM_SYSKEYDOWN:
+			case WM_KEYDOWN:
+
+				if (wParam == VK_F11)
+				{
+					if (mWindow->is_fullscreen())
+						mWindow->set_to_fullscreen();
+					else 
+						mWindow->set_to_windowed();
+				}
+
+				break;
+
+			default:
+				break; // default breaks switch and goes to DefWindowProc
+			}
+
+
+			//	// window must also update the mouse and keyboard events
+			//	m_mouse.handle_mouse_messages(uMsg, wParam, lParam, m_hwnd);
+			//	m_kb.handle_mouse_messages(uMsg, wParam, lParam);
+			//	
+			//	// set mouse capture, may be done in higher level code. will see
+			//	if (m_mouse.button(Mouse::ButtonType::Left).pressed()) {
+			//		SetCapture(m_hwnd);
+			//	}
+			//	else if (m_mouse.button(Mouse::ButtonType::Left).released())
+			//	{
+			//		if (GetCapture() == m_hwnd) {
+			//			ReleaseCapture();
+			//		}
+			//	}
+		}
+		return DefWindowProcW(mWindow->get_HWND(), uMsg, wParam, lParam);
 	}
 private:
 	// order matters
-	Win32Window        mWindow;
 	DXDevice2          mDevice;
 
+	std::unique_ptr<Win32Window>        mWindow;
+	std::unique_ptr<DX12SwapChain>      mSwapChain;
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
-	
-
 	DXCommandList2      mCommand_list;
+
+	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 
 	// guards from window proc running GPU side event resolutions before they're created and also acts as a 'is_open'

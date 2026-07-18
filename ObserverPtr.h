@@ -11,7 +11,7 @@ public:
 
 	constexpr ObserverPtr() noexcept = default;
 	constexpr ObserverPtr(std::nullptr_t) noexcept {}
-	constexpr explicit ObserverPtr(T* ptr) noexcept
+	constexpr ObserverPtr(T* ptr) noexcept // let it be implicit for now
 		: ptr_(ptr)
 	{
 	}
