@@ -225,8 +225,11 @@ public:
 
 				if (wParam != SIZE_MINIMIZED)
 				{
-					mCommand_queue->flush();
-					mSwapChain->resize_back_buffers(mWindow->get_width(), mWindow->get_height());
+					if (mSwapChain->get_width() != mWindow->get_width() || mSwapChain->get_height() != mWindow->get_height())
+					{
+						mCommand_queue->flush();
+						mSwapChain->resize_back_buffers(mWindow->get_width(), mWindow->get_height());
+					}
 				}
 				break;
 

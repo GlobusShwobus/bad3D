@@ -16,7 +16,7 @@ public:
 		HWND client_window,
 		uint32_t client_width, 
 		uint32_t client_height)
-		:mDevice(device)
+		:mDevice(device), mWidth(client_width), mHeight(client_height)
 	{
 		// check if tearing is supported
 		mIsTearingSupported = check_is_tearing_supported(factory);
@@ -88,12 +88,11 @@ public:
 
 	void resize_back_buffers(uint32_t width, uint32_t height)
 	{
-		// make sure the resources are free before reuse
-		// flush();
-
-		// any references to the back buffers must be released
-		// for proper bookkeeping the expected fence values are also set to whatever is the most current one 
-		// because old buffers are gone therefor nothing should be expected regarding them. it's essentially a reset value, nothing more.
+		mWidth = width;
+		mHeight = height;
+			// any references to the back buffers must be released
+			// for proper bookkeeping the expected fence values are also set to whatever is the most current one 
+			// because old buffers are gone therefor nothing should be expected regarding them. it's essentially a reset value, nothing more.
 		for (int i = 0; i < NUMBER_OF_BUFFERS; i++)
 		{
 			mBackBuffers[i].Reset();
@@ -185,6 +184,9 @@ public:
 		return index;
 	}
 
+	LONG get_width()const { return mWidth; }
+	LONG get_height()const { return mHeight; }
+
 private:
 
 	ObserverPtr<ID3D12Device2> mDevice = nullptr;
@@ -194,6 +196,9 @@ private:
 
 	UINT               mDescriptorSize;
 	UINT               mCurrentBackBufferIndex;
+
+	LONG mWidth;
+	LONG mHeight;
 
 	bool mIsVSync;
 	bool mIsTearingSupported;

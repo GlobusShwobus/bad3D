@@ -136,6 +136,8 @@ void Win32Window::process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam
 				set_to_windowed();
 			else
 				set_to_fullscreen();
+
+			show_window();
 		}
 
 		break;
