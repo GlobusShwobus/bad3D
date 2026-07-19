@@ -136,7 +136,9 @@
     <ClCompile Include="badMain.cpp" />
     <ClCompile Include="DX12CommandQueue.cpp" />
     <ClCompile Include="GPU_CORE.cpp" />
+    <ClCompile Include="IWin32Window.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DX12Application.h" />
@@ -144,6 +146,8 @@
     <ClInclude Include="DX12SwapChain.h" />
     <ClInclude Include="GPU_CORE.h" />
     <ClInclude Include="IWin32Window.h" />
+    <ClInclude Include="TypePoint.h" />
+    <ClInclude Include="WIN32_CORE.h" />
     <ClInclude Include="ObserverPtr.h" />
     <ClInclude Include="TypeRect.h" />
     <ClInclude Include="resource.h" />

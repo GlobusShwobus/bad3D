@@ -30,6 +30,12 @@
     <ClCompile Include="DX12CommandQueue.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="IWin32Window.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32Window.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -72,6 +78,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12SwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WIN32_CORE.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TypePoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

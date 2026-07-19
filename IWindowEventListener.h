@@ -1,9 +1,8 @@
 #pragma once
 
-#define WIN_LEAN_AND_MEAN
-#include <Windows.h>
+#include "WIN32_CORE.h"
 
-// interface type which should be inherited by the application type or type which sits above managing the window, swapchain, commandqueue etc...
+// listener interface
 class IWindowEventListener
 {
 public:

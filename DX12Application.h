@@ -203,6 +203,9 @@ public:
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (is_init) {
+
+			mWindow->process_window_message(uMsg, wParam, lParam);
+
 			switch (uMsg)
 			{
 			case WM_DESTROY:
@@ -222,11 +225,7 @@ public:
 
 				if (wParam != SIZE_MINIMIZED)
 				{
-					//RECT clientRect;
-					//GetClientRect(mWindow->get_HWND(), &clientRect);
-
 					mCommand_queue->flush();
-
 					mSwapChain->resize_back_buffers(mWindow->get_width(), mWindow->get_height());
 				}
 				break;
@@ -237,13 +236,13 @@ public:
 			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 
-				if (wParam == VK_F11)
-				{
-					if (mWindow->is_fullscreen())
-						mWindow->set_to_fullscreen();
-					else 
-						mWindow->set_to_windowed();
-				}
+				//	if (wParam == VK_F11)
+				//	{
+				//		if (mWindow->is_fullscreen())
+				//			mWindow->set_to_fullscreen();
+				//		else 
+				//			mWindow->set_to_windowed();
+				//	}
 
 				break;
 
@@ -267,7 +266,7 @@ public:
 			//		}
 			//	}
 		}
-		return DefWindowProcW(mWindow->get_HWND(), uMsg, wParam, lParam);
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	}
 private:
 	// order matters

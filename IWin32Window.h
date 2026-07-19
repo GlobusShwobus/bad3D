@@ -1,11 +1,12 @@
 #pragma once
 
-#define WIN_LEAN_AND_MEAN
-#include <Windows.h>
+#include "WIN32_CORE.h"
 #include "IWindowEventListener.h"
 #include "ObserverPtr.h"
 
-// NOTE: this class does not destroy the window automatically... yet
+// win32 window interface. does not do automatic clean up
+// NOTE: when create_window(...) is called the internal windows API will fire the first wnd_poc immediately meaning at least
+//       one wnd_proc runs before the scope of create_window(...) finishes
 
 class IWin32Window
 {
@@ -20,32 +21,10 @@ protected:
     HWND mHwnd = nullptr;
 
     // default constructor
-    IWin32Window() :mHwnd(nullptr), mListener(nullptr) {}
+    IWin32Window() = default;
 
     // register the window
-    bool register_class(
-        PCWSTR class_name,
-        DWORD class_style,
-        HINSTANCE hInstance
-    )
-    {
-        WNDCLASSEX window_desc = {};
-        window_desc.cbSize        = sizeof(window_desc);
-        window_desc.lpfnWndProc   = IWin32Window::wnd_proc;
-        window_desc.lpszClassName = class_name;
-        window_desc.style         = class_style;
-        window_desc.hInstance     = hInstance;
-        window_desc.cbClsExtra    = NULL;
-        window_desc.cbWndExtra    = NULL;
-        window_desc.hIcon         = NULL;
-        window_desc.hCursor       = NULL;
-        window_desc.hbrBackground = NULL;
-        window_desc.lpszMenuName  = NULL;
-        window_desc.hIconSm       = NULL;
-
-        // try create. can fail i think on re-registry so might be wiser to separate register and create
-        return RegisterClassExW(&window_desc);
-    }
+    bool register_class( PCWSTR class_name, DWORD class_style, HINSTANCE hInstance ) noexcept;
 
     // creates window. if returns false call GetLastError
     bool create_window(
@@ -57,36 +36,11 @@ protected:
         int w,
         int h,
         HINSTANCE hInstance,
-        IWindowEventListener* listener
-    )
-    {
-        // mHwnd is assigned to here but it will also reassign to itself in NC_CREATE. it's not clean and it's easier to have it
-        // be confusing like that because otherwise it makes things difficult down the line.
-        mHwnd = CreateWindowExW(
-            NULL,
-            class_name,
-            window_name,
-            window_style,
-            x,
-            y,
-            w,
-            h,
-            NULL,
-            NULL,
-            hInstance,
-            this
-        );
-        
-        if (!mHwnd)
-            return false;
+        ObserverPtr<IWindowEventListener> listener
+    ) noexcept;
 
-        mListener.observe_this(listener);
-
-        return true;
-    }
-
-    // destroys window and all context. returns 0 on fail. call GetLastError for more info on failure.
-    BOOL destroy()const { return ::DestroyWindow(mHwnd); }
+    // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
+    bool destroy() noexcept;
 
     // win32 bullshit. i hate it so bad.
     static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

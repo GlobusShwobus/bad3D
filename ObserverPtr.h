@@ -7,8 +7,6 @@ template <typename T>
 class ObserverPtr
 {
 public:
-	using element_type = T;
-
 	constexpr ObserverPtr() noexcept = default;
 	constexpr ObserverPtr(std::nullptr_t) noexcept {}
 	constexpr ObserverPtr(T* ptr) noexcept // let it be implicit for now
@@ -25,7 +23,7 @@ public:
 		return *this;
 	}
 
-	constexpr void observe_this(T* ptr = nullptr) noexcept
+	constexpr void observe_this(T* ptr) noexcept
 	{
 		ptr_ = ptr;
 	}
