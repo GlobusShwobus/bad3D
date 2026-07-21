@@ -15,10 +15,10 @@ public:
 	virtual ~DX12CommandQueue();
 
 	// get an available command list from command queue
-	DXCommandList2 get_command_list();
+	D3D12GraphicsCommandList2 get_command_list();
 
 	// execute a command list. retruns the fence value to wait for
-	UINT64 execute(DXCommandList2 command_list);
+	UINT64 execute(D3D12GraphicsCommandList2 command_list);
 
 	void flush();
 
@@ -33,9 +33,9 @@ public:
 
 protected:
 
-	DXCommandAllocator create_command_allocator();
+	D3D12CommandAllocator create_command_allocator();
 
-	DXCommandList2 create_command_list(DXCommandAllocator command_allocator);
+	D3D12GraphicsCommandList2 create_command_list(D3D12CommandAllocator command_allocator);
 
 private:
 
@@ -43,18 +43,18 @@ private:
 	struct CommandAllocatorEntry
 	{
 		UINT64 fence_value;
-		DXCommandAllocator command_allocator;
+		D3D12CommandAllocator command_allocator;
 	};
 
 	ObserverPtr<ID3D12Device2>      mDevice;
-	DXCommandQueue                  mCommandQueue;
+	D3D12CommandQueue                  mCommandQueue;
 
-	DXFence mFence;
+	D3D12Fence mFence;
 	UINT64  mFenceSignalCounter;
 	HANDLE  mFenceEventHandle;
 
 	const D3D12_COMMAND_LIST_TYPE mType;
 
 	std::queue<CommandAllocatorEntry> mCommandAllocatorQueue;
-	std::queue<DXCommandList2>        mCommandListQueue;
+	std::queue<D3D12GraphicsCommandList2>        mCommandListQueue;
 };

@@ -1,6 +1,6 @@
 #include "GPU_CORE.h"
 
-HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXAdapter4& adapter_out)
+HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXGIAdapter4& adapter_out)
 {
 	HRESULT hr = E_FAIL;
 	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
@@ -12,7 +12,7 @@ HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXAdapte
 		// first, if looking for adapter manually, it is not possible to enumerate with Adapter4 since EnumAdapters and EnumAdapters1 take specific types.
 		// secondly, need to find adapter with a good amount of memory...
 		LUID best_luid = {};
-		DXAdapter1 adapter_t1 = nullptr;
+		DXGIAdapter1 adapter_t1 = nullptr;
 		SIZE_T largest_memory_pool = 0;
 
 		for (UINT adapterIndex = 0; ; ++adapterIndex)
@@ -72,7 +72,7 @@ bool check_is_tearing_supported(ObserverPtr<IDXGIFactory4> factory)
 	// Rather than create the 1.5 factory interface directly, we create the 1.4
 	// interface and query for the 1.5 interface. This will enable the graphics
 	// debugging tools which might not support the 1.5 factory interface.
-	DXFactory5 factory5;
+	DXGIFactory5 factory5;
 
 	if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(&factory5))))
 	{

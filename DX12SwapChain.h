@@ -50,7 +50,7 @@ public:
 		);
 
 		// try to create the swapchain1 then query interface it into swapchain4
-		DXSwapChain1 swapchain1;
+		DXGISwapChain1 swapchain1;
 		execute_test_throw(
 			factory->CreateSwapChainForHwnd(
 				command_queue.get(),
@@ -184,18 +184,20 @@ public:
 		return index;
 	}
 
+	UINT get_current_buffer_index()const { return mCurrentBackBufferIndex; }
+
 	LONG get_width()const { return mWidth; }
 	LONG get_height()const { return mHeight; }
 
 private:
 
 	ObserverPtr<ID3D12Device2> mDevice = nullptr;
-	DXSwapChain4       mSwapChain;
-	DXDescriptorHeap   mDescriptorHeap;
-	DXResource         mBackBuffers[NUMBER_OF_BUFFERS];
+	DXGISwapChain4        mSwapChain;
+	D3D12DescriptorHeap   mDescriptorHeap;
+	D3D12Resource         mBackBuffers[NUMBER_OF_BUFFERS];
 
 	UINT               mDescriptorSize;
-	UINT               mCurrentBackBufferIndex;
+	UINT64              mCurrentBackBufferIndex;
 
 	LONG mWidth;
 	LONG mHeight;

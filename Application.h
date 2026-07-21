@@ -1,15 +1,8 @@
 #pragma once
 
+#include "WIN32_CORE.h"
 #include "GPU_CORE.h"
 #include "Utils.h"
-
-#if defined(min)
-#undef min
-#endif
-
-#if defined(max)
-#undef max
-#endif
 
 #include <memory>
 #include <string>
@@ -18,7 +11,7 @@
 #include "Win32Window.h"
 #include "DX12SwapChain.h"
 
-class DX12Application : public IWindowEventListener
+class Application : public IWindowEventListener
 {
 	// the number of back buffers for the swap chain aka surfaces aka drawable frames
 	static constexpr std::size_t NUMBER_OF_BUFFERS = 3;
@@ -30,14 +23,14 @@ class DX12Application : public IWindowEventListener
 	static constexpr bool G_IS_WARP = false;
 
 	// doesnt make sense for these 
-	DX12Application(const DX12Application&) = delete;
-	DX12Application& operator=(const DX12Application&) = delete;
-	DX12Application(DX12Application&&) = delete;
-	DX12Application& operator=(DX12Application&&) = delete;
+	Application(const Application&) = delete;
+	Application& operator=(const Application&) = delete;
+	Application(Application&&) = delete;
+	Application& operator=(Application&&) = delete;
 
 public:
 
-	DX12Application(HINSTANCE module, const std::wstring& window_title, uint32_t width, uint32_t height)
+	Application(HINSTANCE module, const std::wstring& window_title, uint32_t width, uint32_t height)
 	{
 		const wchar_t window_class_name[] = L"Graphics window";
 		const D3D12_COMMAND_LIST_TYPE command_list_type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -68,7 +61,7 @@ public:
 		}
 
 		// create DXGI factory
-		DXFactory4 factory;
+		DXGIFactory4 factory;
 		UINT create_factory_flags = 0;  // only 2 values are valid: 0 or debug.
 #if defined(_DEBUG)
 		create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
@@ -78,7 +71,7 @@ public:
 		);
 
 		// find a good adapter
-		DXAdapter4 adapter4;
+		DXGIAdapter4 adapter4;
 		execute_test_throw(
 			find_adapter(factory.Get(), G_IS_WARP, adapter4)
 		);
@@ -90,7 +83,7 @@ public:
 
 #if defined(_DEBUG)
 		// set device debug info
-		DXInfoQueue infoQueue;
+		D3D12InfoQueue infoQueue;
 		if (SUCCEEDED(mDevice.As(&infoQueue)))
 		{
 			// set break point for types
@@ -125,10 +118,10 @@ public:
 		is_init = true;
 
 		// show window
-		mWindow->show_window();
+		//mWindow->show_window();
 	}
 
-	~DX12Application() override = default;
+	~Application() override = default;
 
 
 	void run()
@@ -185,23 +178,21 @@ public:
 		UINT64 signal_val = mCommand_queue->execute(mCommand_list);
 		//mCommand_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
 
+		mExpectedFenceValues[mSwapChain->get_current_buffer_index()] = signal_val;
 		// present to display via swap chain
 		execute_test_throw(
 			mSwapChain->present()
 		);
 
-		// ask for the GPU to signal when done rendering THIS frame
-		// mExpected_fence_values[mCurrent_back_buffer_index] = mFence.signal();
-
 		// swap chain will change its internal back buffer index after calling present
 		// the system is about to reuse a buffer. retrieve the new index of the buffer and stall the CPU in case the GPU is not yet done with it
-
-		mCommand_queue->wait(signal_val);
-		//mFence.wait(mExpected_fence_values[mCurrent_back_buffer_index]);
+		
+		mCommand_queue->wait(mExpectedFenceValues[mSwapChain->get_current_buffer_index()]);
 	}
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+		// is_init is an important protection layer making sure no application events are processed before construction is done ( async bs )
 		if (is_init) {
 
 			mWindow->process_window_message(uMsg, wParam, lParam);
@@ -247,6 +238,21 @@ public:
 				//			mWindow->set_to_windowed();
 				//	}
 
+				if (wParam == 'R')
+				{
+					clear_color[0] = 1.0f; clear_color[1] = 0; clear_color[2] = 0; clear_color[3] = 0;
+				}
+
+				if (wParam == 'G')
+				{
+					clear_color[0] = 0; clear_color[1] = 1; clear_color[2] = 0; clear_color[3] = 0;
+				}
+
+				if (wParam == 'B')
+				{
+					clear_color[0] = 0; clear_color[1] = 0; clear_color[2] = 1; clear_color[3] = 0;
+				}
+
 				break;
 
 			default:
@@ -273,13 +279,14 @@ public:
 	}
 private:
 	// order matters
-	DXDevice2          mDevice;
+	D3D12Device2          mDevice;
 
 	std::unique_ptr<Win32Window>        mWindow;
 	std::unique_ptr<DX12SwapChain>      mSwapChain;
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
-	DXCommandList2      mCommand_list;
+	D3D12GraphicsCommandList2           mCommand_list;
+	UINT64 mExpectedFenceValues[3]{ 0 };
 
 	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 

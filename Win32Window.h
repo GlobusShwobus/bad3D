@@ -10,7 +10,14 @@ class Win32Window : public IWin32Window
 {
 public:
 
-	Win32Window(const std::wstring& window_name, uint32_t client_width, uint32_t client_height, bool fullscreen_mode, ObserverPtr<IWindowEventListener> listener);
+	Win32Window(
+		const std::wstring& window_name,
+		uint32_t client_width,
+		uint32_t client_height,
+		bool fullscreen_mode,
+		ObserverPtr<IWindowEventListener> listener,
+		DWORD window_style = WS_OVERLAPPEDWINDOW
+	);
 
 	Win32Window(const Win32Window&) = delete;
 	Win32Window& operator=(const Win32Window&) = delete;
@@ -19,15 +26,13 @@ public:
 
 	virtual ~Win32Window() noexcept;
 
-	void show_window();
+	void process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	 void process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	constexpr bool is_fullscreen() const noexcept { return mIsFullscreen; }
+	constexpr LONG get_width() const noexcept     { return mClientWidth; }
+	constexpr LONG get_height() const noexcept    { return mClientHeight; }
 
-	bool is_fullscreen()const { return mIsFullscreen; }
-	LONG get_width()const     { return mClientWidth; }
-	LONG get_height()const    { return mClientHeight; }
-	HWND get_HWND()const      { return mHwnd; }
-
+	constexpr HWND get_HWND() const noexcept      { return mHwnd; } // ideally get rid of this
 
 private:
 
@@ -35,13 +40,11 @@ private:
 
 	void set_to_windowed();
 
-	void on_wm_size();
-
 private:
 
 	LRect mWindowedRect;
-	LONG mClientWidth;
-	LONG mClientHeight;
-	UINT mStyle;
-	bool mIsFullscreen;
+	LONG  mClientWidth;
+	LONG  mClientHeight;
+	UINT  mStyle;
+	bool  mIsFullscreen;
 };

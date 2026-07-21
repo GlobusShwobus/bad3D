@@ -32,10 +32,10 @@ DX12CommandQueue::~DX12CommandQueue()
 		::CloseHandle(mFenceEventHandle);
 }
 
-DXCommandList2 DX12CommandQueue::get_command_list()
+D3D12GraphicsCommandList2 DX12CommandQueue::get_command_list()
 {
-	DXCommandAllocator command_allocator;
-	DXCommandList2 command_list;
+	D3D12CommandAllocator command_allocator;
+	D3D12GraphicsCommandList2 command_list;
 	const UINT64 current_fecnce_value = mFence->GetCompletedValue();
 
 	if (!mCommandAllocatorQueue.empty() && is_fence_complete(mCommandAllocatorQueue.front().fence_value))
@@ -75,7 +75,7 @@ DXCommandList2 DX12CommandQueue::get_command_list()
 	return command_list;
 }
 
-UINT64 DX12CommandQueue::execute(DXCommandList2 command_list)
+UINT64 DX12CommandQueue::execute(D3D12GraphicsCommandList2 command_list)
 {
 	// get associated command allocator
 	ID3D12CommandAllocator* command_allocator;
@@ -147,9 +147,9 @@ bool DX12CommandQueue::is_fence_complete(UINT64 value)const
 	return mFence->GetCompletedValue() >= value;
 }
 
-DXCommandAllocator DX12CommandQueue::create_command_allocator()
+D3D12CommandAllocator DX12CommandQueue::create_command_allocator()
 {
-	DXCommandAllocator dxca;
+	D3D12CommandAllocator dxca;
 
 	execute_test_throw(
 		mDevice->CreateCommandAllocator(mType, IID_PPV_ARGS(&dxca))
@@ -158,9 +158,9 @@ DXCommandAllocator DX12CommandQueue::create_command_allocator()
 	return dxca;
 }
 
-DXCommandList2 DX12CommandQueue::create_command_list(DXCommandAllocator command_allocator)
+D3D12GraphicsCommandList2 DX12CommandQueue::create_command_list(D3D12CommandAllocator command_allocator)
 {
-	DXCommandList2 dxcl2;
+	D3D12GraphicsCommandList2 dxcl2;
 	execute_test_throw(
 		mDevice->CreateCommandList(NULL, mType, command_allocator.Get(), nullptr, IID_PPV_ARGS(&dxcl2))
 	);

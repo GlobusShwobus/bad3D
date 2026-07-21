@@ -5,34 +5,8 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
 
-#include <DirectXMath.h>
 #include <wrl.h>
 #include "ObserverPtr.h"
-//
-//                                                 +---------------+
-//                                                 |    FACTORY    |
-//                                                 +---------------+
-// 				   		  					           	   |
-// 				   		   ________________________________|____________________________________
-// 				   		  |																	    |
-// 				   		  V																	    |
-// 				   +---------------+														    |
-// 				   |    ADAPTER    |														    |
-// 				   +---------------+				   										    |
-//  					  |																	    |
-// 						  V																	    V
-// 			      +================+     	     +-----------------------+             +--------------------+
-// 			      ||    DEVICE    || ----------> |     COMMAND QUEUE     | ----------> |     SWAP CHAIN     |
-// 			      +================+	         +-----------------------+             +--------------------+
-// 
-// 
-// 
-// 
-// 
-// 
-//
-//
-
 
 // DXGI is mainly responsible for three things and the top most handle for doing so is the Factory. The factory enumerates ( identifies ) the adapters that exist in the system physically,
 // creates said adapters and also creates swap chains.
@@ -78,8 +52,8 @@
 // 
 //	Factory5:
 //		CheckFeatureSupport - Used to check for hardware feature support.
-using DXFactory4 = Microsoft::WRL::ComPtr<IDXGIFactory4>;       
-using DXFactory5 = Microsoft::WRL::ComPtr<IDXGIFactory5>;
+using DXGIFactory4 = Microsoft::WRL::ComPtr<IDXGIFactory4>;     
+using DXGIFactory5 = Microsoft::WRL::ComPtr<IDXGIFactory5>;
 
 // DXGI Adapter represents a display subsystem ( video card...either physical GPU, DAC's and video memory but also motherboard based subsystems ). 
 // The adapter enumerates display subsystems which means discovering what subsystems exist on the machine.
@@ -128,10 +102,10 @@ using DXFactory5 = Microsoft::WRL::ComPtr<IDXGIFactory5>;
 //
 //	Adapter4:
 //		GetDesc3 - Changed UINT Flags to DXGI_ADAPTER_FLAG3 Flags plus added some settings.
-using DXAdapter1 = Microsoft::WRL::ComPtr<IDXGIAdapter1>;
-using DXAdapter2 = Microsoft::WRL::ComPtr<IDXGIAdapter2>;
-using DXAdapter3 = Microsoft::WRL::ComPtr<IDXGIAdapter3>;
-using DXAdapter4 = Microsoft::WRL::ComPtr<IDXGIAdapter4>;
+using DXGIAdapter1 = Microsoft::WRL::ComPtr<IDXGIAdapter1>;
+using DXGIAdapter2 = Microsoft::WRL::ComPtr<IDXGIAdapter2>;
+using DXGIAdapter3 = Microsoft::WRL::ComPtr<IDXGIAdapter3>;
+using DXGIAdapter4 = Microsoft::WRL::ComPtr<IDXGIAdapter4>;
 
 // The device represents a virtual adapter; it is used to create command allocators, command lists, command queues, fences, resources,
 // pipeline state objects, heaps, root signatures, samplers, and many resource views.
@@ -229,16 +203,16 @@ using DXAdapter4 = Microsoft::WRL::ComPtr<IDXGIAdapter4>;
 // 
 // NOTE: There are more device versions but they're all based on the Agility SDK which allows devs to adopt the newst DirectX 12 graphics features on an older OS.
 // TODO: Agility SDK...
-using DXDevice = Microsoft::WRL::ComPtr<ID3D12Device>;
-using DXDevice1 = Microsoft::WRL::ComPtr<ID3D12Device1>;
-using DXDevice2 = Microsoft::WRL::ComPtr<ID3D12Device2>;
-using DXDevice3 = Microsoft::WRL::ComPtr<ID3D12Device3>;
-using DXDevice4 = Microsoft::WRL::ComPtr<ID3D12Device4>;
-using DXDevice5 = Microsoft::WRL::ComPtr<ID3D12Device5>;
-using DXDevice6 = Microsoft::WRL::ComPtr<ID3D12Device6>;
-using DXDevice7 = Microsoft::WRL::ComPtr<ID3D12Device7>;
-using DXDevice8 = Microsoft::WRL::ComPtr<ID3D12Device8>;
-using DXDevice9 = Microsoft::WRL::ComPtr<ID3D12Device9>;
+using D3D12Device  = Microsoft::WRL::ComPtr<ID3D12Device>;
+using D3D12Device1 = Microsoft::WRL::ComPtr<ID3D12Device1>;
+using D3D12Device2 = Microsoft::WRL::ComPtr<ID3D12Device2>;
+using D3D12Device3 = Microsoft::WRL::ComPtr<ID3D12Device3>;
+using D3D12Device4 = Microsoft::WRL::ComPtr<ID3D12Device4>;
+using D3D12Device5 = Microsoft::WRL::ComPtr<ID3D12Device5>;
+using D3D12Device6 = Microsoft::WRL::ComPtr<ID3D12Device6>;
+using D3D12Device7 = Microsoft::WRL::ComPtr<ID3D12Device7>;
+using D3D12Device8 = Microsoft::WRL::ComPtr<ID3D12Device8>;
+using D3D12Device9 = Microsoft::WRL::ComPtr<ID3D12Device9>;
 
 // A resource is an object that encapsulates some amount of GPU- accessible memory. A resource exists the same way any object with malloc or virtual alloc exists, meaning 'somewhere' on the heap.
 // A resource is therefor just a chuck of bytes but it is meant to be used for textures, surface buffers, vertex buffers, constant buffers. 
@@ -275,9 +249,9 @@ using DXDevice9 = Microsoft::WRL::ComPtr<ID3D12Device9>;
 // 
 //	Resource2:
 //		GetDesc1 - Added: D3D12_MIP_REGION SamplerFeedbackMipRegion; - Describes a mip region with width, height, depth.
-using DXResource  = Microsoft::WRL::ComPtr<ID3D12Resource>;
-using DXResource1 = Microsoft::WRL::ComPtr<ID3D12Resource1>;
-using DXResource2 = Microsoft::WRL::ComPtr<ID3D12Resource2>;
+using D3D12Resource  = Microsoft::WRL::ComPtr<ID3D12Resource>;
+using D3D12Resource1 = Microsoft::WRL::ComPtr<ID3D12Resource1>;
+using D3D12Resource2 = Microsoft::WRL::ComPtr<ID3D12Resource2>;
 
 // Since the resrouce is just a chunk of bytes, only knowing its own dimensions, the interpretation of the resource is done using D3D12_RESOURCE_DESC.
 // D3D12_RESOURCE_DESC is again external and managing is manual. Descriptor heap is however meant to store all of the various descriptors in the same
@@ -299,7 +273,7 @@ using DXResource2 = Microsoft::WRL::ComPtr<ID3D12Resource2>;
 // 				                            			UINT                        NodeMask;        - For single-adapter operation, set this to zero.
 //				                            		}
 //		GetGPUDescriptorHandleForHeapStart - Gets the GPU descriptor handle that represents the start of the heap.
-using DXDescriptorHeap = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
+using D3D12DescriptorHeap = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
 
 // While the device is used to create all of the necessary objects for graphics programming, all of the real communication between the programmer, CPU and GPU
 // is done using the command list.
@@ -415,14 +389,14 @@ using DXDescriptorHeap = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
 //	GraphicsCommandList10:
 //		SetProgram                       - ???
 //		DispatchGraph                    - ???
-using DXCommandList = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
-using DXCommandList1 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1>;
-using DXCommandList2 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2>;
-using DXCommandList3 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList3>;
-using DXCommandList4 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>;
-using DXCommandList5 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5>;
-using DXCommandList6 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>;
-using DXCommandList7 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7>;
+using D3D12GraphicsCommandList  = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
+using D3D12GraphicsCommandList1 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1>;
+using D3D12GraphicsCommandList2 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2>;
+using D3D12GraphicsCommandList3 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList3>;
+using D3D12GraphicsCommandList4 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>;
+using D3D12GraphicsCommandList5 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5>;
+using D3D12GraphicsCommandList6 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>;
+using D3D12GraphicsCommandList7 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7>;
 
 // The command allocator is the backing memory of the command list. The reason why the allocator and list exist separately is because
 // of synchronization responsibility between the GPU and CPU. Once the list passes the commands to the command queue for execution, the list
@@ -433,7 +407,7 @@ using DXCommandList7 = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7>;
 // Supported Methods:
 //	CommandAllocator:
 //		Reset - Indicates to re-use the memory that is associated with the command allocator.
-using DXCommandAllocator = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
+using D3D12CommandAllocator = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
 
 // The command queue provides methods for submitting command lists, synchronizing command list execution, instrumenting the command queue, and updating resource tile mappings.
 // Simply put the command queue accepts a command allocator from the command list and starts executing into the resource managed by the swap chain.
@@ -462,7 +436,7 @@ using DXCommandAllocator = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
 //		Signal                - Updates a fence to a specified value.
 //		UpdateTileMappings    - Updates mappings of tile locations in reserved resources to memory locations in a resource heap.
 //		Wait                  - Queues a GPU-side wait, and returns immediately. A GPU-side wait is where the GPU waits until the specified fence reaches or exceeds the specified value.
-using DXCommandQueue = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
+using D3D12CommandQueue = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
 
 // The command allocators are just heaps of memory. Command lists write in those heaps of memory. The command queue will then execute a piece of memory.
 // On the CPU side, the game logic side, you do not want to stall the whole system and wait until the GPU is done. So you create multiple allocators and swap between them.
@@ -479,7 +453,7 @@ using DXCommandQueue = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
 //		GetCompletedValue       - Gets the current value of the fence.
 //		SetEventOnCompletion    - Specifies an event that should be fired when the fence reaches a certain value.
 //		Signal                  - Sets the fence to the specified value.
-using DXFence = Microsoft::WRL::ComPtr<ID3D12Fence>;
+using D3D12Fence = Microsoft::WRL::ComPtr<ID3D12Fence>;
 
 // The swap chain implements one or more surfaces for storing rendered data before presenting it to an output.
 // Simply, resources are created and their role is to act as buffers that get rendered into. The swap chains role is that of a manager. It says which resource may be rendered into,
@@ -544,9 +518,9 @@ using DXFence = Microsoft::WRL::ComPtr<ID3D12Fence>;
 //
 //	SwapChain4:
 //		SetHDRMetaData                - This method sets High Dynamic Range (HDR) and Wide Color Gamut (WCG) header metadata.
-using DXSwapChain1 = Microsoft::WRL::ComPtr<IDXGISwapChain1>;
-using DXSwapChain3 = Microsoft::WRL::ComPtr<IDXGISwapChain3>;
-using DXSwapChain4 = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
+using DXGISwapChain1 = Microsoft::WRL::ComPtr<IDXGISwapChain1>;
+using DXGISwapChain3 = Microsoft::WRL::ComPtr<IDXGISwapChain3>;
+using DXGISwapChain4 = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
 
 
 // ###################################################################################################################################
@@ -599,10 +573,10 @@ using DXSwapChain4 = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
 //		SetBreakOnSeverity                           - Set a message severity level to break on when a message with that severity level passes through the storage filter.
 //		SetMessageCountLimit                         - Set the maximum number of messages that can be added to the message queue.
 //		SetMuteDebugOutput                           - Set a boolean that turns the debug output on or off.
-using DXInfoQueue = Microsoft::WRL::ComPtr<ID3D12InfoQueue>;
+using D3D12InfoQueue = Microsoft::WRL::ComPtr<ID3D12InfoQueue>;
 
 
-HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXAdapter4& adapter_out);
+HRESULT find_adapter(ObserverPtr<IDXGIFactory4> factory, bool use_warp, DXGIAdapter4& adapter_out);
 
 // in release mode this function always returns S_OK
 HRESULT enable_GPU_debug_layer();
