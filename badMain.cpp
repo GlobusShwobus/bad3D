@@ -35,6 +35,7 @@
 //	}
 
 
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
