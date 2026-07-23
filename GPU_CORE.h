@@ -5,6 +5,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
 
+#define WIN32_LEAN_AND_MEAN
 #include <wrl.h>
 #include "ObserverPtr.h"
 

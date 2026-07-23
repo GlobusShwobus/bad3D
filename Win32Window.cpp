@@ -1,5 +1,6 @@
 #include "Win32Window.h"
 #include "Utils.h"
+#include <stdexcept>
 
 Win32Window::Win32Window(
 	const std::wstring& window_name,
@@ -10,6 +11,9 @@ Win32Window::Win32Window(
 	DWORD window_style
 )
 {
+	if (!listener)
+		throw std::runtime_error("listener nullptr");
+
 	const std::wstring class_name = L"Win32Window class";
 	const DWORD class_style = CS_HREDRAW | CS_VREDRAW;
 	HINSTANCE hInstance = ::GetModuleHandleW(nullptr);
@@ -91,6 +95,14 @@ void Win32Window::set_to_windowed()
 
 	// set bool windowed
 	mIsFullscreen = false;
+}
+
+std::unique_ptr<DX12SwapChain> Win32Window::create_swap_chain(
+	ObserverPtr<IDXGIFactory4> factory,
+	ObserverPtr<ID3D12Device2> device,
+	ObserverPtr<ID3D12CommandQueue> command_queue)
+{
+	return std::make_unique<DX12SwapChain>(factory, device, command_queue, ObserverPtr<std::remove_pointer_t<HWND>>(mHwnd));
 }
 
 void Win32Window::process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam)

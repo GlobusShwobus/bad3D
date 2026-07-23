@@ -135,6 +135,8 @@
   <ItemGroup>
     <ClCompile Include="badMain.cpp" />
     <ClCompile Include="DX12CommandQueue.cpp" />
+    <ClCompile Include="DX12Fence.cpp" />
+    <ClCompile Include="DX12SwapChain.cpp" />
     <ClCompile Include="GPU_CORE.cpp" />
     <ClCompile Include="IWin32Window.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -143,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="DX12CommandQueue.h" />
+    <ClInclude Include="DX12Fence.h" />
     <ClInclude Include="DX12SwapChain.h" />
     <ClInclude Include="GPU_CORE.h" />
     <ClInclude Include="IWin32Window.h" />

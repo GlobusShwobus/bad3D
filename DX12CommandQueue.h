@@ -2,12 +2,13 @@
 
 #include "GPU_CORE.h"
 #include "ObserverPtr.h"
+#include "DX12Fence.h"
 #include <queue>
 
 class DX12CommandQueue final
 {
 public:
-	DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
+	DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_QUEUE_DESC desc);
 	DX12CommandQueue(const DX12CommandQueue&) = delete;
 	DX12CommandQueue& operator=(const DX12CommandQueue&) = delete;
 	DX12CommandQueue(DX12CommandQueue&&) = delete;
@@ -17,25 +18,25 @@ public:
 	// get an available command list from command queue
 	D3D12GraphicsCommandList2 get_command_list();
 
+	// get internal command queue, for swap list
+	constexpr ObserverPtr<ID3D12CommandQueue> get_observer()const noexcept { return  mCommandQueue.Get(); }
+
 	// execute a command list. retruns the fence value to wait for
 	UINT64 execute(D3D12GraphicsCommandList2 command_list);
 
+	// forces a CPU stall
 	void flush();
 
-	ID3D12CommandQueue* get_private()const;
-
-	UINT64 signal();
-
-	// checks if the internal fence value has reached the expected value. if not stalls the CPU
+	// checks if expected value is more than fence value. if fence value is less, it will stall the CPU, otherwise nothing
 	void wait(UINT64 expected_value);
-
-	bool is_fence_complete(UINT64 value)const;
 
 protected:
 
+	UINT64 signal();
+
 	D3D12CommandAllocator create_command_allocator();
 
-	D3D12GraphicsCommandList2 create_command_list(D3D12CommandAllocator command_allocator);
+	D3D12GraphicsCommandList2 create_command_list(ObserverPtr<ID3D12CommandAllocator> command_allocator);
 
 private:
 
@@ -46,15 +47,13 @@ private:
 		D3D12CommandAllocator command_allocator;
 	};
 
-	ObserverPtr<ID3D12Device2>      mDevice;
+	ObserverPtr<ID3D12Device2>         mDevice;
 	D3D12CommandQueue                  mCommandQueue;
 
-	D3D12Fence mFence;
-	UINT64  mFenceSignalCounter;
-	HANDLE  mFenceEventHandle;
+	DX12Fence mFenceHandle;
 
 	const D3D12_COMMAND_LIST_TYPE mType;
 
-	std::queue<CommandAllocatorEntry> mCommandAllocatorQueue;
+	std::queue<CommandAllocatorEntry>            mCommandAllocatorQueue;
 	std::queue<D3D12GraphicsCommandList2>        mCommandListQueue;
 };

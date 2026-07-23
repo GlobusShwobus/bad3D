@@ -36,6 +36,12 @@
     <ClCompile Include="Win32Window.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="DX12Fence.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX12SwapChain.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -84,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TypePoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12Fence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

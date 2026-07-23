@@ -4,9 +4,11 @@
 #include "ObserverPtr.h"
 #include <string>
 
+#include "DX12SwapChain.h"
+#include <memory>
 // a slightly more useful in terms of functionality window. also does RAII
 
-class Win32Window : public IWin32Window
+class Win32Window final : public IWin32Window
 {
 public:
 
@@ -32,9 +34,12 @@ public:
 	constexpr LONG get_width() const noexcept     { return mClientWidth; }
 	constexpr LONG get_height() const noexcept    { return mClientHeight; }
 
-	constexpr HWND get_HWND() const noexcept      { return mHwnd; } // ideally get rid of this
+	std::unique_ptr<DX12SwapChain> create_swap_chain(
+		ObserverPtr<IDXGIFactory4> factory,
+		ObserverPtr<ID3D12Device2> device,
+		ObserverPtr<ID3D12CommandQueue> command_queue);
 
-private:
+protected:
 
 	void set_to_fullscreen();
 

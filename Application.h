@@ -33,7 +33,11 @@ public:
 	Application(HINSTANCE module, const std::wstring& window_title, uint32_t width, uint32_t height)
 	{
 		const wchar_t window_class_name[] = L"Graphics window";
-		const D3D12_COMMAND_LIST_TYPE command_list_type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		D3D12_COMMAND_QUEUE_DESC command_list_desc = {};
+		command_list_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
+		command_list_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
+		command_list_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;            // enable / disable GPU timeouts. keep default enabled
+		command_list_desc.NodeMask = 0;                                     // for multi adapter systems
 
 		// info queue description
 		D3D12_INFO_QUEUE_FILTER info_queue_deny_filter = {};
@@ -99,13 +103,13 @@ public:
 #endif
 
 		// create command queue
-		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_type);
+		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_desc);
 
 		// create window
 		mWindow = std::make_unique<Win32Window>(window_title, width, height, false, this);
 
 		// create swapchain
-		mSwapChain = std::make_unique<DX12SwapChain>(factory.Get(), mDevice.Get(), mCommand_queue->get_private(), mWindow->get_HWND(), mWindow->get_width(), mWindow->get_height());
+		mSwapChain = mWindow->create_swap_chain(factory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
 
 		// create command list
 		// mCommand_list = mCommand_queue->get_command_list();
@@ -149,12 +153,12 @@ public:
 	void begin()
 	{
 		mCommand_list = mCommand_queue->get_command_list();
-		D3D12_RESOURCE_BARRIER barrier = mSwapChain->barrier_from_present_to_rtv();
+		D3D12_RESOURCE_BARRIER barrier = mSwapChain->command_from_present_to_rtv();
 
 		// add the command to the list
 		mCommand_list->ResourceBarrier(1, &barrier);
 		// index into the correct descriptor in the descriptor heap
-		D3D12_CPU_DESCRIPTOR_HANDLE index = mSwapChain->get_descriptor_index();
+		D3D12_CPU_DESCRIPTOR_HANDLE index = mSwapChain->command_backbuffer_handle();
 		mCommand_list->ClearRenderTargetView(index, clear_color, 0, nullptr);
 	}
 
@@ -162,32 +166,24 @@ public:
 
 	void end()
 	{
-		D3D12_RESOURCE_BARRIER barrier = mSwapChain->barrier_from_rtv_to_present();
+		D3D12_RESOURCE_BARRIER barrier = mSwapChain->command_from_rtv_to_present();
 
 		// add the command to the list
 		mCommand_list->ResourceBarrier(1, &barrier);
 
 		// signal that the recording into the list is finished
-		execute_test_throw(
-			mCommand_list->Close()
-		);
-		// eventually it will be cool to have multiple list. command queue wants an array of lists by defualt. right now it's just 1 though
-		// ID3D12CommandList* const command_lists[] = { mCommand_list.Get() };
+		mCommand_list->Close();
 
 		// execute list(s)
 		UINT64 signal_val = mCommand_queue->execute(mCommand_list);
-		//mCommand_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
 
-		mExpectedFenceValues[mSwapChain->get_current_buffer_index()] = signal_val;
 		// present to display via swap chain
-		execute_test_throw(
-			mSwapChain->present()
-		);
+		mSwapChain->present(signal_val);
 
 		// swap chain will change its internal back buffer index after calling present
 		// the system is about to reuse a buffer. retrieve the new index of the buffer and stall the CPU in case the GPU is not yet done with it
-		
-		mCommand_queue->wait(mExpectedFenceValues[mSwapChain->get_current_buffer_index()]);
+		// this is a no-op generally but important safety in rare cases
+		mCommand_queue->wait(mSwapChain->get_current_buffer_signal_value());
 	}
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -286,7 +282,6 @@ private:
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
 	D3D12GraphicsCommandList2           mCommand_list;
-	UINT64 mExpectedFenceValues[3]{ 0 };
 
 	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
