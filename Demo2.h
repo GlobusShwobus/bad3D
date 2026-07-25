@@ -4,8 +4,7 @@
 #include "TypeRect.h"
 #include "Utils.h"
 #include <string>
-
-class Demo1 :public IGame
+class Demo2 :public IGame
 {
 public:
 	WINDOW_REGISTER_DESC make_register_desc() override
@@ -20,13 +19,13 @@ public:
 	WINDOW_CREATE_DESC make_create_window_desc() override
 	{
 		const DWORD window_style = WS_OVERLAPPEDWINDOW;
-		LRect size = get_adjusted_window_rect(1280, 720, window_style);
+		LRect size = get_adjusted_window_rect(2000, 600, window_style);
 		center_rect_in_display(size);
 
 
 		WINDOW_CREATE_DESC desc = {};
 		desc.class_name = L"IGameRegisterWindow";
-		desc.window_name = L"demo 1";
+		desc.window_name = L"demo 2";
 		desc.window_style = window_style;
 		desc.x = size.x;
 		desc.y = size.y;

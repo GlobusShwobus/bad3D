@@ -38,6 +38,37 @@ public:
 
 	void set_to_windowed();
 
+	void reconfigure(WINDOW_CREATE_DESC desc)
+	{
+		// if currently fullscreen, drop back to windowed first — otherwise we'd be
+		// resizing the fullscreen borderless rect instead of the real windowed one,
+		// and mWindowedRect would end up wrong for the next set_to_windowed() call.
+		if (mIsFullscreen)
+			set_to_windowed();
+
+		// update the cached windowed geometry so a later set_to_windowed()/alt-tab-back
+		// restores to the NEW size/position, not the previous demo's.
+		mWindowedRect.x = desc.x;
+		mWindowedRect.y = desc.y;
+		mWindowedRect.w = desc.w;
+		mWindowedRect.h = desc.h;
+
+		// retitle
+		::SetWindowTextW(mHwnd, desc.window_name);
+
+		// reposition + resize. this fires WM_SIZE synchronously (same as any other
+		// resize), which your existing on_message handler already deals with safely
+		// via mCommand_queue->flush() + resize_back_buffers.
+		::SetWindowPos(
+			mHwnd, nullptr,
+			desc.x, desc.y, desc.w, desc.h,
+			SWP_NOZORDER | SWP_NOACTIVATE
+		);
+
+		// re-enter fullscreen if the new demo wants to start there
+		if (desc.start_fullscreen)
+			set_to_fullscreen();
+	}
 private:
 
 	LRect mWindowedRect;

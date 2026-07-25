@@ -49,7 +49,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	std::unique_ptr<Demo1> demo1 = std::make_unique<Demo1>();
 	try {
-		Application gfx(std::move(demo1));
+		Application gfx;
+		gfx.initialise_directX12();
+		gfx.bind_game(std::move(demo1));
+
 		gfx.run();
 	}
 	catch (const std::exception& e)

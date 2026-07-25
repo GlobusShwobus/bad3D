@@ -10,7 +10,11 @@
 #include "DX12CommandQueue.h"
 #include "Win32Window.h"
 #include "DX12SwapChain.h"
+
 #include "IGame.h"
+#include "Demo1.h"
+#include "Demo2.h"
+
 
 class Application : public IWindowEventListener
 {
@@ -31,9 +35,15 @@ class Application : public IWindowEventListener
 
 public:
 
-	Application(std::unique_ptr<IGame> game)
-		:mGame(std::move(game))
+	Application() = default;
+
+	~Application() override = default;
+
+	void initialise_directX12()
 	{
+		if (directX_runtime)
+			throw std::runtime_error{"attempting to reinitalise directX runtime"};
+
 		D3D12_COMMAND_QUEUE_DESC command_list_desc = {};
 		command_list_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
 		command_list_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
@@ -66,19 +76,18 @@ public:
 		}
 
 		// create DXGI factory
-		DXGIFactory4 factory;
 		UINT create_factory_flags = 0;  // only 2 values are valid: 0 or debug.
 #if defined(_DEBUG)
 		create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 		execute_test_throw(
-			CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory))
+			CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&mFactory))
 		);
 
 		// find a good adapter
 		DXGIAdapter4 adapter4;
 		execute_test_throw(
-			find_adapter(factory.Get(), G_IS_WARP, adapter4)
+			find_adapter(mFactory.Get(), G_IS_WARP, adapter4)
 		);
 
 		// create device
@@ -105,24 +114,52 @@ public:
 
 		// create command queue
 		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_desc);
-		
-		// create window
-		mWindow = std::make_unique<Win32Window>(mGame->make_register_desc(), mGame->make_create_window_desc(), this);
-		
-		// create swapchain
-		mSwapChain = mWindow->create_swap_chain(factory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
-
-		// set is init which up until this point protecd against sytem commands
-		is_init = true;
+	
+		// set flag to true
+		directX_runtime = true;
 	}
 
-	~Application() override = default;
+	void bind_game(std::unique_ptr<IGame> game)
+	{
+		if (!directX_runtime)
+			throw std::runtime_error{ "directX runtime uninitalised" };
 
+		if (mGame)
+			mGame->unload_content();
+
+		if (!game)
+		{
+			mGame.reset();
+			game_bound = false;
+			mSwapChain.reset();
+			mWindow.reset();
+			return;
+		}
+		// assign game
+		mGame = std::move(game);
+
+		if (!mWindow)
+		{
+			// first bind: actually construct window + swap chain
+			mWindow = std::make_unique<Win32Window>(mGame->make_register_desc(), mGame->make_create_window_desc(), this);
+			mSwapChain = mWindow->create_swap_chain(mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
+		}
+		else
+		{
+			// other binds: reconfigure existing window, let WM_SIZE drive the resize
+			auto create_desc = mGame->make_create_window_desc();
+			mCommand_queue->flush();   // make sure GPU is done with old demo's in-flight frames first
+			mWindow->reconfigure(create_desc);
+		}
+
+		mGame->load_content();
+		// set is init which up until this point protecd against sytem commands
+		game_bound = true;
+	}
 
 	void run()
 	{
-
-		while (is_init)
+		while (game_bound)
 		{
 			// call wndproc
 			MSG msg = {};
@@ -178,13 +215,13 @@ public:
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		// is_init is an important protection layer making sure no application events are processed before construction is done ( async bs )
-		if (is_init) {
+		if (game_bound) {
 
 			switch (uMsg)
 			{
 			case WM_DESTROY:
 				PostQuitMessage(0);
-				is_init = false;
+				game_bound = false;
 				return 0;
 			case WM_PAINT:
 			{
@@ -238,6 +275,16 @@ public:
 					clear_color[0] = 0; clear_color[1] = 0; clear_color[2] = 1; clear_color[3] = 0;
 				}
 
+				if (wParam == 'N')
+				{
+					bind_game(std::make_unique<Demo1>());
+				}
+
+				if(wParam == 'M')
+				{
+					bind_game(std::make_unique<Demo2>());
+				}
+
 				break;
 
 			default:
@@ -264,7 +311,9 @@ public:
 	}
 private:
 	// order matters
+	DXGIFactory4          mFactory;
 	D3D12Device2          mDevice;
+
 
 	std::unique_ptr<Win32Window>        mWindow;
 	std::unique_ptr<DX12SwapChain>      mSwapChain;
@@ -276,7 +325,6 @@ private:
 
 	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
-
-	// guards from window proc running GPU side event resolutions before they're created and also acts as a 'is_open'
-	bool is_init = false;
+	bool directX_runtime = false;
+	bool game_bound = false;
 };

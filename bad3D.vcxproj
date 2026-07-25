@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Demo1.h" />
+    <ClInclude Include="Demo2.h" />
     <ClInclude Include="DX12CommandQueue.h" />
     <ClInclude Include="DX12Fence.h" />
     <ClInclude Include="DX12SwapChain.h" />
