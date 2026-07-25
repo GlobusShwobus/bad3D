@@ -3,36 +3,29 @@
 #include <stdexcept>
 
 Win32Window::Win32Window(
-	const std::wstring& window_name,
-	uint32_t client_width,
-	uint32_t client_height, 
-	bool fullscreen_mode,
-	ObserverPtr<IWindowEventListener> listener, 
-	DWORD window_style
+	WINDOW_REGISTER_DESC register_desc,
+	WINDOW_CREATE_DESC create_desc,
+	ObserverPtr<IWindowEventListener> listener
 )
 {
-	if (!listener)
-		throw std::runtime_error("listener nullptr");
+	// bind event listener
+	execute_test_throw(
+		bind_event_listener(listener)
+	);
 
-	const std::wstring class_name = L"Win32Window class";
-	const DWORD class_style = CS_HREDRAW | CS_VREDRAW;
-	HINSTANCE hInstance = ::GetModuleHandleW(nullptr);
-	mStyle = window_style;
+	mStyle = create_desc.window_style;
 	// try register
-	if (!register_class(class_name.c_str(), class_style, hInstance))
-		throw_error_code_translation(::GetLastError());
+	if (!register_class(register_desc))
+		throw_error_code_translation( ::GetLastError() );
 
-	// always start off from windowed size, whatever was input
-	LRect size = get_adjusted_window_rect(client_width, client_height, window_style);
-	center_rect_in_display(size);
 
 	// create window
-	if (!create_window(class_name.c_str(), window_name.c_str(), window_style, size.x, size.y, size.w, size.h, hInstance, listener))
+	if (!create_window( create_desc ))
 		throw_error_code_translation(::GetLastError());
 
 	// set fullscreen or windowed
 	// this will also set other internal variables: mClientWidth, mClientHeight, mWindowRect, mIsFullscreen
-	if (fullscreen_mode) {
+	if (create_desc.start_fullscreen) {
 		set_to_fullscreen();
 	}
 	else
@@ -74,10 +67,6 @@ void Win32Window::set_to_fullscreen()
 	h = monitorinfo.rcMonitor.bottom - monitorinfo.rcMonitor.top;
 	::SetWindowPos(mHwnd, HWND_TOP, x, y, w, h, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
-	// also cache the real current w / h
-	mClientWidth = w;
-	mClientHeight = h;
-
 	// set bool fullscreen
 	mIsFullscreen = true;
 }
@@ -89,9 +78,6 @@ void Win32Window::set_to_windowed()
 
 	// set the pos of the window to old pos
 	::SetWindowPos(mHwnd, HWND_NOTOPMOST, mWindowedRect.x, mWindowedRect.y, mWindowedRect.w, mWindowedRect.h, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-
-	// also cache the width / height
-	query_client_size(mHwnd, mClientWidth, mClientHeight);
 
 	// set bool windowed
 	mIsFullscreen = false;
@@ -105,32 +91,15 @@ std::unique_ptr<DX12SwapChain> Win32Window::create_swap_chain(
 	return std::make_unique<DX12SwapChain>(factory, device, command_queue, ObserverPtr<std::remove_pointer_t<HWND>>(mHwnd));
 }
 
-void Win32Window::process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LONG Win32Window::get_width() const noexcept
 {
-	// This function is supplementary, processing messages relating to this class.
-	// It is not meant to take over or drain messages which is the job of the event listener.
-	// It's really just a convenience and encapsulation function, enabling making other related methods private.
-
-	switch (uMsg)
-	{
-	case WM_SIZE:
-		query_client_size(mHwnd, mClientWidth, mClientHeight);
-		break;
-
-	case WM_SYSKEYDOWN:
-	case WM_KEYDOWN:
-
-		if (wParam == VK_F11)
-		{
-			if (mIsFullscreen)
-				set_to_windowed();
-			else
-				set_to_fullscreen();
-		}
-
-		break;
-
-	default:
-		break;
-	}
+	RECT r;
+	GetClientRect(mHwnd, &r);
+	return r.right - r.left;
+}
+LONG Win32Window::get_height() const noexcept
+{
+	RECT r;
+	GetClientRect(mHwnd, &r);
+	return static_cast<uint32_t>(r.bottom - r.top);
 }

@@ -4,6 +4,25 @@
 #include "IWindowEventListener.h"
 #include "ObserverPtr.h"
 
+struct WINDOW_REGISTER_DESC
+{
+    PCWSTR class_name;
+    DWORD class_style;
+    HINSTANCE hInstance;
+};
+
+struct WINDOW_CREATE_DESC
+{
+    PCWSTR class_name;
+    PCWSTR window_name;
+    DWORD window_style;
+    int x;
+    int y;
+    int w;
+    int h;
+    HINSTANCE hInstance;
+    bool start_fullscreen;
+};
 // win32 window interface. does not do automatic clean up
 // NOTE: when create_window(...) is called the internal windows API will fire the first wnd_poc immediately meaning at least
 //       one wnd_proc runs before the scope of create_window(...) finishes
@@ -24,20 +43,21 @@ protected:
     IWin32Window() = default;
 
     // register the window
-    bool register_class( PCWSTR class_name, DWORD class_style, HINSTANCE hInstance ) noexcept;
+    bool register_class( WINDOW_REGISTER_DESC desc) noexcept;
 
     // creates window. if returns false call GetLastError
-    bool create_window(
-        PCWSTR class_name,
-        PCWSTR window_name,
-        DWORD window_style,
-        int x,
-        int y,
-        int w,
-        int h,
-        HINSTANCE hInstance,
-        ObserverPtr<IWindowEventListener> listener
-    ) noexcept;
+    bool create_window( WINDOW_CREATE_DESC desc ) noexcept;
+
+    // bind event listener
+    constexpr HRESULT bind_event_listener(ObserverPtr<IWindowEventListener> listener) noexcept
+    {
+        if (!listener)
+            return E_POINTER;
+
+
+        mListener = listener;
+        return S_OK;
+    }
 
     // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
     bool destroy() noexcept;

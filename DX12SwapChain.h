@@ -40,7 +40,6 @@ public:
 	constexpr LONG get_width()const noexcept { return mWidth; }
 	constexpr LONG get_height()const noexcept { return mHeight; }
 
-
 protected:
 
 	// updates the back buffer views

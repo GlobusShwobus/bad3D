@@ -1,17 +1,13 @@
 #include "IWin32Window.h"
 
-bool IWin32Window::register_class(
-    PCWSTR class_name,
-    DWORD class_style,
-    HINSTANCE hInstance
-) noexcept
+bool IWin32Window::register_class( WINDOW_REGISTER_DESC desc ) noexcept
 {
     WNDCLASSEX window_desc = {};
     window_desc.cbSize = sizeof(window_desc);
     window_desc.lpfnWndProc = IWin32Window::wnd_proc;
-    window_desc.lpszClassName = class_name;
-    window_desc.style = class_style;
-    window_desc.hInstance = hInstance;
+    window_desc.lpszClassName = desc.class_name;
+    window_desc.style = desc.class_style;
+    window_desc.hInstance = desc.hInstance;
     window_desc.cbClsExtra = NULL;
     window_desc.cbWndExtra = NULL;
     window_desc.hIcon = NULL;
@@ -24,32 +20,20 @@ bool IWin32Window::register_class(
     return RegisterClassExW(&window_desc) == NULL ? false : true;
 }
 
-bool IWin32Window::create_window(
-    PCWSTR class_name,
-    PCWSTR window_name,
-    DWORD window_style,
-    int x,
-    int y,
-    int w,
-    int h,
-    HINSTANCE hInstance,
-    ObserverPtr<IWindowEventListener> listener
-) noexcept
+bool IWin32Window::create_window( WINDOW_CREATE_DESC desc ) noexcept
 {
-    mListener.observe_this(listener.get());
-
     HWND hwnd = CreateWindowExW(
         NULL,
-        class_name,
-        window_name,
-        window_style,
-        x,
-        y,
-        w,
-        h,
+        desc.class_name,
+        desc.window_name,
+        desc.window_style,
+        desc.x,
+        desc.y,
+        desc.w,
+        desc.h,
         NULL,
         NULL,
-        hInstance,
+        desc.hInstance,
         this
     );
 
@@ -67,6 +51,6 @@ bool IWin32Window::destroy() noexcept
 
     if (result != 0)
         mHwnd = nullptr;
-
+    mListener = nullptr;
     return result != 0;
 }

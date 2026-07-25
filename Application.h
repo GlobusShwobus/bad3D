@@ -10,6 +10,7 @@
 #include "DX12CommandQueue.h"
 #include "Win32Window.h"
 #include "DX12SwapChain.h"
+#include "IGame.h"
 
 class Application : public IWindowEventListener
 {
@@ -30,9 +31,9 @@ class Application : public IWindowEventListener
 
 public:
 
-	Application(HINSTANCE module, const std::wstring& window_title, uint32_t width, uint32_t height)
+	Application(std::unique_ptr<IGame> game)
+		:mGame(std::move(game))
 	{
-		const wchar_t window_class_name[] = L"Graphics window";
 		D3D12_COMMAND_QUEUE_DESC command_list_desc = {};
 		command_list_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
 		command_list_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
@@ -104,25 +105,15 @@ public:
 
 		// create command queue
 		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_desc);
-
+		
 		// create window
-		mWindow = std::make_unique<Win32Window>(window_title, width, height, false, this);
-
+		mWindow = std::make_unique<Win32Window>(mGame->make_register_desc(), mGame->make_create_window_desc(), this);
+		
 		// create swapchain
 		mSwapChain = mWindow->create_swap_chain(factory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
 
-		// create command list
-		// mCommand_list = mCommand_queue->get_command_list();
-
-		//	execute_test_throw(
-		//		mCommand_list->Close()
-		//	);
-
 		// set is init which up until this point protecd against sytem commands
 		is_init = true;
-
-		// show window
-		//mWindow->show_window();
 	}
 
 	~Application() override = default;
@@ -162,8 +153,6 @@ public:
 		mCommand_list->ClearRenderTargetView(index, clear_color, 0, nullptr);
 	}
 
-
-
 	void end()
 	{
 		D3D12_RESOURCE_BARRIER barrier = mSwapChain->command_from_rtv_to_present();
@@ -191,8 +180,6 @@ public:
 		// is_init is an important protection layer making sure no application events are processed before construction is done ( async bs )
 		if (is_init) {
 
-			mWindow->process_window_message(uMsg, wParam, lParam);
-
 			switch (uMsg)
 			{
 			case WM_DESTROY:
@@ -212,10 +199,12 @@ public:
 
 				if (wParam != SIZE_MINIMIZED)
 				{
-					if (mSwapChain->get_width() != mWindow->get_width() || mSwapChain->get_height() != mWindow->get_height())
+					const auto winWidth = mWindow->get_width();
+					const auto winHeight = mWindow->get_height();
+					if (mSwapChain->get_width() != winWidth || mSwapChain->get_height() != winHeight)
 					{
 						mCommand_queue->flush();
-						mSwapChain->resize_back_buffers(mWindow->get_width(), mWindow->get_height());
+						mSwapChain->resize_back_buffers(winWidth, winHeight);
 					}
 				}
 				break;
@@ -226,13 +215,13 @@ public:
 			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 
-				//	if (wParam == VK_F11)
-				//	{
-				//		if (mWindow->is_fullscreen())
-				//			mWindow->set_to_fullscreen();
-				//		else 
-				//			mWindow->set_to_windowed();
-				//	}
+				if (wParam == VK_F11)
+				{
+					if (mWindow->is_fullscreen())
+						mWindow->set_to_windowed();
+					else
+						mWindow->set_to_fullscreen();
+				}
 
 				if (wParam == 'R')
 				{
@@ -282,6 +271,8 @@ private:
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
 	D3D12GraphicsCommandList2           mCommand_list;
+
+	std::unique_ptr<IGame> mGame = nullptr;
 
 	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 

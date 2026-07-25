@@ -13,12 +13,9 @@ class Win32Window final : public IWin32Window
 public:
 
 	Win32Window(
-		const std::wstring& window_name,
-		uint32_t client_width,
-		uint32_t client_height,
-		bool fullscreen_mode,
-		ObserverPtr<IWindowEventListener> listener,
-		DWORD window_style = WS_OVERLAPPEDWINDOW
+		WINDOW_REGISTER_DESC register_desc,
+		WINDOW_CREATE_DESC create_desc,
+		ObserverPtr<IWindowEventListener> listener
 	);
 
 	Win32Window(const Win32Window&) = delete;
@@ -28,18 +25,14 @@ public:
 
 	virtual ~Win32Window() noexcept;
 
-	void process_window_message(UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	constexpr bool is_fullscreen() const noexcept { return mIsFullscreen; }
-	constexpr LONG get_width() const noexcept     { return mClientWidth; }
-	constexpr LONG get_height() const noexcept    { return mClientHeight; }
+	LONG get_width() const noexcept;
+	LONG get_height() const noexcept;
 
 	std::unique_ptr<DX12SwapChain> create_swap_chain(
 		ObserverPtr<IDXGIFactory4> factory,
 		ObserverPtr<ID3D12Device2> device,
 		ObserverPtr<ID3D12CommandQueue> command_queue);
-
-protected:
 
 	void set_to_fullscreen();
 
@@ -48,8 +41,6 @@ protected:
 private:
 
 	LRect mWindowedRect;
-	LONG  mClientWidth;
-	LONG  mClientHeight;
 	UINT  mStyle;
 	bool  mIsFullscreen;
 };
