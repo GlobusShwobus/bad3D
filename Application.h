@@ -141,7 +141,7 @@ public:
 		if (!mWindow)
 		{
 			// first bind: actually construct window + swap chain
-			mWindow = std::make_unique<Win32Window>(mGame->make_register_desc(), mGame->make_create_window_desc(), this);
+			mWindow = std::make_unique<Win32Window>(mGame->make_create_window_desc(), this);
 			mSwapChain = mWindow->create_swap_chain(mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
 		}
 		else

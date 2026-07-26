@@ -4,28 +4,14 @@
 #include "IWindowEventListener.h"
 #include "ObserverPtr.h"
 
-struct WINDOW_REGISTER_DESC
-{
-    PCWSTR class_name;
-    DWORD class_style;
-    HINSTANCE hInstance;
-};
 
-struct WINDOW_CREATE_DESC
-{
-    PCWSTR class_name;
-    PCWSTR window_name;
-    DWORD window_style;
-    int x;
-    int y;
-    int w;
-    int h;
-    HINSTANCE hInstance;
-    bool start_fullscreen;
-};
-// win32 window interface. does not do automatic clean up
-// NOTE: when create_window(...) is called the internal windows API will fire the first wnd_poc immediately meaning at least
-//       one wnd_proc runs before the scope of create_window(...) finishes
+// Interface window.
+// The child class that inherits from this class must define get_class_register_info for registering the info.
+// Registering the class is mostly entirely customizable EXCEPT for the window proc. 
+// Any thing that inherits from this window interface is therefor not really the true window message listener.
+// To customize how OS messages are handled either bind an event listener with bind_event_listener function or
+// do multiple inheritence ( class UIWindow: public IWin32Window, public IWindowEventListener ) and manually set mListener.
+// The interface class DOES NOT OWN mListener.
 
 class IWin32Window
 {
@@ -33,6 +19,23 @@ public:
     virtual ~IWin32Window() = default;
 protected:
     
+    struct WindowClassRegister
+    {
+        LPCWSTR   class_name     = nullptr;
+        HINSTANCE module_        = nullptr;
+        DWORD     class_style    = NULL;
+        HICON     hIcon          = nullptr;
+        HICON     hIconSm        = nullptr;
+        HCURSOR   hCursor        = nullptr;
+        HBRUSH    hbrBackground  = nullptr;
+        LPCWSTR   lpszMenuName   = nullptr;
+        int       cbClsExtra     = NULL;
+        int       cbWndExtra     = NULL;
+    };
+
+    // class appearance info for class registration
+    virtual WindowClassRegister get_class_register_info()const noexcept = 0;
+
     // listener is DX12Applications listener. this member is glue to make win32 static window procedure work
     ObserverPtr<IWindowEventListener> mListener = nullptr;
 
@@ -42,11 +45,8 @@ protected:
     // default constructor
     IWin32Window() = default;
 
-    // register the window
-    bool register_class( WINDOW_REGISTER_DESC desc) noexcept;
-
     // creates window. if returns false call GetLastError
-    bool create_window( WINDOW_CREATE_DESC desc ) noexcept;
+    bool create_window(PCWSTR window_name, DWORD window_style, UINT x, UINT y, UINT w, UINT h) noexcept;
 
     // bind event listener
     constexpr HRESULT bind_event_listener(ObserverPtr<IWindowEventListener> listener) noexcept

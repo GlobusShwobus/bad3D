@@ -13,8 +13,7 @@ class Win32Window final : public IWin32Window
 public:
 
 	Win32Window(
-		WINDOW_REGISTER_DESC register_desc,
-		WINDOW_CREATE_DESC create_desc,
+		WINDOW_CREATE_DESC desc,
 		ObserverPtr<IWindowEventListener> listener
 	);
 
@@ -66,9 +65,30 @@ public:
 		);
 
 		// re-enter fullscreen if the new demo wants to start there
-		if (desc.start_fullscreen)
+		if (desc.set_fullscreen)
 			set_to_fullscreen();
 	}
+
+protected:
+
+	WindowClassRegister get_class_register_info() const noexcept override
+	{
+		WindowClassRegister info = {};
+
+		info.class_name = L"RenderWindow";
+		info.module_ = g_hModule;
+		info.class_style = CS_HREDRAW | CS_VREDRAW;
+		info.hIcon = nullptr;
+		info.hIconSm = nullptr;
+		info.hCursor = nullptr;
+		info.hbrBackground = nullptr;
+		info.lpszMenuName = nullptr;
+		info.cbClsExtra = NULL;
+		info.cbWndExtra = NULL;
+
+		return info;
+	}
+
 private:
 
 	LRect mWindowedRect;

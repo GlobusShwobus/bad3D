@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 Win32Window::Win32Window(
-	WINDOW_REGISTER_DESC register_desc,
 	WINDOW_CREATE_DESC create_desc,
 	ObserverPtr<IWindowEventListener> listener
 )
@@ -14,18 +13,14 @@ Win32Window::Win32Window(
 	);
 
 	mStyle = create_desc.window_style;
-	// try register
-	if (!register_class(register_desc))
-		throw_error_code_translation( ::GetLastError() );
-
 
 	// create window
-	if (!create_window( create_desc ))
+	if (!create_window( create_desc.window_name, create_desc.window_style, create_desc.x, create_desc.y, create_desc.w, create_desc.h ))
 		throw_error_code_translation(::GetLastError());
 
 	// set fullscreen or windowed
 	// this will also set other internal variables: mClientWidth, mClientHeight, mWindowRect, mIsFullscreen
-	if (create_desc.start_fullscreen) {
+	if (create_desc.set_fullscreen) {
 		set_to_fullscreen();
 	}
 	else

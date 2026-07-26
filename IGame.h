@@ -1,12 +1,10 @@
 #pragma once
 
-#include "IWin32Window.h"
+#include "WIN32_CORE.h"
 
 class IGame
 {
 public:
-
-	virtual WINDOW_REGISTER_DESC make_register_desc() = 0;
 
 	virtual WINDOW_CREATE_DESC make_create_window_desc() = 0;
 
