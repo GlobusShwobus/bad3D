@@ -17,6 +17,8 @@ public:
 
 	void reset();
 
+	UINT desc_size()const { return mDescriptorSize; }
+
 	D3D12_CPU_DESCRIPTOR_HANDLE get_descriptor_handle_for(UINT index) const;
 
 private:

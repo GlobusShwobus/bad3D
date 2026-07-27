@@ -66,13 +66,8 @@ DX12SwapChain::DX12SwapChain(
 	// the swap chain manages it's internal buffers itself. store the real current index
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
-	// store the size of a single descriptor for this system
-	mDescriptorSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
 	// create the descriptor heap
-	execute_test_throw(
-		mDevice->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&mDescriptorHeap))
-	);
+	mDescHeap.initialise(device, descriptor_heap_desc);
 
 	// set back buffers
 	update_back_buffers_views();
@@ -133,7 +128,7 @@ void DX12SwapChain::resize_back_buffers(uint32_t width, uint32_t height)
 // this function maps / remaps backbuffers and descriptors. use this after resize or in anycase the buffers chang
 void DX12SwapChain::update_back_buffers_views()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos(mDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.get_descriptor_handle_for(NULL);
 
 	for (UINT i = 0; i < NUMBER_OF_BUFFERS; i++)
 	{
@@ -145,24 +140,10 @@ void DX12SwapChain::update_back_buffers_views()
 		// assign type metadata on top of current data
 		mDevice->CreateRenderTargetView(buffer.Get(), nullptr, heapPos);
 		//increment pos
-		heapPos.ptr += mDescriptorSize;
+		heapPos.ptr += mDescHeap.desc_size();
 	}
 }
 
-D3D12_RESOURCE_BARRIER DX12SwapChain::command_from_present_to_rtv() const
-{
-	ObserverPtr<ID3D12Resource> back_buffer = mBufferViews[mCurrentBackBufferIndex].buffer.Get();
-
-	D3D12_RESOURCE_BARRIER transition_rt = {};
-	transition_rt.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	transition_rt.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	transition_rt.Transition.pResource = back_buffer.get();
-	transition_rt.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
-	transition_rt.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	transition_rt.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-	return transition_rt;
-}
 
 D3D12_RESOURCE_BARRIER DX12SwapChain::command_from_rtv_to_present() const
 {
@@ -177,11 +158,4 @@ D3D12_RESOURCE_BARRIER DX12SwapChain::command_from_rtv_to_present() const
 	transition_rt.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 	return transition_rt;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE DX12SwapChain::command_backbuffer_handle() const
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = { 0 };
-	handle.ptr += mDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr + (mCurrentBackBufferIndex * mDescriptorSize);
-	return handle;
 }

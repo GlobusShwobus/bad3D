@@ -187,13 +187,7 @@ public:
 	void begin()
 	{
 		mCommand_list = mCommand_queue->get_command_list();
-		D3D12_RESOURCE_BARRIER barrier = mSwapChain->command_from_present_to_rtv();
-
-		// add the command to the list
-		mCommand_list->ResourceBarrier(1, &barrier);
-		// index into the correct descriptor in the descriptor heap
-		D3D12_CPU_DESCRIPTOR_HANDLE index = mSwapChain->command_backbuffer_handle();
-		mCommand_list->ClearRenderTargetView(index, clear_color, 0, nullptr);
+		mSwapChain->clear(mCommand_list.Get(), clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
 	}
 
 	void end()
