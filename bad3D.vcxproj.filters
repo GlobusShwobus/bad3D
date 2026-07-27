@@ -42,6 +42,9 @@
     <ClCompile Include="DX12SwapChain.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="DX12DescriptorHeap.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -102,6 +105,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Demo2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12DescriptorHeap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

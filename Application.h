@@ -116,7 +116,12 @@ public:
 
 		// create command queue
 		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_desc);
-	
+
+		// set all trackers to 0 initally
+		mSignalTracker[0] = 0ull;
+		mSignalTracker[1] = 0ull;
+		mSignalTracker[2] = 0ull;
+
 		// set flag to true
 		directX_runtime = true;
 	}
@@ -144,7 +149,7 @@ public:
 		{
 			// first bind: actually construct window + swap chain
 			mWindow = std::make_unique<Win32Window>(mGame->make_create_window_desc(), this);
-			mSwapChain = mWindow->create_swap_chain(mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer().get());
+			mSwapChain = mWindow->create_swap_chain(mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer().get(), NUMBER_OF_BUFFERS);
 		}
 		else
 		{
@@ -186,30 +191,56 @@ public:
 
 	void begin()
 	{
-		mCommand_list = mCommand_queue->get_command_list();
-		mSwapChain->clear(mCommand_list.Get(), clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+		// reset command list
+		mCurrentCommandList = mCommand_queue->get_command_list();
+
+		// set the current back buffer to go from PRESENT to RTV
+		D3D12Resource buffer = mSwapChain->get_current_buffer();
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource   = buffer.Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
+		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		mCurrentCommandList->ResourceBarrier(1, &barrier);
+
+		// NOTE: maybe should be game logic here instead
+		// clear screen
+		mCurrentCommandList->ClearRenderTargetView(mSwapChain->get_current_description(), clear_color, 0 ,nullptr);
 	}
 
 	void end()
 	{
-		D3D12_RESOURCE_BARRIER barrier = mSwapChain->command_from_rtv_to_present();
+		// set the current back buffer to go from RTV to PRESENT
+		D3D12Resource buffer = mSwapChain->get_current_buffer();
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource   = buffer.Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
+		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		mCurrentCommandList->ResourceBarrier(1, &barrier);
 
-		// add the command to the list
-		mCommand_list->ResourceBarrier(1, &barrier);
+		// the final command to the list has been recorded. close the list.
+		mCurrentCommandList->Close();
 
-		// signal that the recording into the list is finished
-		mCommand_list->Close();
 
-		// execute list(s)
-		UINT64 signal_val = mCommand_queue->execute(mCommand_list);
+		// ask for the current back buffer index, 
+		// then execute and get signal value,
+		// then cache signal value,
+		// then present which updates current index and reseats back buffer which means i must potentially stall the CPU if the whatever new back buffer is not actually free yet
+		// then check signal value before resuing some unknown buffer
+		const UINT64 current_index = mSwapChain->get_current_buffer_index();
+		const UINT64 signal_val = mCommand_queue->execute(mCurrentCommandList);
+		mSignalTracker[current_index] = signal_val;
 
-		// present to display via swap chain
-		mSwapChain->present(signal_val);
+		mSwapChain->present();
 
-		// swap chain will change its internal back buffer index after calling present
-		// the system is about to reuse a buffer. retrieve the new index of the buffer and stall the CPU in case the GPU is not yet done with it
-		// this is a no-op generally but important safety in rare cases
-		mCommand_queue->wait(mSwapChain->get_current_buffer_signal_value());
+		const UINT64 some_new_buffer_index = mSwapChain->get_current_buffer_index();
+
+		mCommand_queue->wait( mSignalTracker[some_new_buffer_index] );
 	}
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -242,6 +273,7 @@ public:
 					{
 						mCommand_queue->flush();
 						mSwapChain->resize_back_buffers(winWidth, winHeight);
+						reset_signal_tracker();
 					}
 				}
 				break;
@@ -309,17 +341,25 @@ public:
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	}
+
+	void reset_signal_tracker()
+	{
+		UINT64 current = mSwapChain->get_current_buffer_index();
+		for (UINT i = 0; i < NUMBER_OF_BUFFERS; i++)
+			mSignalTracker[i] = mSignalTracker[current];
+	}
 private:
 	// order matters
 	DXGIFactory4          mFactory;
 	D3D12Device2          mDevice;
 
-
 	std::unique_ptr<Win32Window>        mWindow;
 	std::unique_ptr<DX12SwapChain>      mSwapChain;
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
-	D3D12GraphicsCommandList2           mCommand_list;
+	D3D12GraphicsCommandList2           mCurrentCommandList;
+	D3D12Resource                       mCurrentBackBuffer;
+	UINT64                              mSignalTracker[NUMBER_OF_BUFFERS];
 
 	std::unique_ptr<IGame> mGame = nullptr;
 

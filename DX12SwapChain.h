@@ -12,7 +12,8 @@ public:
 		ObserverPtr<IDXGIFactory4> factory,
 		ObserverPtr<ID3D12Device2> device,
 		ObserverPtr<ID3D12CommandQueue> command_queue,
-		ObserverPtr<HWND__> client_window
+		ObserverPtr<HWND__> client_window,
+		UINT64 number_of_buffers
 	);
 
 	DX12SwapChain(const DX12SwapChain&) = delete;
@@ -22,63 +23,65 @@ public:
 	
 	virtual ~DX12SwapChain() = default;
 
-	void clear(ObserverPtr<ID3D12GraphicsCommandList2> command_list, float r, float g, float b, float a)
-	{
-		ObserverPtr<ID3D12Resource> back_buffer = mBufferViews[mCurrentBackBufferIndex].buffer.Get();
-
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = back_buffer.get();
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-		// add the command to the list
-		command_list->ResourceBarrier(1, &barrier);
-		// index into the correct descriptor in the descriptor heap
-		FLOAT color[4] = { r,g,b,a };
-		command_list->ClearRenderTargetView(mDescHeap.get_descriptor_handle_for(mCurrentBackBufferIndex), color, 0, nullptr);
-	}
 	// passes the rendered image to the display and updates index / signal stuff
-	void present(UINT64 signal_value);
+	void present();
 
 	// resizes the swap chains internal back buffers
 	void resize_back_buffers(uint32_t width, uint32_t height);
 
-	// returns a command description for the command list describing transition from RTV to present state
-	D3D12_RESOURCE_BARRIER command_from_rtv_to_present() const;
 
+	D3D12Resource get_buffer_at(UINT index)
+	{
+		D3D12Resource buffer;
+		mSwapChain->GetBuffer(index, IID_PPV_ARGS(&buffer));
+		return buffer;
+	}
 
-	constexpr UINT64 get_current_buffer_signal_value()const noexcept { return mBufferViews[mCurrentBackBufferIndex].signal_value; }
-	constexpr LONG get_width()const noexcept { return mWidth; }
+	D3D12Resource get_current_buffer() 
+	{
+		return get_buffer_at(mCurrentBackBufferIndex);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc_at(UINT index)const
+	{
+		return mDescHeap.get_descriptor_handle_for(index);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE get_current_description()const
+	{
+		return get_buffer_desc_at(mCurrentBackBufferIndex);
+	}
+
+	UINT64 get_current_buffer_index()const { return mCurrentBackBufferIndex; }
+
+	constexpr LONG get_width()const noexcept  { return mWidth; }
 	constexpr LONG get_height()const noexcept { return mHeight; }
 
 protected:
 
 	// updates the back buffer views
-	void update_back_buffers_views();
+	void reset_description_info();
 
 private:
 
-	static constexpr int NUMBER_OF_BUFFERS = 3;
+	// static constexpr int NUMBER_OF_BUFFERS = 3;
 
-	struct BufferView
-	{
-		D3D12Resource buffer;
-		UINT64 signal_value = 0; // important: all inital values are set to 0 and nowhere else are set before running
-	};
-
-	using BufferViews = std::array<BufferView, NUMBER_OF_BUFFERS>;
+	//	struct BufferView
+	//	{
+	//		D3D12Resource buffer;
+	//		UINT64 signal_value = 0; // important: all inital values are set to 0 and nowhere else are set before running
+	//	};
+	//	
+	//	using BufferViews = std::array<BufferView, NUMBER_OF_BUFFERS>;
 
 	// a view for device for creating RTV's and window
-	ObserverPtr<ID3D12Device2> mDevice = nullptr;
-
+	ObserverPtr<ID3D12Device2> mDevice;
+	const UINT64               mBufferCount;
 	// the sauce
 	DXGISwapChain4             mSwapChain;
 
 	// back buffer views and current index tracker
-	BufferViews          mBufferViews;
+	//	BufferViews          mBufferViews;
 	UINT64               mCurrentBackBufferIndex;
 
 	// descriptor heap and size

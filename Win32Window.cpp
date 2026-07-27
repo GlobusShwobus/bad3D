@@ -81,9 +81,10 @@ void Win32Window::set_to_windowed()
 std::unique_ptr<DX12SwapChain> Win32Window::create_swap_chain(
 	ObserverPtr<IDXGIFactory4> factory,
 	ObserverPtr<ID3D12Device2> device,
-	ObserverPtr<ID3D12CommandQueue> command_queue)
+	ObserverPtr<ID3D12CommandQueue> command_queue,
+	UINT64 number_of_buffers)
 {
-	return std::make_unique<DX12SwapChain>(factory, device, command_queue, ObserverPtr<std::remove_pointer_t<HWND>>(mHwnd));
+	return std::make_unique<DX12SwapChain>(factory, device, command_queue, ObserverPtr<std::remove_pointer_t<HWND>>(mHwnd), number_of_buffers);
 }
 
 LONG Win32Window::get_width() const noexcept

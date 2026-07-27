@@ -31,7 +31,8 @@ public:
 	std::unique_ptr<DX12SwapChain> create_swap_chain(
 		ObserverPtr<IDXGIFactory4> factory,
 		ObserverPtr<ID3D12Device2> device,
-		ObserverPtr<ID3D12CommandQueue> command_queue);
+		ObserverPtr<ID3D12CommandQueue> command_queue,
+		UINT64 number_of_buffers);
 
 	void set_to_fullscreen();
 
