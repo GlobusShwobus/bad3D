@@ -29,4 +29,6 @@ public:
 
 	void load_content()override {};
 	void unload_content()override {};
+
+	void on_update(float dt)override {};
 };

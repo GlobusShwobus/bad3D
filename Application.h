@@ -11,6 +11,8 @@
 #include "Win32Window.h"
 #include "DX12SwapChain.h"
 
+#include "Stopwatch.h"
+
 #include "IGame.h"
 #include "Demo1.h"
 #include "Demo2.h"
@@ -159,6 +161,8 @@ public:
 
 	void run()
 	{
+		static Stopwatch timer;
+
 		while (game_bound)
 		{
 			// call wndproc
@@ -168,6 +172,8 @@ public:
 				//TranslateMessage(&msg); // additional messages like WM_CHAR. checking wParam manually works too. but needs research
 				DispatchMessage(&msg);
 			}
+
+			mGame->on_update( timer.dt_float() );
 
 			begin();
 

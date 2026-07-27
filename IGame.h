@@ -8,9 +8,14 @@ public:
 
 	virtual WINDOW_CREATE_DESC make_create_window_desc() = 0;
 
+	// content loading / unloading
 	virtual void load_content() = 0;
-
 	virtual void unload_content() = 0;
+
+	// on game specific logic update and rendering update
+	virtual void on_update(float dt) = 0;
+	// virtual void on_render() = 0;
+
 };
 
 //	
@@ -20,17 +25,6 @@ public:
 //
 //
 //
-//	// Initialize the DirectX Runtime.
-//	virtual bool initialize();
-//
-//    // Load content required for the demo.
-//    virtual bool load_content() = 0;
-//
-//    // Unload demo specific content that was loaded in LoadContent.
-//    virtual void unload_content() = 0;
-//
-//    // Destroy any resource that are used by the game.
-//    virtual void destroy() = 0;
 //
 //    // updates the game logic
 //    virtual void on_update();

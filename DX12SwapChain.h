@@ -57,7 +57,7 @@ private:
 
 	using BufferViews = std::array<BufferView, NUMBER_OF_BUFFERS>;
 
-	// a view for device for creating RTV's
+	// a view for device for creating RTV's and window
 	ObserverPtr<ID3D12Device2> mDevice = nullptr;
 
 	// the sauce

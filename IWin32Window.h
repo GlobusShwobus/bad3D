@@ -18,6 +18,9 @@ class IWin32Window
 public:
     virtual ~IWin32Window() = default;
 protected:
+
+    // default constructor
+    IWin32Window() = default;
     
     struct WindowClassRegister
     {
@@ -32,21 +35,15 @@ protected:
         int       cbClsExtra     = NULL;
         int       cbWndExtra     = NULL;
     };
-
-    // class appearance info for class registration
-    virtual WindowClassRegister get_class_register_info()const noexcept = 0;
-
+    
     // listener is DX12Applications listener. this member is glue to make win32 static window procedure work
     ObserverPtr<IWindowEventListener> mListener = nullptr;
 
     // window handle. no automatic delete
     HWND mHwnd = nullptr;
 
-    // default constructor
-    IWin32Window() = default;
-
-    // creates window. if returns false call GetLastError
-    bool create_window(PCWSTR window_name, DWORD window_style, UINT x, UINT y, UINT w, UINT h) noexcept;
+    // class appearance info for class registration
+    virtual WindowClassRegister get_class_register_info()const noexcept = 0;
 
     // bind event listener
     constexpr HRESULT bind_event_listener(ObserverPtr<IWindowEventListener> listener) noexcept
@@ -58,6 +55,9 @@ protected:
         mListener = listener;
         return S_OK;
     }
+
+    // creates window. if returns false call GetLastError
+    bool create_window(PCWSTR window_name, DWORD window_style, UINT x, UINT y, UINT w, UINT h) noexcept;
 
     // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
     bool destroy() noexcept;
