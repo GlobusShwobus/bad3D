@@ -14,8 +14,6 @@ void center_rect_in_display(LRect& rect);
 
 LRect get_display_rect_from_cursor();
 
-LRect query_window_rect(HWND window);
+UIRect get_window_rect(HWND hwnd);
 
-LRect query_client_rect(HWND window);
-
-void query_client_size(HWND window, LONG& out_width, LONG& out_height);
+UIRect get_client_rect(HWND hwnd);

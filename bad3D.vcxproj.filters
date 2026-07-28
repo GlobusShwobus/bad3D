@@ -33,13 +33,7 @@
     <ClCompile Include="IWin32Window.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="Win32Window.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="DX12Fence.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DX12SwapChain.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="DX12DescriptorHeap.cpp">
@@ -83,12 +77,6 @@
     <ClInclude Include="IWindowEventListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Win32Window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DX12SwapChain.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="WIN32_CORE.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -108,6 +96,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12DescriptorHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12RenderWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

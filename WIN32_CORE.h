@@ -14,14 +14,12 @@
 static HINSTANCE g_hModule = nullptr;
 
 
-struct WINDOW_CREATE_DESC
+struct WINDOW_EX_DESC
 {
-    PCWSTR window_name;
-    DWORD  window_style;
-    UINT x;
-    UINT y;
-    UINT w;
-    UINT h;
-    bool set_fullscreen;
-    bool set_vsync;
+	PCWSTR window_name;
+	DWORD  window_style;
+	UINT x;
+	UINT y;
+	UINT w;
+	UINT h;
 };

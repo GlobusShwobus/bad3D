@@ -6,7 +6,7 @@ class IGame
 {
 public:
 
-	virtual WINDOW_CREATE_DESC make_create_window_desc() = 0;
+	virtual WINDOW_EX_DESC make_create_window_desc() = 0;
 
 	// content loading / unloading
 	virtual void load_content() = 0;

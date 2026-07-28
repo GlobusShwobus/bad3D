@@ -10,4 +10,5 @@ struct TypeRect
 };
 
 using FRect = TypeRect<float>;
+using UIRect = TypeRect<unsigned int>;
 using LRect = TypeRect<long>;

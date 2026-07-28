@@ -8,8 +8,7 @@
 #include <string>
 #include "IWindowEventListener.h"
 #include "DX12CommandQueue.h"
-#include "Win32Window.h"
-#include "DX12SwapChain.h"
+#include "DX12RenderWindow.h"
 
 #include "Stopwatch.h"
 
@@ -138,25 +137,23 @@ public:
 		{
 			mGame.reset();
 			game_bound = false;
-			mSwapChain.reset();
-			mWindow.reset();
+			mDXWindow.reset();
 			return;
 		}
 		// assign game
 		mGame = std::move(game);
 
-		if (!mWindow)
+		if (!mDXWindow)
 		{
 			// first bind: actually construct window + swap chain
-			mWindow = std::make_unique<Win32Window>(mGame->make_create_window_desc(), this);
-			mSwapChain = mWindow->create_swap_chain(mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer().get(), NUMBER_OF_BUFFERS);
+			mDXWindow = std::make_unique<DX12RenderWindow>(mGame->make_create_window_desc(), mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer(), NUMBER_OF_BUFFERS);
+			mDXWindow->bind_listener(this);
 		}
 		else
 		{
 			// other binds: reconfigure existing window, let WM_SIZE drive the resize
-			auto create_desc = mGame->make_create_window_desc();
 			mCommand_queue->flush();   // make sure GPU is done with old demo's in-flight frames first
-			mWindow->reconfigure(create_desc);
+			mDXWindow->reconfigure(mGame->make_create_window_desc());
 		}
 
 		mGame->load_content();
@@ -195,7 +192,7 @@ public:
 		mCurrentCommandList = mCommand_queue->get_command_list();
 
 		// set the current back buffer to go from PRESENT to RTV
-		D3D12Resource buffer = mSwapChain->get_current_buffer();
+		D3D12Resource buffer = mDXWindow->get_current_buffer();
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -207,13 +204,13 @@ public:
 
 		// NOTE: maybe should be game logic here instead
 		// clear screen
-		mCurrentCommandList->ClearRenderTargetView(mSwapChain->get_current_description(), clear_color, 0 ,nullptr);
+		mCurrentCommandList->ClearRenderTargetView(mDXWindow->get_current_description(), clear_color, 0 ,nullptr);
 	}
 
 	void end()
 	{
 		// set the current back buffer to go from RTV to PRESENT
-		D3D12Resource buffer = mSwapChain->get_current_buffer();
+		D3D12Resource buffer = mDXWindow->get_current_buffer();
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -232,13 +229,13 @@ public:
 		// then cache signal value,
 		// then present which updates current index and reseats back buffer which means i must potentially stall the CPU if the whatever new back buffer is not actually free yet
 		// then check signal value before resuing some unknown buffer
-		const UINT64 current_index = mSwapChain->get_current_buffer_index();
+		const UINT64 current_index = mDXWindow->get_current_buffer_index();
 		const UINT64 signal_val = mCommand_queue->execute(mCurrentCommandList);
 		mSignalTracker[current_index] = signal_val;
 
-		mSwapChain->present();
+		mDXWindow->present();
 
-		const UINT64 some_new_buffer_index = mSwapChain->get_current_buffer_index();
+		const UINT64 some_new_buffer_index = mDXWindow->get_current_buffer_index();
 
 		mCommand_queue->wait( mSignalTracker[some_new_buffer_index] );
 	}
@@ -267,13 +264,10 @@ public:
 
 				if (wParam != SIZE_MINIMIZED)
 				{
-					const auto winWidth = mWindow->get_width();
-					const auto winHeight = mWindow->get_height();
-					if (mSwapChain->get_width() != winWidth || mSwapChain->get_height() != winHeight)
+					if (mDXWindow->is_size_out_of_sync())
 					{
 						mCommand_queue->flush();
-						mSwapChain->resize_back_buffers(winWidth, winHeight);
-						reset_signal_tracker();
+						mDXWindow->on_resize();
 					}
 				}
 				break;
@@ -286,10 +280,7 @@ public:
 
 				if (wParam == VK_F11)
 				{
-					if (mWindow->is_fullscreen())
-						mWindow->set_to_windowed();
-					else
-						mWindow->set_to_fullscreen();
+					mDXWindow->on_fullscreen_transition();
 				}
 
 				if (wParam == 'R')
@@ -344,7 +335,7 @@ public:
 
 	void reset_signal_tracker()
 	{
-		UINT64 current = mSwapChain->get_current_buffer_index();
+		UINT64 current = mDXWindow->get_current_buffer_index();
 		for (UINT i = 0; i < NUMBER_OF_BUFFERS; i++)
 			mSignalTracker[i] = mSignalTracker[current];
 	}
@@ -353,8 +344,7 @@ private:
 	DXGIFactory4          mFactory;
 	D3D12Device2          mDevice;
 
-	std::unique_ptr<Win32Window>        mWindow;
-	std::unique_ptr<DX12SwapChain>      mSwapChain;
+	std::unique_ptr<DX12RenderWindow>   mDXWindow;
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
 	D3D12GraphicsCommandList2           mCurrentCommandList;

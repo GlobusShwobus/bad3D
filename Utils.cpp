@@ -75,36 +75,30 @@ LRect get_display_rect_from_cursor()
 	};
 }
 
-LRect query_window_rect(HWND window)
+UIRect get_window_rect(HWND hwnd)
 {
-	RECT window_rect;
-	::GetWindowRect(window, &window_rect);
+	RECT rect;
+	::GetWindowRect(hwnd, &rect);
 
-	return LRect{
-		window_rect.left,
-		window_rect.top,
-		window_rect.right - window_rect.left,
-		window_rect.bottom - window_rect.top
+	return UIRect
+	{
+		static_cast<unsigned int>(rect.left),
+		static_cast<unsigned int>(rect.top),
+		static_cast<unsigned int>(rect.right - rect.left),
+		static_cast<unsigned int>(rect.bottom - rect.top)
 	};
 }
 
-LRect query_client_rect(HWND window)
+UIRect get_client_rect(HWND hwnd)
 {
-	RECT client_rect;
-	::GetClientRect(window, &client_rect);
+	RECT rect;
+	::GetClientRect(hwnd, &rect);
 
-	return LRect{
-		client_rect.left,  
-		client_rect.top,   
-		client_rect.right - client_rect.left,
-		client_rect.bottom - client_rect.top
+	return UIRect
+	{
+		0u,
+		0u,
+		static_cast<unsigned int>(rect.right - rect.left),
+		static_cast<unsigned int>(rect.bottom - rect.top)
 	};
-}
-
-void query_client_size(HWND window, LONG& out_width, LONG& out_height)
-{
-	RECT client_rect;
-	::GetClientRect(window, &client_rect);
-	out_width = client_rect.right - client_rect.left;
-	out_height = client_rect.bottom - client_rect.top;
 }
