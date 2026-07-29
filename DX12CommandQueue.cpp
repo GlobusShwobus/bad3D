@@ -1,10 +1,10 @@
 #include "DX12CommandQueue.h"
 #include "Utils.h"
 
-DX12CommandQueue::DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_QUEUE_DESC desc)
-	:mDevice(device), mType(desc.Type), mFenceHandle(device)
+DX12CommandQueue::DX12CommandQueue(D3D12_COMMAND_QUEUE_DESC desc, ObserverPtr<ID3D12Device2> device)
+	:mDevice(device), mType(desc.Type), mFence(device)
 {
-	if(!device)
+	if(!device) // fence will throw before this check though...
 		throw_error_code_translation(static_cast<DWORD>(E_POINTER));
 
 	execute_test_throw(
@@ -19,30 +19,32 @@ DX12CommandQueue::~DX12CommandQueue()
 
 D3D12GraphicsCommandList2 DX12CommandQueue::get_command_list()
 {
-	// for many bullshit reasons, the local command_allocator must be a ComPtr because refcounting bullshit
+	// keep local vals ComPtr because there's not much control here. something might fail and it would leak here.
 	D3D12CommandAllocator command_allocator;
 	D3D12GraphicsCommandList2 command_list;
-	// if there is at least 1 command allocator in the queue, and the GPU has finished executing it then it is safe to resuse it.
-	// bind the allocator to the temporary variable and pop it from the queue. since the GPU executes it's internal fence counting sequentially
-	// this is why using a queue is a good tool for this scenario.
-	if (!mCommandAllocatorQueue.empty() && (mFenceHandle.get_completed_value() >= mCommandAllocatorQueue.front().fence_value))
+
+	// if there is at least allocator in the queue attempt to reuse it.
+	// ID3D2CommandQueue internal signal counter always increments sequentially.
+	// Since the queue is first in first out it works out generally but the second check for value is still required for safety.
+	if (!mAllocatorQueue.empty() && (mFence.get_completed_value() >= mAllocatorQueue.front().fence_value))
 	{
-		command_allocator = mCommandAllocatorQueue.front().command_allocator;
-		mCommandAllocatorQueue.pop();
+		command_allocator = mAllocatorQueue.front().command_allocator;
+		mAllocatorQueue.pop();
 
 		execute_test_throw(
-			command_allocator->Reset()
+			command_allocator->Reset() // indicates to re-use memory, not to let go of the ptr
 		);
 	}
-	else
+	else // otherwise create a new allocator
 	{
 		command_allocator = create_command_allocator();
 	}
-	// similar to the command allocator queue but not as vital
-	if (!mCommandListQueue.empty())
+
+	// Same exact logic with the list queue (however the list queue is not as vital)
+	if (!mListQueue.empty())
 	{
-		command_list = mCommandListQueue.front();
-		mCommandListQueue.pop();
+		command_list = mListQueue.front();
+		mListQueue.pop();
 
 		execute_test_throw(
 			command_list->Reset(command_allocator.Get(), nullptr)
@@ -83,8 +85,8 @@ UINT64 DX12CommandQueue::execute(D3D12GraphicsCommandList2 command_list)
 	UINT64 signal_value = signal();
 
 	// store the allocator and list. MOVE command allocator, don't copy. avoiding magic ref count
-	mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ signal_value , std::move(command_allocator)});
-	mCommandListQueue.push(command_list);
+	mAllocatorQueue.emplace(CommandAllocatorEntry{ signal_value , std::move(command_allocator)});
+	mListQueue.push(command_list);
 
 	return signal_value;
 }
@@ -97,13 +99,13 @@ void DX12CommandQueue::flush()
 UINT64 DX12CommandQueue::signal()
 {
 	// get the current counter value which will be used to signal the GPU
-	UINT64 signaled_value = mFenceHandle.get_counter_value();
+	UINT64 signaled_value = mFence.get_counter_value();
 	// increment the counter for the next call
-	mFenceHandle.increment_counter();
+	mFence.increment_counter();
 
 	// signal the GPU with the value and fence
 	execute_test_throw(
-		mCommandQueue->Signal(mFenceHandle.get_observer().get(), signaled_value)
+		mCommandQueue->Signal(mFence.get_observer().get(), signaled_value)
 	);
 
 	return signaled_value;
@@ -113,9 +115,9 @@ UINT64 DX12CommandQueue::signal()
 void DX12CommandQueue::wait(UINT64 expected_value)
 {
 	// if current completed value is less than expected value, then stalling is required
-	if (mFenceHandle.get_completed_value() < expected_value)
+	if (mFence.get_completed_value() < expected_value)
 	{
-		mFenceHandle.stall_thread_until(expected_value);
+		mFence.stall_thread_until(expected_value);
 	}
 }
 

@@ -8,7 +8,7 @@
 class DX12CommandQueue final
 {
 public:
-	DX12CommandQueue(ObserverPtr<ID3D12Device2> device, D3D12_COMMAND_QUEUE_DESC desc);
+	DX12CommandQueue(D3D12_COMMAND_QUEUE_DESC desc, ObserverPtr<ID3D12Device2> device);
 	DX12CommandQueue(const DX12CommandQueue&) = delete;
 	DX12CommandQueue& operator=(const DX12CommandQueue&) = delete;
 	DX12CommandQueue(DX12CommandQueue&&) = delete;
@@ -47,13 +47,13 @@ private:
 		D3D12CommandAllocator command_allocator;
 	};
 
+
+	const D3D12_COMMAND_LIST_TYPE      mType;
 	ObserverPtr<ID3D12Device2>         mDevice;
 	D3D12CommandQueue                  mCommandQueue;
 
-	DX12Fence mFenceHandle;
+	DX12Fence mFence;
 
-	const D3D12_COMMAND_LIST_TYPE mType;
-
-	std::queue<CommandAllocatorEntry>            mCommandAllocatorQueue;
-	std::queue<D3D12GraphicsCommandList2>        mCommandListQueue;
+	std::queue<CommandAllocatorEntry>            mAllocatorQueue;
+	std::queue<D3D12GraphicsCommandList2>        mListQueue;
 };

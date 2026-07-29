@@ -20,13 +20,10 @@
 class Application : public IWindowEventListener
 {
 	// the number of back buffers for the swap chain aka surfaces aka drawable frames
-	static constexpr std::size_t NUMBER_OF_BUFFERS = 3;
-
-	// color for clear screen
-	static constexpr FLOAT G_CLEAR_SCREEN_COL[4] = { 0.4f,0.6f,0.9f,1.0f };
+	static constexpr unsigned int number_of_back_buffers = 3;
 
 	// windows advanced rasterization protocol
-	static constexpr bool G_IS_WARP = false;
+	static constexpr bool using_WARP_adapter = false;
 
 	// doesnt make sense for these 
 	Application(const Application&) = delete;
@@ -45,11 +42,11 @@ public:
 		if (directX_runtime)
 			throw std::runtime_error{"attempting to reinitalise directX runtime"};
 
-		D3D12_COMMAND_QUEUE_DESC command_list_desc = {};
-		command_list_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
-		command_list_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
-		command_list_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;            // enable / disable GPU timeouts. keep default enabled
-		command_list_desc.NodeMask = 0;                                     // for multi adapter systems
+		D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
+		command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
+		command_queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
+		command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;            // enable / disable GPU timeouts. keep default enabled
+		command_queue_desc.NodeMask = 0;                                     // for multi adapter systems
 
 		// info queue description
 		D3D12_INFO_QUEUE_FILTER info_queue_deny_filter = {};
@@ -88,7 +85,7 @@ public:
 		// find a good adapter
 		DXGIAdapter4 adapter4;
 		execute_test_throw(
-			find_adapter(mFactory.Get(), G_IS_WARP, adapter4)
+			find_adapter(mFactory.Get(), using_WARP_adapter, adapter4)
 		);
 
 		// create device
@@ -114,7 +111,7 @@ public:
 #endif
 
 		// create command queue
-		mCommand_queue = std::make_unique<DX12CommandQueue>(mDevice.Get(), command_list_desc);
+		mCommand_queue = std::make_unique<DX12CommandQueue>(command_queue_desc, mDevice.Get());
 
 		// set all trackers to 0 initally
 		mSignalTracker[0] = 0ull;
@@ -146,7 +143,7 @@ public:
 		if (!mDXWindow)
 		{
 			// first bind: actually construct window + swap chain
-			mDXWindow = std::make_unique<DX12RenderWindow>(mGame->make_create_window_desc(), mFactory.Get(), mDevice.Get(), mCommand_queue->get_observer(), NUMBER_OF_BUFFERS);
+			mDXWindow = std::make_unique<DX12RenderWindow>(mGame->make_create_window_desc(), mFactory.Get(), mDevice.Get(), mCommand_queue.get(), number_of_back_buffers);
 			mDXWindow->bind_listener(this);
 		}
 		else
@@ -192,11 +189,11 @@ public:
 		mCurrentCommandList = mCommand_queue->get_command_list();
 
 		// set the current back buffer to go from PRESENT to RTV
-		D3D12Resource buffer = mDXWindow->get_current_buffer();
+		auto buffer = mDXWindow->get_buffer();
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource   = buffer.Get();
+		barrier.Transition.pResource   = buffer.get();
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
 		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -204,17 +201,17 @@ public:
 
 		// NOTE: maybe should be game logic here instead
 		// clear screen
-		mCurrentCommandList->ClearRenderTargetView(mDXWindow->get_current_description(), clear_color, 0 ,nullptr);
+		mCurrentCommandList->ClearRenderTargetView(mDXWindow->get_buffer_desc(), clear_color, 0 ,nullptr);
 	}
 
 	void end()
 	{
 		// set the current back buffer to go from RTV to PRESENT
-		D3D12Resource buffer = mDXWindow->get_current_buffer();
+		auto buffer = mDXWindow->get_buffer();
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource   = buffer.Get();
+		barrier.Transition.pResource   = buffer.get();
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
 		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -229,13 +226,13 @@ public:
 		// then cache signal value,
 		// then present which updates current index and reseats back buffer which means i must potentially stall the CPU if the whatever new back buffer is not actually free yet
 		// then check signal value before resuing some unknown buffer
-		const UINT64 current_index = mDXWindow->get_current_buffer_index();
+		const UINT64 current_index = mDXWindow->get_buffer_index();
 		const UINT64 signal_val = mCommand_queue->execute(mCurrentCommandList);
 		mSignalTracker[current_index] = signal_val;
 
 		mDXWindow->present();
 
-		const UINT64 some_new_buffer_index = mDXWindow->get_current_buffer_index();
+		const UINT64 some_new_buffer_index = mDXWindow->get_buffer_index();
 
 		mCommand_queue->wait( mSignalTracker[some_new_buffer_index] );
 	}
@@ -264,11 +261,7 @@ public:
 
 				if (wParam != SIZE_MINIMIZED)
 				{
-					if (mDXWindow->is_size_out_of_sync())
-					{
-						mCommand_queue->flush();
-						mDXWindow->on_resize();
-					}
+					mDXWindow->on_resize();
 				}
 				break;
 
@@ -335,8 +328,8 @@ public:
 
 	void reset_signal_tracker()
 	{
-		UINT64 current = mDXWindow->get_current_buffer_index();
-		for (UINT i = 0; i < NUMBER_OF_BUFFERS; i++)
+		const UINT current = mDXWindow->get_buffer_index();
+		for (UINT i = 0; i < number_of_back_buffers; i++)
 			mSignalTracker[i] = mSignalTracker[current];
 	}
 private:
@@ -349,7 +342,7 @@ private:
 
 	D3D12GraphicsCommandList2           mCurrentCommandList;
 	D3D12Resource                       mCurrentBackBuffer;
-	UINT64                              mSignalTracker[NUMBER_OF_BUFFERS];
+	UINT64                              mSignalTracker[number_of_back_buffers];
 
 	std::unique_ptr<IGame> mGame = nullptr;
 

@@ -39,6 +39,9 @@
     <ClCompile Include="DX12DescriptorHeap.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="DX12RenderWindow.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">

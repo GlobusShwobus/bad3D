@@ -5,7 +5,7 @@
 class DX12DescriptorHeap
 {
 public:
-	DX12DescriptorHeap() = default;
+	DX12DescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC desc, ObserverPtr<ID3D12Device2> device);
 	virtual ~DX12DescriptorHeap() = default;
 
 	DX12DescriptorHeap(const DX12DescriptorHeap&) = delete;
@@ -13,11 +13,7 @@ public:
 	DX12DescriptorHeap(DX12DescriptorHeap&&) = delete;
 	DX12DescriptorHeap& operator=(DX12DescriptorHeap&&) = delete;
 
-	void initialise(ObserverPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_DESC desc);
-
-	void reset();
-
-	UINT desc_size()const { return mDescriptorSize; }
+	constexpr UINT desc_size()const noexcept { return mDescriptorSize; }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE get_descriptor_handle_for(UINT index) const;
 

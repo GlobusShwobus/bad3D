@@ -137,6 +137,7 @@
     <ClCompile Include="DX12CommandQueue.cpp" />
     <ClCompile Include="DX12DescriptorHeap.cpp" />
     <ClCompile Include="DX12Fence.cpp" />
+    <ClCompile Include="DX12RenderWindow.cpp" />
     <ClCompile Include="GPU_CORE.cpp" />
     <ClCompile Include="IWin32Window.cpp" />
     <ClCompile Include="Utils.cpp" />

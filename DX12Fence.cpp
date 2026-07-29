@@ -17,6 +17,32 @@ DX12Fence::DX12Fence(ObserverPtr<ID3D12Device2> device)
 		throw_error_code_translation(GetLastError());
 }
 
+DX12Fence::~DX12Fence() noexcept
+{
+	if (mEventHandle)
+		::CloseHandle(mEventHandle);
+	mEventHandle = nullptr;
+	mFence.Reset();
+}
+
+UINT64 DX12Fence::get_completed_value() const noexcept
+{
+	return mFence->GetCompletedValue(); 
+}
+
+void DX12Fence::stall_thread_until(UINT64 expected_value)
+{
+	// trigger event when value is reached
+	execute_test_throw(
+		mFence->SetEventOnCompletion(expected_value, mEventHandle)
+	);
+	// stall the CPU thread
+	::WaitForSingleObject(mEventHandle, INFINITE);
+}
+
+/*
+* disabled for now
+* 
 DX12Fence::DX12Fence(DX12Fence&& rhs) noexcept
 	:mFence(std::move(rhs.mFence)), mCounter(rhs.mCounter), mEventHandle(rhs.mEventHandle)
 {
@@ -41,22 +67,4 @@ DX12Fence& DX12Fence::operator=(DX12Fence&& rhs) noexcept
 	}
 	return *this;
 }
-
-DX12Fence::~DX12Fence() noexcept
-{
-	if (mEventHandle)
-		::CloseHandle(mEventHandle);
-	mEventHandle = nullptr;
-}
-
-UINT64 DX12Fence::get_completed_value() const noexcept { return mFence->GetCompletedValue(); }
-
-void DX12Fence::stall_thread_until(UINT64 expected_value)
-{
-	// trigger event when value is reached
-	execute_test_throw(
-		mFence->SetEventOnCompletion(expected_value, mEventHandle)
-	);
-	// stall the CPU thread
-	::WaitForSingleObject(mEventHandle, INFINITE);
-}
+*/
