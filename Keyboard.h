@@ -1,6 +1,5 @@
-#ifndef INPUT_H_
-#define INPUT_H_
-
+#pragma once
+#include "WIN32_CORE.h"
 #define KEY_BUFFER_SIZE 256
 class Keyboard
 {
@@ -15,21 +14,24 @@ public:
 
 	const bool* get_keys()const noexcept { return m_keys; }
 
-private:
-
-	void handle_mouse_messages(UINT msg, WPARAM wParam, LPARAM lParam)noexcept
+	constexpr void resolve_message(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		switch (msg)
+		switch (uMsg)
 		{
+		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
 			m_keys[wParam] = true;
 			break;
+
+		case WM_SYSKEYUP:
 		case WM_KEYUP:
 			m_keys[wParam] = false;
 			break;
+		default:
+			break;
 		}
 	}
+
 private:
 	bool m_keys[KEY_BUFFER_SIZE];
 };
-#endif

@@ -92,16 +92,16 @@
     <ClInclude Include="IGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Demo1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Demo2.h">
+    <ClInclude Include="Demo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12DescriptorHeap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12RenderWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderFrameContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,13 +9,11 @@
 #include "IWindowEventListener.h"
 #include "DX12CommandQueue.h"
 #include "DX12RenderWindow.h"
+#include "RenderFrameContext.h"
 
 #include "Stopwatch.h"
 
 #include "IGame.h"
-#include "Demo1.h"
-#include "Demo2.h"
-
 
 class Application : public IWindowEventListener
 {
@@ -160,10 +158,11 @@ public:
 
 	void run()
 	{
-		static Stopwatch timer;
+		Stopwatch timer;
 
 		while (game_bound)
 		{
+			const float dt = timer.dt_float();
 			// call wndproc
 			MSG msg = {};
 			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -172,21 +171,21 @@ public:
 				DispatchMessage(&msg);
 			}
 
-			mGame->on_update( timer.dt_float() );
+			mGame->on_update( dt );
 
-			begin();
+			reset_rendering();
 
+			on_user_render();
 
-
-			end();
+			finish_rendering();
 		}
 
 	}
 
-	void begin()
+	void reset_rendering()
 	{
 		// reset command list
-		mCurrentCommandList = mCommand_queue->get_command_list();
+		mCommandList = mCommand_queue->get_command_list();
 
 		// set the current back buffer to go from PRESENT to RTV
 		auto buffer = mDXWindow->get_buffer();
@@ -197,14 +196,10 @@ public:
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
 		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		mCurrentCommandList->ResourceBarrier(1, &barrier);
-
-		// NOTE: maybe should be game logic here instead
-		// clear screen
-		mCurrentCommandList->ClearRenderTargetView(mDXWindow->get_buffer_desc(), clear_color, 0 ,nullptr);
+		mCommandList->ResourceBarrier(1, &barrier);
 	}
 
-	void end()
+	void finish_rendering()
 	{
 		// set the current back buffer to go from RTV to PRESENT
 		auto buffer = mDXWindow->get_buffer();
@@ -215,10 +210,10 @@ public:
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;         // this knowledge is implied and for back buffers it's fine because they're only ever in one or the other state. for other resources that get more complex logic, state tracking becomes important
 		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		mCurrentCommandList->ResourceBarrier(1, &barrier);
+		mCommandList->ResourceBarrier(1, &barrier);
 
 		// the final command to the list has been recorded. close the list.
-		mCurrentCommandList->Close();
+		mCommandList->Close();
 
 
 		// ask for the current back buffer index, 
@@ -227,7 +222,7 @@ public:
 		// then present which updates current index and reseats back buffer which means i must potentially stall the CPU if the whatever new back buffer is not actually free yet
 		// then check signal value before resuing some unknown buffer
 		const UINT64 current_index = mDXWindow->get_buffer_index();
-		const UINT64 signal_val = mCommand_queue->execute(mCurrentCommandList);
+		const UINT64 signal_val = mCommand_queue->execute(mCommandList.Get());
 		mSignalTracker[current_index] = signal_val;
 
 		mDXWindow->present();
@@ -248,15 +243,7 @@ public:
 				PostQuitMessage(0);
 				game_bound = false;
 				return 0;
-			case WM_PAINT:
-			{
-				// PAINTSTRUCT ps;
-				// BeginPaint(mWindow.get(), &ps);
-				// EndPaint(mWindow.get(), &ps);
-			}
-			break;
 
-			// on window resize get the width and height to the client area. alternative is width / height = LOPARAM / HIPARAM (lParam) but this gives entire size
 			case WM_SIZE:
 
 				if (wParam != SIZE_MINIMIZED)
@@ -265,9 +252,6 @@ public:
 				}
 				break;
 
-				// full screen toggle must be a special case becasue on messing with the window, something deep in win32 gets messed up.
-				// currently i think the best is to approach it as a special case, hence add the event into the main event handle and not on physical key down / up
-				// default window proc will play a system notification sound
 			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 
@@ -276,52 +260,32 @@ public:
 					mDXWindow->on_fullscreen_transition();
 				}
 
-				if (wParam == 'R')
-				{
-					clear_color[0] = 1.0f; clear_color[1] = 0; clear_color[2] = 0; clear_color[3] = 0;
-				}
+				// note: intentional fall through
 
-				if (wParam == 'G')
-				{
-					clear_color[0] = 0; clear_color[1] = 1; clear_color[2] = 0; clear_color[3] = 0;
-				}
+			case WM_SYSKEYUP:
+			case WM_KEYUP:
 
-				if (wParam == 'B')
-				{
-					clear_color[0] = 0; clear_color[1] = 0; clear_color[2] = 1; clear_color[3] = 0;
-				}
+				mGame->on_key_event(uMsg, wParam, lParam);
+				break;
 
-				if (wParam == 'N')
-				{
-					bind_game(std::make_unique<Demo1>());
-				}
 
-				if(wParam == 'M')
-				{
-					bind_game(std::make_unique<Demo2>());
-				}
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:  
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:  
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:  
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONUP:
+			case WM_MOUSEWHEEL:
+			case WM_MOUSEMOVE:
 
+				mGame->on_mouse_event(uMsg, wParam, lParam);
 				break;
 
 			default:
 				break; // default breaks switch and goes to DefWindowProc
 			}
-
-
-			//	// window must also update the mouse and keyboard events
-			//	m_mouse.handle_mouse_messages(uMsg, wParam, lParam, m_hwnd);
-			//	m_kb.handle_mouse_messages(uMsg, wParam, lParam);
-			//	
-			//	// set mouse capture, may be done in higher level code. will see
-			//	if (m_mouse.button(Mouse::ButtonType::Left).pressed()) {
-			//		SetCapture(m_hwnd);
-			//	}
-			//	else if (m_mouse.button(Mouse::ButtonType::Left).released())
-			//	{
-			//		if (GetCapture() == m_hwnd) {
-			//			ReleaseCapture();
-			//		}
-			//	}
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	}
@@ -332,6 +296,15 @@ public:
 		for (UINT i = 0; i < number_of_back_buffers; i++)
 			mSignalTracker[i] = mSignalTracker[current];
 	}
+
+	void on_user_render()
+	{
+		RenderFrameContext context;
+		context.command_list = mCommandList.Get();
+		context.resource_desc = mDXWindow->get_buffer_desc();
+
+		mGame->on_render(context);
+	}
 private:
 	// order matters
 	DXGIFactory4          mFactory;
@@ -340,13 +313,11 @@ private:
 	std::unique_ptr<DX12RenderWindow>   mDXWindow;
 	std::unique_ptr<DX12CommandQueue>   mCommand_queue;
 
-	D3D12GraphicsCommandList2           mCurrentCommandList;
+	D3D12GraphicsCommandList2		    mCommandList;
 	D3D12Resource                       mCurrentBackBuffer;
 	UINT64                              mSignalTracker[number_of_back_buffers];
 
 	std::unique_ptr<IGame> mGame = nullptr;
-
-	FLOAT clear_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 	bool directX_runtime = false;
 	bool game_bound = false;

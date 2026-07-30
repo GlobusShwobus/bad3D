@@ -3,7 +3,7 @@
 #include "Stopwatch.h"
 
 #include "Application.h"
-#include "Demo1.h"
+#include "Demo.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -50,7 +50,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// turn on debug layer before initalizing Direct3D 12 device. Doing it after will cause the device to be released.
 	enable_GPU_debug_layer();
 
-	std::unique_ptr<Demo1> demo1 = std::make_unique<Demo1>();
+	std::unique_ptr<Demo> demo1 = std::make_unique<Demo>();
 	try {
 		Application gfx;
 		gfx.initialise_directX12();

@@ -1,6 +1,6 @@
-#ifndef MOUSE_H
-#define MOUSE_H
+#pragma once
 
+#include "WIN32_CORE.h"
 #include <windowsx.h>
 
 class Mouse
@@ -53,23 +53,22 @@ public:
     // MOUSE HOVER
     bool is_hovering(float threshold)const noexcept { return m_hoverTime >= threshold; }
 
-private:
-    void handle_mouse_messages(UINT msg, WPARAM wParam, LPARAM lParam, HWND hWnd) noexcept
+    constexpr void resolve_message(UINT msg, WPARAM wParam, LPARAM lParam) noexcept
     {
         switch (msg)
         {
         case WM_MOUSEMOVE:
-            {
-                int x = GET_X_LPARAM(lParam);
-                int y = GET_Y_LPARAM(lParam);
+        {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
 
-                if (x != m_x || y != m_y) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
-                    m_hoverTime = 0.0f;
+            if (x != m_x || y != m_y) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
+                m_hoverTime = 0.0f;
 
-                m_x = x;
-                m_y = y;
-            }
-            break;
+            m_x = x;
+            m_y = y;
+        }
+        break;
 
         case WM_LBUTTONDOWN:
             m_buttons[(unsigned int)ButtonType::Left].m_down = true;
@@ -95,8 +94,7 @@ private:
         }
     }
 
-    // this should be called with renderers end frame
-    void end_frame(float dt) noexcept
+    constexpr void update_mouse_state(float dt) noexcept
     {
         // update every buttons state
         for (unsigned int i = 0; i < (unsigned int)ButtonType::Count; i++)
@@ -116,4 +114,3 @@ private:
 
     float m_hoverTime = 0.0f;
 };
-#endif

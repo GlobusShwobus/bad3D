@@ -144,8 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
-    <ClInclude Include="Demo1.h" />
-    <ClInclude Include="Demo2.h" />
+    <ClInclude Include="Demo.h" />
     <ClInclude Include="DX12CommandQueue.h" />
     <ClInclude Include="DX12DescriptorHeap.h" />
     <ClInclude Include="DX12Fence.h" />
@@ -153,6 +152,7 @@
     <ClInclude Include="GPU_CORE.h" />
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
+    <ClInclude Include="RenderFrameContext.h" />
     <ClInclude Include="TypePoint.h" />
     <ClInclude Include="WIN32_CORE.h" />
     <ClInclude Include="ObserverPtr.h" />
