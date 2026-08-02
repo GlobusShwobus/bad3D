@@ -75,6 +75,7 @@ WINDOW_CREATE_DESC example_window_desc()
 }
 
 
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	// set the one global value for module.
