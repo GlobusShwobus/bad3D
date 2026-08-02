@@ -6,28 +6,32 @@
 #include "DX12DescriptorHeap.h"
 #include "DX12CommandQueue.h"
 #include "ObserverPtr.h"
-#include "TypeRect.h"
-#include <memory>
 
+#include <memory>
 
 class DX12RenderWindow final : public IWin32Window
 {
 	struct BufferData
 	{
-		UINT   mCount;
-		UINT   mCurrentIndex;
-		UINT mWidth;
-		UINT mHeight;
+		UINT   count;
+		UINT   current_index;
+		UINT   width;
+		UINT   height;
 	};
 
 public:
 
 	DX12RenderWindow(
-		WINDOW_EX_DESC desc,
+		const WINDOW_CREATE_DESC& desc,
 		ObserverPtr<IDXGIFactory4> factory,
-		ObserverPtr<ID3D12Device2> device,
+		ObserverPtr<ID3D12Device4> device,
 		ObserverPtr<DX12CommandQueue> command_queue,
 		UINT number_of_buffers);
+
+	DX12RenderWindow(const DX12RenderWindow&) = delete;
+	DX12RenderWindow& operator=(const DX12RenderWindow&) = delete;
+	DX12RenderWindow(DX12RenderWindow&&) = delete;
+	DX12RenderWindow& operator=(DX12RenderWindow&&) = delete;
 
 	~DX12RenderWindow()override;
 
@@ -35,7 +39,6 @@ public:
 
 	void on_resize();
 	void on_fullscreen_transition();
-	void reconfigure(WINDOW_EX_DESC desc);
 
 	ObserverPtr<ID3D12Resource> get_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc()const;
@@ -56,12 +59,12 @@ protected:
 
 	void set_to_windowed();
 
-	WindowClassRegister get_class_register_info() const noexcept override;
+	WINDOW_REGISTER_DESC get_class_register_info() const noexcept override;
 
 private:
 
 	// cache the device and command queue views required for handling resizing
-	ObserverPtr<ID3D12Device2>    mDevice;
+	ObserverPtr<ID3D12Device4>    mDevice;
 	ObserverPtr<DX12CommandQueue> mCommandQueue;
 
 	// swapchain
@@ -74,11 +77,11 @@ private:
 	BufferData mBufferData;
 	
 	// cached data to restore size and style between fullscreen / windowed transitions
-	UIRect mWindowedRect;
+	RECT   mWindowedRect;
 	UINT   mWindowStyle;
 
 	// settings
-	bool mFullscreen;
-	bool mVSync;
-	bool mTearingSupported;
+	bool mIsFullscreen;
+	bool mIsVSync;
+	bool mIsTearingSupported;
 };

@@ -1,15 +1,15 @@
 #include "IWin32Window.h"
 
-bool IWin32Window::create_window(PCWSTR window_name, DWORD window_style, UINT x, UINT y, UINT w, UINT h) noexcept
+bool IWin32Window::create_window(const WINDOW_CREATE_DESC& desc) noexcept
 {
-    WindowClassRegister register_info = get_class_register_info();
+    WINDOW_REGISTER_DESC register_info = get_class_register_info();
 
     WNDCLASSEX window_desc = {};
     window_desc.cbSize        = sizeof(window_desc);
     window_desc.lpfnWndProc   = IWin32Window::wnd_proc;
     window_desc.lpszClassName = register_info.class_name;
     window_desc.style         = register_info.class_style;
-    window_desc.hInstance     = register_info.module_;
+    window_desc.hInstance     = register_info.hInstance;
     window_desc.cbClsExtra    = register_info.cbClsExtra;
     window_desc.cbWndExtra    = register_info.cbWndExtra;
     window_desc.hIcon         = register_info.hIcon;
@@ -27,12 +27,12 @@ bool IWin32Window::create_window(PCWSTR window_name, DWORD window_style, UINT x,
     HWND hwnd = CreateWindowExW(
         NULL,
         register_info.class_name,
-        window_name,
-        window_style,
-        x,y,w,h,
+        desc.window_name,
+        desc.window_style,
+        desc.x, desc.y, desc.w, desc.h,
         NULL,
         NULL,
-        register_info.module_,
+        register_info.hInstance,
         this
     );
 

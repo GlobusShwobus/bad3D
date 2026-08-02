@@ -16,51 +16,32 @@
 class IWin32Window
 {
 public:
+
     virtual ~IWin32Window() = default;
+
 protected:
 
     // default constructor
     IWin32Window() = default;
     
-    struct WindowClassRegister
-    {
-        LPCWSTR   class_name     = nullptr;
-        HINSTANCE module_        = nullptr;
-        DWORD     class_style    = NULL;
-        HICON     hIcon          = nullptr;
-        HICON     hIconSm        = nullptr;
-        HCURSOR   hCursor        = nullptr;
-        HBRUSH    hbrBackground  = nullptr;
-        LPCWSTR   lpszMenuName   = nullptr;
-        int       cbClsExtra     = NULL;
-        int       cbWndExtra     = NULL;
-    };
-    
-    // listener is DX12Applications listener. this member is glue to make win32 static window procedure work
-    ObserverPtr<IWindowEventListener> mListener = nullptr;
-
-    // window handle. no automatic delete
-    HWND mHwnd = nullptr;
-
     // class appearance info for class registration
-    virtual WindowClassRegister get_class_register_info()const noexcept = 0;
+    virtual WINDOW_REGISTER_DESC get_class_register_info() const noexcept = 0;
 
-    // bind event listener
+    // creates window. if returns false call GetLastError
+    bool create_window(const WINDOW_CREATE_DESC& desc) noexcept;
+
+    // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
+    bool destroy() noexcept;
+
+    // bind event listener. with the listener interface the user may customize message responses
     constexpr HRESULT bind_event_listener(ObserverPtr<IWindowEventListener> listener) noexcept
     {
         if (!listener)
             return E_POINTER;
 
-
         mListener = listener;
         return S_OK;
     }
-
-    // creates window. if returns false call GetLastError
-    bool create_window(PCWSTR window_name, DWORD window_style, UINT x, UINT y, UINT w, UINT h) noexcept;
-
-    // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
-    bool destroy() noexcept;
 
     // win32 bullshit. i hate it so bad.
     static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -81,4 +62,10 @@ protected:
 
         return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
+
+    // listener is DX12Applications listener. this member is glue to make win32 static window procedure work
+    ObserverPtr<IWindowEventListener> mListener = nullptr;
+
+    // window handle. no automatic delete
+    HWND mHwnd = nullptr;
 };

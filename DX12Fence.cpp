@@ -2,13 +2,13 @@
 #include "Utils.h"
 #include <utility>
 
-DX12Fence::DX12Fence(ObserverPtr<ID3D12Device2> device)
-	:mCounter(0ull), mFence(nullptr), mEventHandle(nullptr)
+DX12Fence::DX12Fence(ObserverPtr<ID3D12Device4> device)
+	:mFence(nullptr), mCounter(0ull), mEventHandle(nullptr)
 {
 	if (!device)
 		throw_error_code_translation(static_cast<DWORD>(E_POINTER));
 
-	execute_test_throw(
+	execute_and_test_hresult(
 		device->CreateFence(mCounter, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence))
 	);
 
@@ -33,7 +33,7 @@ UINT64 DX12Fence::get_completed_value() const noexcept
 void DX12Fence::stall_thread_until(UINT64 expected_value)
 {
 	// trigger event when value is reached
-	execute_test_throw(
+	execute_and_test_hresult(
 		mFence->SetEventOnCompletion(expected_value, mEventHandle)
 	);
 	// stall the CPU thread

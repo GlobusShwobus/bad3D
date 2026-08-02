@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="badMain.cpp" />
     <ClCompile Include="DX12CommandQueue.cpp" />
     <ClCompile Include="DX12DescriptorHeap.cpp" />
@@ -153,10 +154,8 @@
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
     <ClInclude Include="RenderFrameContext.h" />
-    <ClInclude Include="TypePoint.h" />
     <ClInclude Include="WIN32_CORE.h" />
     <ClInclude Include="ObserverPtr.h" />
-    <ClInclude Include="TypeRect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />

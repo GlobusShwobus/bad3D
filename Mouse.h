@@ -2,56 +2,73 @@
 
 #include "WIN32_CORE.h"
 #include <windowsx.h>
+#include <array>
+
+//todo: wheel class
+
+class Mouse;
+
+enum class MouseButtonType : unsigned int
+{
+    Left,
+    Right,
+    Middle,
+    Count
+};
+
+class MouseButton
+{
+    friend class Mouse;
+
+public:
+
+    MouseButton() = default;
+
+    // says if the button is down or not: true == down, false == up
+    constexpr bool is_down() const noexcept { return mDown; }
+
+    // says if the button was clicked this exact frame: true == yes, false == no
+    constexpr bool is_pressed() const noexcept { return mDown && !mPrev; }
+
+    // says if the button was released this exact frame: true == yes, false == no
+    constexpr bool is_released() const noexcept { return !mDown && mPrev; }
+
+protected:
+
+    constexpr void set_down() noexcept            { mDown = true; }
+    constexpr void set_up() noexcept              { mDown = false; }
+    constexpr void set_prev_to_current() noexcept { mPrev = mDown; }
+
+private:
+    bool mDown = false;
+    bool mPrev = false;
+};
 
 class Mouse
 {   
-    friend class Window;
+    using Buttons = std::array<MouseButton, static_cast<unsigned int>(MouseButtonType::Count)>;
 public:
 
-    class ButtonState
-    {
-        friend class Mouse;
-    public:
-
-        // says if the button is down or not: true == down, false == up
-        inline bool down() const noexcept { return m_down; }
-
-        // says if the button was clicked this exact frame: true == yes, false == no
-        inline bool pressed() const noexcept { return m_down && !m_prev; }
-
-        // says if the button was released this exact frame: true == yes, false == no
-        inline bool released() const noexcept { return !m_down && m_prev; }
-
-    private:
-        bool m_down = false;
-        bool m_prev = false;
-    };
-
-    enum class ButtonType :unsigned int
-    {
-        Left,
-        Right,
-        Middle,
-        Count
-    };
+    Mouse() = default;
+    virtual ~Mouse() = default;
 
     // MOUSE POS
-    inline int pos_x() const noexcept { return m_x; }
-    inline int pos_y() const noexcept { return m_y; }
-
-    // MOUSE BUTTON STATE
-    const ButtonState& button(ButtonType b)const noexcept { return m_buttons[(unsigned int)b]; }
-
-    // MOUSEE WHEEL
-    inline int consume_wheel() noexcept 
-    { 
-        int delta = m_wheelDelta;
-        m_wheelDelta = 0;
-        return delta;
-    }
+    constexpr int get_pos_x() const noexcept { return mX; }
+    constexpr int get_pos_y() const noexcept { return mY; }
 
     // MOUSE HOVER
-    bool is_hovering(float threshold)const noexcept { return m_hoverTime >= threshold; }
+    constexpr float get_hovering_time() const noexcept { return mHoverTime; }
+
+    // MOUSE BUTTON STATE
+    constexpr const MouseButton& get_button(MouseButtonType type) const noexcept { return mButtons[static_cast<unsigned int>(type)]; }
+
+    // MOUSEE WHEEL
+    constexpr int get_wheel_delta() noexcept 
+    { 
+        int delta = mWheel;
+        mWheel = 0;
+        return delta;
+    }
 
     constexpr void resolve_message(UINT msg, WPARAM wParam, LPARAM lParam) noexcept
     {
@@ -59,58 +76,58 @@ public:
         {
         case WM_MOUSEMOVE:
         {
-            int x = GET_X_LPARAM(lParam);
-            int y = GET_Y_LPARAM(lParam);
+            int nx = GET_X_LPARAM(lParam);
+            int ny = GET_Y_LPARAM(lParam);
 
-            if (x != m_x || y != m_y) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
-                m_hoverTime = 0.0f;
+            if (nx != mX || ny != mY) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
+                mHoverTime = 0.0f;
 
-            m_x = x;
-            m_y = y;
+            mX = nx;
+            mY = ny;
         }
         break;
 
         case WM_LBUTTONDOWN:
-            m_buttons[(unsigned int)ButtonType::Left].m_down = true;
+            mButtons[static_cast<unsigned int>(MouseButtonType::Left)].set_down();
             break;
 
         case WM_LBUTTONUP:
-            m_buttons[(unsigned int)ButtonType::Left].m_down = false;
+            mButtons[static_cast<unsigned int>(MouseButtonType::Left)].set_up();
             break;
 
         case WM_RBUTTONDOWN:
-            m_buttons[(unsigned int)ButtonType::Right].m_down = true;
+            mButtons[static_cast<unsigned int>(MouseButtonType::Right)].set_down();
             break;
 
         case WM_RBUTTONUP:
-            m_buttons[(unsigned int)ButtonType::Right].m_down = false;
+            mButtons[static_cast<unsigned int>(MouseButtonType::Right)].set_up();
             break;
 
         case WM_MOUSEWHEEL:
-            m_wheelDelta += GET_WHEEL_DELTA_WPARAM(wParam);
+            mWheel += GET_WHEEL_DELTA_WPARAM(wParam);
             break;
         default:
             break;
         }
     }
 
-    constexpr void update_mouse_state(float dt) noexcept
+    constexpr void update_mouse_buttons(float dt) noexcept
     {
         // update every buttons state
-        for (unsigned int i = 0; i < (unsigned int)ButtonType::Count; i++)
-            m_buttons[i].m_prev = m_buttons[i].m_down;
+        for (auto& e : mButtons)
+            e.set_prev_to_current();
 
         // update hover time
-        m_hoverTime += dt;
+        mHoverTime += dt;
     }
 
 private:
-    int m_x = 0;
-    int m_y = 0;
+    int mX = 0;
+    int mY = 0;
 
-    ButtonState m_buttons[(unsigned int)ButtonType::Count];
+    Buttons mButtons;
 
-    int m_wheelDelta = 0;
+    int mWheel = 0;
 
-    float m_hoverTime = 0.0f;
+    float mHoverTime = 0.0f;
 };

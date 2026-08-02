@@ -6,7 +6,7 @@ class DX12Fence
 {
 public:
 
-	DX12Fence(ObserverPtr<ID3D12Device2> device);
+	DX12Fence(ObserverPtr<ID3D12Device4> device);
 
 	DX12Fence(const DX12Fence&) = delete;
 	DX12Fence& operator=(const DX12Fence&) = delete;
@@ -24,6 +24,6 @@ public:
 
 private:
 	D3D12Fence mFence;
-	UINT64  mCounter;
-	HANDLE  mEventHandle;
+	UINT64     mCounter;
+	HANDLE     mEventHandle;
 };

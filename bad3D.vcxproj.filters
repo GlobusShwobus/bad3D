@@ -42,6 +42,9 @@
     <ClCompile Include="DX12RenderWindow.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -74,16 +77,10 @@
     <ClInclude Include="ObserverPtr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TypeRect.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="IWindowEventListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WIN32_CORE.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TypePoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12Fence.h">

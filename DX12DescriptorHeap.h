@@ -5,7 +5,7 @@
 class DX12DescriptorHeap
 {
 public:
-	DX12DescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC desc, ObserverPtr<ID3D12Device2> device);
+	DX12DescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC desc, ObserverPtr<ID3D12Device4> device);
 	virtual ~DX12DescriptorHeap() = default;
 
 	DX12DescriptorHeap(const DX12DescriptorHeap&) = delete;

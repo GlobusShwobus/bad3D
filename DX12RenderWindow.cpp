@@ -3,46 +3,49 @@
 #include "Utils.h"
 
 DX12RenderWindow::DX12RenderWindow(
-	WINDOW_EX_DESC desc,
+	const WINDOW_CREATE_DESC& desc,
 	ObserverPtr<IDXGIFactory4> factory,
-	ObserverPtr<ID3D12Device2> device,
+	ObserverPtr<ID3D12Device4> device,
 	ObserverPtr<DX12CommandQueue> command_queue,
 	UINT number_of_buffers)
 {
+	// basic check for vital variables then try to create the window. throw if failed
 	if (!factory || !device || !command_queue || number_of_buffers < 2)
 		throw_error_code_translation(static_cast<DWORD>(E_POINTER));
 
-	// create window
-	if (!create_window(desc.window_name, desc.window_style, desc.x, desc.y, desc.w, desc.h))
-		throw_error_code_translation(::GetLastError());
+	if (!create_window(desc))
+		throw_error_code_translation( ::GetLastError() );
 
-	// query the true size of the client
-	const UIRect true_client_rect = get_client_rect(mHwnd);
-
-	// disable alt+enter
-	execute_test_throw(
+	// disable alt + enter because fullscreen / windowed transitions are manual
+	execute_and_test_hresult(
 		factory->MakeWindowAssociation(mHwnd, DXGI_MWA_NO_ALT_ENTER)
 	);
 
 	// check if tearing is supported
-	const bool is_tearing = check_is_tearing_supported(factory);
+	const bool is_tearing_supported = check_is_tearing_supported(factory);
 
-	// create the swap chain with the given desc then use IUnknown::QueryInterface to get swap chain 4 out of it
+	// query the true size of the client window then create the description for the swap chain
+	RECT client_rect;
+	::GetClientRect(mHwnd, &client_rect);
+	const UINT cwidth = static_cast<UINT>(rect_width(client_rect));
+	const UINT cheight = static_cast<UINT>(rect_height(client_rect));
+
 	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
-	swap_chain_desc.Width = true_client_rect.w;
-	swap_chain_desc.Height = true_client_rect.h;
-	swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swap_chain_desc.Stereo = FALSE;
-	swap_chain_desc.SampleDesc = { 1,0 };
-	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swap_chain_desc.BufferCount = number_of_buffers;
-	swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
-	swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	swap_chain_desc.Flags = is_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	swap_chain_desc.Width                 = cwidth;
+	swap_chain_desc.Height                = cheight;
+	swap_chain_desc.Format                = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swap_chain_desc.Stereo                = FALSE;
+	swap_chain_desc.SampleDesc            = { 1,0 };
+	swap_chain_desc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swap_chain_desc.BufferCount           = number_of_buffers;
+	swap_chain_desc.Scaling               = DXGI_SCALING_STRETCH;
+	swap_chain_desc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swap_chain_desc.AlphaMode             = DXGI_ALPHA_MODE_UNSPECIFIED;
+	swap_chain_desc.Flags                 = is_tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
+	// with the given description create swapchain one then query interface it to memnber swapchain
 	DXGISwapChain1 swapchain1;
-	execute_test_throw(
+	execute_and_test_hresult(
 		factory->CreateSwapChainForHwnd(
 			command_queue->get_observer().get(),
 			mHwnd,
@@ -55,30 +58,28 @@ DX12RenderWindow::DX12RenderWindow(
 
 	swapchain1.As(&mSwapChain);
 
-	// after swap chin set variables, then create desc heap
-	mTearingSupported = is_tearing;
-	mVSync = true;
-	mFullscreen = false;
-	mWindowedRect = get_window_rect(mHwnd);
+	// after swap chin set variables, then create desc heap (the order matters as creating descriptions depend on valid arguments)
+	mIsTearingSupported = is_tearing_supported;
+	mIsVSync = true;
+	mIsFullscreen = false;
+	::GetWindowRect(mHwnd, &mWindowedRect);
 	mWindowStyle = desc.window_style;
-	mBufferData.mCount = number_of_buffers;
-	mBufferData.mCurrentIndex = mSwapChain->GetCurrentBackBufferIndex();
-	mBufferData.mWidth = true_client_rect.w;
-	mBufferData.mHeight = true_client_rect.h;
+	mBufferData.count = number_of_buffers;
+	mBufferData.current_index = mSwapChain->GetCurrentBackBufferIndex();
+	mBufferData.width = cwidth;
+	mBufferData.height = cheight;
 	mDevice = device;
 	mCommandQueue = command_queue;
 
-	// create descriptor heap with the given desc
+	// create descriptor heap with the given desc, create the heap then create the descriptions via reset_description_info()
 	D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {};
 	descriptor_heap_desc.NumDescriptors = number_of_buffers;
 	descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	descriptor_heap_desc.NodeMask = 0;
 	descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	// create the descriptor heap
 	mDescHeap = std::make_unique<DX12DescriptorHeap>(descriptor_heap_desc, device);
 
-	// set descriptions
 	reset_description_info();
 
 	// show
@@ -94,15 +95,15 @@ DX12RenderWindow::~DX12RenderWindow()
 void DX12RenderWindow::present()
 {
 	// determine sync interval and flags
-	UINT syncInterval = mVSync ? 1 : 0;
-	UINT presentFlags = (mTearingSupported && !mVSync) ? DXGI_PRESENT_ALLOW_TEARING : 0;
+	UINT syncInterval = mIsVSync ? 1 : 0;
+	UINT presentFlags = (mIsTearingSupported && !mIsVSync) ? DXGI_PRESENT_ALLOW_TEARING : 0;
 	// present the current buffer. swap chain will internally change the current writable buffer index
-	execute_test_throw(
+	execute_and_test_hresult(
 		mSwapChain->Present(syncInterval, presentFlags)
 	);
 
 	// reset the current back buffer index
-	mBufferData.mCurrentIndex = mSwapChain->GetCurrentBackBufferIndex();
+	mBufferData.current_index = mSwapChain->GetCurrentBackBufferIndex();
 }
 
 void DX12RenderWindow::on_resize()
@@ -112,8 +113,12 @@ void DX12RenderWindow::on_resize()
 		return;
 
 	// query the true size of the client and check if the cached resource width/height are out of sync
-	const UIRect rect = get_client_rect(mHwnd);
-	if (mBufferData.mWidth == rect.w && mBufferData.mHeight == rect.h)
+	RECT client_rect;
+	::GetClientRect(mHwnd, &client_rect);
+	const UINT cwidth = static_cast<UINT>(rect_width(client_rect));
+	const UINT cheight = static_cast<UINT>(rect_height(client_rect));
+
+	if (mBufferData.width == cwidth && mBufferData.height == cheight)
 		return;
 
 	// before resizing the resources, flush the current GPU activity
@@ -121,65 +126,36 @@ void DX12RenderWindow::on_resize()
 
 	// reset swap chains back buffers
 	DXGI_SWAP_CHAIN_DESC scDesc = {};
-	execute_test_throw(
+	execute_and_test_hresult(
 		mSwapChain->GetDesc(&scDesc)
 	);
-	execute_test_throw(
+	execute_and_test_hresult(
 		mSwapChain->ResizeBuffers(
-			mBufferData.mCount,
-			rect.w,
-			rect.h,
+			mBufferData.count,
+			cwidth,
+			cheight,
 			scDesc.BufferDesc.Format,
 			scDesc.Flags
 		));
 
 	// set size handles
-	mBufferData.mWidth = rect.w;
-	mBufferData.mHeight = rect.h;
+	mBufferData.width = cwidth;
+	mBufferData.height = cheight;
 
 	// reset current index
-	mBufferData.mCurrentIndex = mSwapChain->GetCurrentBackBufferIndex();
+	mBufferData.current_index = mSwapChain->GetCurrentBackBufferIndex();
 
 	// update back buffer handles
 	reset_description_info();
 }
 void DX12RenderWindow::on_fullscreen_transition()
 {
-	if (mFullscreen)
+	if (mIsFullscreen)
 		set_to_windowed();
 	else
 		set_to_fullscreen();
 }
-void DX12RenderWindow::reconfigure(WINDOW_EX_DESC desc)
-{
-	// if currently fullscreen, drop back to windowed first — otherwise we'd be
-	// resizing the fullscreen borderless rect instead of the real windowed one,
-	// and mWindowedRect would end up wrong for the next set_to_windowed() call.
-	const bool current_mode = mFullscreen;
-	if (mFullscreen)
-		set_to_windowed();
 
-	// update the cached windowed geometry so a later set_to_windowed()/alt-tab-back
-	// restores to the NEW size/position, not the previous demo's.
-	mWindowedRect.x = desc.x;
-	mWindowedRect.y = desc.y;
-	mWindowedRect.w = desc.w;
-	mWindowedRect.h = desc.h;
-
-	// retitle
-	::SetWindowTextW(mHwnd, desc.window_name);
-
-	// repos + resize
-	::SetWindowPos(
-		mHwnd, nullptr,
-		desc.x, desc.y, desc.w, desc.h,
-		SWP_NOZORDER | SWP_NOACTIVATE
-	);
-
-	// re-enter fullscreen if the new demo wants to start there
-	if (current_mode != mFullscreen)
-		set_to_fullscreen();
-}
 ObserverPtr<ID3D12Resource> DX12RenderWindow::get_buffer_at(UINT index) const
 {
 	// comptr forces ref counting but pass but just the view. fatal errors are fatal erros which shouldn't happen to begin with
@@ -190,24 +166,24 @@ ObserverPtr<ID3D12Resource> DX12RenderWindow::get_buffer_at(UINT index) const
 
 ObserverPtr<ID3D12Resource> DX12RenderWindow::get_buffer() const
 {
-	return get_buffer_at(mBufferData.mCurrentIndex);
+	return get_buffer_at(mBufferData.current_index);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12RenderWindow::get_buffer_desc()const
 {
-	return mDescHeap->get_descriptor_handle_for(mBufferData.mCurrentIndex);
+	return mDescHeap->get_descriptor_handle_for(mBufferData.current_index);
 }
 
 UINT DX12RenderWindow::get_buffer_index()const
 {
-	return mBufferData.mCurrentIndex;
+	return mBufferData.current_index;
 }
 
 void DX12RenderWindow::reset_description_info() const
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap->get_descriptor_handle_for(NULL);
 
-	for (UINT i = 0; i < mBufferData.mCount; i++)
+	for (UINT i = 0; i < mBufferData.count; i++)
 	{
 		mDevice->CreateRenderTargetView(get_buffer_at(i).get(), nullptr, heapPos);
 
@@ -218,7 +194,7 @@ void DX12RenderWindow::reset_description_info() const
 void DX12RenderWindow::set_to_fullscreen()
 {
 	// cache windowed size
-	mWindowedRect = get_window_rect(mHwnd);
+	::GetWindowRect(mHwnd, &mWindowedRect);
 
 	// remove all decoration
 	const UINT windowStyle = 0;
@@ -241,7 +217,7 @@ void DX12RenderWindow::set_to_fullscreen()
 	::SetWindowPos(mHwnd, HWND_TOP, x, y, w, h, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
 	// set bool fullscreen
-	mFullscreen = true;
+	mIsFullscreen = true;
 }
 
 void DX12RenderWindow::set_to_windowed()
@@ -250,18 +226,23 @@ void DX12RenderWindow::set_to_windowed()
 	::SetWindowLongPtrW(mHwnd, GWL_STYLE, mWindowStyle);
 
 	// set the pos of the window to old pos
-	::SetWindowPos(mHwnd, HWND_NOTOPMOST, mWindowedRect.x, mWindowedRect.y, mWindowedRect.w, mWindowedRect.h, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+	int x, y, w, h;
+	x = mWindowedRect.left;
+	y = mWindowedRect.top;
+	w = mWindowedRect.right - mWindowedRect.left;
+	h = mWindowedRect.bottom - mWindowedRect.top;
+	::SetWindowPos(mHwnd, HWND_NOTOPMOST, x, y, w, h, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
 	// set bool windowed
-	mFullscreen = false;
+	mIsFullscreen = false;
 }
 
-IWin32Window::WindowClassRegister DX12RenderWindow::get_class_register_info() const noexcept
+WINDOW_REGISTER_DESC DX12RenderWindow::get_class_register_info() const noexcept
 {
-	WindowClassRegister info = {};
+	WINDOW_REGISTER_DESC info = {};
 
 	info.class_name = L"DX12RenderWindow";
-	info.module_ = g_hModule;
+	info.hInstance = g_hModule;
 	info.class_style = CS_HREDRAW | CS_VREDRAW;
 	info.hIcon = nullptr;
 	info.hIconSm = nullptr;

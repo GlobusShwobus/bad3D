@@ -5,11 +5,11 @@
 #include "GPU_CORE.h"
 #include "RenderFrameContext.h"
 
+
 class IGame
 {
 public:
-
-	virtual WINDOW_EX_DESC make_create_window_desc() = 0;
+	virtual ~IGame() = default;
 
 	// content loading / unloading
 	virtual void load_content() = 0;
