@@ -10,7 +10,7 @@ public:
 	constexpr ObserverPtr() noexcept = default;
 	constexpr ObserverPtr(std::nullptr_t) noexcept {}
 	constexpr ObserverPtr(T* ptr) noexcept // let it be implicit for now
-		: ptr_(ptr)
+		: mPtr(ptr)
 	{
 	}
 
@@ -19,43 +19,43 @@ public:
 
 	constexpr ObserverPtr& operator=(std::nullptr_t) noexcept
 	{
-		ptr_ = nullptr;
+		mPtr = nullptr;
 		return *this;
 	}
 
 	constexpr void observe_this(T* ptr) noexcept
 	{
-		ptr_ = ptr;
+		mPtr = ptr;
 	}
 
 	constexpr T* stop_observing() noexcept
 	{
-		T* tmp = ptr_;
-		ptr_ = nullptr;
+		T* tmp = mPtr;
+		mPtr = nullptr;
 		return tmp;
 	}
 
 	constexpr T* get() const noexcept
 	{
-		return ptr_;
+		return mPtr;
 	}
 
 	constexpr explicit operator bool() const noexcept
 	{
-		return ptr_ != nullptr;
+		return mPtr != nullptr;
 	}
 
 	constexpr T& operator*() const
 	{
-		assert(ptr_);
-		return *ptr_;
+		assert(mPtr);
+		return *mPtr;
 	}
 
 	constexpr T* operator->() const noexcept
 	{
-		return ptr_;
+		return mPtr;
 	}
 
 private:
-	T* ptr_ = nullptr;
+	T* mPtr = nullptr;
 };

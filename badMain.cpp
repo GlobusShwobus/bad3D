@@ -3,6 +3,7 @@
 #include "Stopwatch.h"
 
 #include "Application.h"
+#include "Demo.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -34,10 +35,51 @@
 //		return desc;
 //	}
 
+WINDOW_CREATE_DESC example_window_desc()
+{
+	const DWORD window_style = WS_OVERLAPPEDWINDOW;
+
+	const RECT client_rect{ 0,0,1280,720 };
+	// adjust client rect to window rect
+	RECT window_rect{ 0,0,client_rect.right,client_rect.bottom };
+	::AdjustWindowRect(&window_rect, window_style, FALSE);
+
+	// obtain the cursor position then find the monitor where it is in
+	POINT cursor_pos;
+	::GetCursorPos(&cursor_pos);
+	HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
+	MONITORINFOEX monitorinfo = {};
+	monitorinfo.cbSize = sizeof(MONITORINFOEX);
+	::GetMonitorInfoW(hMonitor, &monitorinfo);
+
+	// center window rect within monitors work area
+	const RECT& mrect = monitorinfo.rcMonitor;
+	const LONG monitor_w = mrect.right - mrect.left;
+	const LONG monitor_h = mrect.bottom - mrect.top;
+
+	const LONG window_w = window_rect.right - window_rect.left;
+	const LONG window_h = window_rect.bottom - window_rect.top;
+
+	const LONG x = mrect.left + std::max<LONG>(0, (monitor_w - window_w) / 2);
+	const LONG y = mrect.top + std::max<LONG>(0, (monitor_h - window_h) / 2);
+
+	WINDOW_CREATE_DESC desc = {};
+	desc.window_name = L"demo 1";
+	desc.window_style = window_style;
+	desc.x = x;
+	desc.y = y;
+	desc.w = window_w;
+	desc.h = window_h;
+
+	return desc;
+}
 
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+	// set the one global value for module.
+	g_hModule = hInstance;
+
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
 	// Using this awareness context allows the client area of the window 
 	// to achieve 100% scaling while still allowing non-client window content to 
@@ -47,8 +89,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// turn on debug layer before initalizing Direct3D 12 device. Doing it after will cause the device to be released.
 	enable_GPU_debug_layer();
 
+	WINDOW_CREATE_DESC window_desc = example_window_desc();
+
+	std::unique_ptr<Demo> demo1 = std::make_unique<Demo>();
 	try {
-		Application gfx(hInstance, L"pepe", 1280, 720);
+		Application gfx(window_desc);
+
+		gfx.bind_game(std::move(demo1));
+
 		gfx.run();
 	}
 	catch (const std::exception& e)
@@ -57,28 +105,4 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	return 0;
-}
-// bvllshit
-void update()
-{
-	static uint64_t frameCounter = 0;
-	static double elapsedSeconds = 0.0;
-	static std::chrono::high_resolution_clock cock;
-	static auto t0 = cock.now();
-
-	frameCounter++;
-	auto t1 = cock.now();
-	auto deltaTime = t1 - t0;
-	t0 = t1;
-
-	elapsedSeconds += deltaTime.count() * 1e-9;
-	if (elapsedSeconds > 1.0)
-	{
-		char buffer[500];
-		auto fps = frameCounter / elapsedSeconds;
-		sprintf_s(buffer, 500, "FPS: %f\n", fps);
-		OutputDebugStringA(buffer);
-		frameCounter = 0;
-		elapsedSeconds = 0.0;
-	}
 }

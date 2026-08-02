@@ -33,13 +33,16 @@
     <ClCompile Include="IWin32Window.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="Win32Window.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="DX12Fence.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX12SwapChain.cpp">
+    <ClCompile Include="DX12DescriptorHeap.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX12RenderWindow.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,25 +77,28 @@
     <ClInclude Include="ObserverPtr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TypeRect.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="IWindowEventListener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32Window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DX12SwapChain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WIN32_CORE.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TypePoint.h">
+    <ClInclude Include="DX12Fence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX12Fence.h">
+    <ClInclude Include="IGame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Demo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12DescriptorHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12RenderWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderFrameContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

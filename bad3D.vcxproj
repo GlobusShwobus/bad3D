@@ -133,33 +133,35 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="badMain.cpp" />
     <ClCompile Include="DX12CommandQueue.cpp" />
+    <ClCompile Include="DX12DescriptorHeap.cpp" />
     <ClCompile Include="DX12Fence.cpp" />
-    <ClCompile Include="DX12SwapChain.cpp" />
+    <ClCompile Include="DX12RenderWindow.cpp" />
     <ClCompile Include="GPU_CORE.cpp" />
     <ClCompile Include="IWin32Window.cpp" />
     <ClCompile Include="Utils.cpp" />
-    <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="Demo.h" />
     <ClInclude Include="DX12CommandQueue.h" />
+    <ClInclude Include="DX12DescriptorHeap.h" />
     <ClInclude Include="DX12Fence.h" />
-    <ClInclude Include="DX12SwapChain.h" />
+    <ClInclude Include="DX12RenderWindow.h" />
     <ClInclude Include="GPU_CORE.h" />
+    <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
-    <ClInclude Include="TypePoint.h" />
+    <ClInclude Include="RenderFrameContext.h" />
     <ClInclude Include="WIN32_CORE.h" />
     <ClInclude Include="ObserverPtr.h" />
-    <ClInclude Include="TypeRect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="IWindowEventListener.h" />
-    <ClInclude Include="Win32Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="bad3D.rc" />

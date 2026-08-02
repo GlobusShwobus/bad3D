@@ -1,59 +1,42 @@
 #include "IWin32Window.h"
 
-bool IWin32Window::register_class(
-    PCWSTR class_name,
-    DWORD class_style,
-    HINSTANCE hInstance
-) noexcept
+bool IWin32Window::create_window(const WINDOW_CREATE_DESC& desc) noexcept
 {
+    WINDOW_REGISTER_DESC register_info = get_class_register_info();
+
     WNDCLASSEX window_desc = {};
-    window_desc.cbSize = sizeof(window_desc);
-    window_desc.lpfnWndProc = IWin32Window::wnd_proc;
-    window_desc.lpszClassName = class_name;
-    window_desc.style = class_style;
-    window_desc.hInstance = hInstance;
-    window_desc.cbClsExtra = NULL;
-    window_desc.cbWndExtra = NULL;
-    window_desc.hIcon = NULL;
-    window_desc.hCursor = NULL;
-    window_desc.hbrBackground = NULL;
-    window_desc.lpszMenuName = NULL;
-    window_desc.hIconSm = NULL;
+    window_desc.cbSize        = sizeof(window_desc);
+    window_desc.lpfnWndProc   = IWin32Window::wnd_proc;
+    window_desc.lpszClassName = register_info.class_name;
+    window_desc.style         = register_info.class_style;
+    window_desc.hInstance     = register_info.hInstance;
+    window_desc.cbClsExtra    = register_info.cbClsExtra;
+    window_desc.cbWndExtra    = register_info.cbWndExtra;
+    window_desc.hIcon         = register_info.hIcon;
+    window_desc.hCursor       = register_info.hCursor;
+    window_desc.hbrBackground = register_info.hbrBackground;
+    window_desc.lpszMenuName  = register_info.lpszMenuName;
+    window_desc.hIconSm       = register_info.hIconSm;
 
-    // try create. can fail i think on re-registry so might be wiser to separate register and create
-    return RegisterClassExW(&window_desc) == NULL ? false : true;
-}
-
-bool IWin32Window::create_window(
-    PCWSTR class_name,
-    PCWSTR window_name,
-    DWORD window_style,
-    int x,
-    int y,
-    int w,
-    int h,
-    HINSTANCE hInstance,
-    ObserverPtr<IWindowEventListener> listener
-) noexcept
-{
-    mListener.observe_this(listener.get());
+    if (RegisterClassExW(&window_desc) == 0)
+    {
+        if (::GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+            return false;
+    }
 
     HWND hwnd = CreateWindowExW(
         NULL,
-        class_name,
-        window_name,
-        window_style,
-        x,
-        y,
-        w,
-        h,
+        register_info.class_name,
+        desc.window_name,
+        desc.window_style,
+        desc.x, desc.y, desc.w, desc.h,
         NULL,
         NULL,
-        hInstance,
+        register_info.hInstance,
         this
     );
 
-    return hwnd == NULL ? false : true;
+    return hwnd != nullptr;
 }
 
 bool IWin32Window::destroy() noexcept
@@ -67,6 +50,6 @@ bool IWin32Window::destroy() noexcept
 
     if (result != 0)
         mHwnd = nullptr;
-
+    mListener = nullptr;
     return result != 0;
 }
