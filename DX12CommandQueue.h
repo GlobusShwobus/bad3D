@@ -47,7 +47,7 @@ public:
 	ObserverPtr<ID3D12GraphicsCommandList2> get_command_list();
 
 	// get internal command queue, for swap list
-	constexpr ObserverPtr<ID3D12CommandQueue> get_observer()const noexcept { return  mCommandQueue.Get(); }
+	// constexpr ObserverPtr<ID3D12CommandQueue> get_observer()const noexcept { return  mCommandQueue.Get(); }
 
 protected:
 

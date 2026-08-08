@@ -6,10 +6,20 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 
+
+#include <DirectXMath.h>
+
 class Demo :public IGame
 {
 public:
-
+	Demo()
+	{
+		// check of directX math library support
+		if (!DirectX::XMVerifyCPUSupport())
+		{
+			throw std::runtime_error("memes");
+		}
+	}
 	~Demo()override
 	{
 		unload_content();
@@ -23,7 +33,7 @@ public:
 		mouse.update_mouse_buttons(dt);
 	}
 
-	void on_render(const RenderFrameContext& frame_context) override
+	void on_render( ObserverPtr<ID3D12GraphicsCommandList2> command_list) override
 	{
 
 		frame_context.command_list->ClearRenderTargetView(frame_context.resource_desc, color, 0, nullptr);

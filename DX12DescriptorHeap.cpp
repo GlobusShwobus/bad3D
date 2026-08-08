@@ -1,13 +1,19 @@
 #include "DX12DescriptorHeap.h"
 #include "Utils.h"
 
-DX12DescriptorHeap::DX12DescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC desc, ObserverPtr<ID3D12Device4> device)
+DX12DescriptorHeap::DX12DescriptorHeap(ObserverPtr<ID3D12Device4> device, UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type)
 {
+	D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {};
+	descriptor_heap_desc.NumDescriptors = desc_count;
+	descriptor_heap_desc.Type = type;
+	descriptor_heap_desc.NodeMask = 0;
+	descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
 	execute_and_test_hresult(
-		device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mDescriptorHeap))
+		device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&mDescriptorHeap))
 	);
 
-	mDescriptorSize = device->GetDescriptorHandleIncrementSize(desc.Type);
+	mDescriptorSize = device->GetDescriptorHandleIncrementSize(type);
 }
 
 

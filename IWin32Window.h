@@ -4,6 +4,7 @@
 #include "IWindowEventListener.h"
 #include "ObserverPtr.h"
 
+#include <string>
 
 // Interface window.
 // The child class that inherits from this class must define get_class_register_info for registering the info.
@@ -24,11 +25,11 @@ protected:
     // default constructor
     IWin32Window() = default;
     
-    // class appearance info for class registration
-    virtual WINDOW_REGISTER_DESC get_class_register_info() const noexcept = 0;
+    // class appearance info for class registration. everything is configurable except window proc. internally create_window will ignore users window proc and overwrite it
+    virtual WNDCLASSEX get_class_register_info() const noexcept = 0;
 
     // creates window. if returns false call GetLastError
-    bool create_window(const WINDOW_CREATE_DESC& desc) noexcept;
+    bool create_window(const std::wstring& title, UINT x, UINT y, UINT window_width, UINT window_height, DWORD window_style) noexcept;
 
     // destroys window and all context. returns true on success, false on failure. call GetLastError on failure.
     bool destroy() noexcept;

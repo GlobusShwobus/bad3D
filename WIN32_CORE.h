@@ -13,30 +13,6 @@
 
 static HINSTANCE g_hModule = nullptr;
 
-struct WINDOW_REGISTER_DESC
-{
-	LPCWSTR   class_name;
-	HINSTANCE hInstance;
-	DWORD     class_style;
-	HICON     hIcon;
-	HICON     hIconSm;
-	HCURSOR   hCursor;
-	HBRUSH    hbrBackground;
-	LPCWSTR   lpszMenuName;
-	int       cbClsExtra;
-	int       cbWndExtra;
-};
-
-struct WINDOW_CREATE_DESC
-{
-	PCWSTR window_name;
-	DWORD  window_style;
-	UINT x;
-	UINT y;
-	UINT w;
-	UINT h;
-};
-
 /*
 
 GUIDE:

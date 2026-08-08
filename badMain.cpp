@@ -35,44 +35,44 @@
 //		return desc;
 //	}
 
-WINDOW_CREATE_DESC example_window_desc()
-{
-	const DWORD window_style = WS_OVERLAPPEDWINDOW;
-
-	const RECT client_rect{ 0,0,1280,720 };
-	// adjust client rect to window rect
-	RECT window_rect{ 0,0,client_rect.right,client_rect.bottom };
-	::AdjustWindowRect(&window_rect, window_style, FALSE);
-
-	// obtain the cursor position then find the monitor where it is in
-	POINT cursor_pos;
-	::GetCursorPos(&cursor_pos);
-	HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
-	MONITORINFOEX monitorinfo = {};
-	monitorinfo.cbSize = sizeof(MONITORINFOEX);
-	::GetMonitorInfoW(hMonitor, &monitorinfo);
-
-	// center window rect within monitors work area
-	const RECT& mrect = monitorinfo.rcMonitor;
-	const LONG monitor_w = mrect.right - mrect.left;
-	const LONG monitor_h = mrect.bottom - mrect.top;
-
-	const LONG window_w = window_rect.right - window_rect.left;
-	const LONG window_h = window_rect.bottom - window_rect.top;
-
-	const LONG x = mrect.left + std::max<LONG>(0, (monitor_w - window_w) / 2);
-	const LONG y = mrect.top + std::max<LONG>(0, (monitor_h - window_h) / 2);
-
-	WINDOW_CREATE_DESC desc = {};
-	desc.window_name = L"demo 1";
-	desc.window_style = window_style;
-	desc.x = x;
-	desc.y = y;
-	desc.w = window_w;
-	desc.h = window_h;
-
-	return desc;
-}
+//	WINDOW_CREATE_DESC example_window_desc()
+//	{
+//		const DWORD window_style = WS_OVERLAPPEDWINDOW;
+//	
+//		const RECT client_rect{ 0,0,1280,720 };
+//		// adjust client rect to window rect
+//		RECT window_rect{ 0,0,client_rect.right,client_rect.bottom };
+//		::AdjustWindowRect(&window_rect, window_style, FALSE);
+//	
+//		// obtain the cursor position then find the monitor where it is in
+//		POINT cursor_pos;
+//		::GetCursorPos(&cursor_pos);
+//		HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
+//		MONITORINFOEX monitorinfo = {};
+//		monitorinfo.cbSize = sizeof(MONITORINFOEX);
+//		::GetMonitorInfoW(hMonitor, &monitorinfo);
+//	
+//		// center window rect within monitors work area
+//		const RECT& mrect = monitorinfo.rcMonitor;
+//		const LONG monitor_w = mrect.right - mrect.left;
+//		const LONG monitor_h = mrect.bottom - mrect.top;
+//	
+//		const LONG window_w = window_rect.right - window_rect.left;
+//		const LONG window_h = window_rect.bottom - window_rect.top;
+//	
+//		const LONG x = mrect.left + std::max<LONG>(0, (monitor_w - window_w) / 2);
+//		const LONG y = mrect.top + std::max<LONG>(0, (monitor_h - window_h) / 2);
+//	
+//		WINDOW_CREATE_DESC desc = {};
+//		desc.window_name = L"demo";
+//		desc.window_style = window_style;
+//		desc.x = x;
+//		desc.y = y;
+//		desc.w = window_w;
+//		desc.h = window_h;
+//	
+//		return desc;
+//	}
 
 
 
