@@ -9,22 +9,22 @@ public:
 	virtual ~IGame() = default;
 
 	// content loading / unloading
-	virtual void setup_IGame(
+	virtual void initialise(
 	ObserverPtr<ID3D12Device4> device,
-	ObserverPtr<DX>
+	ObserverPtr<DX12CommandQueue> graphics_queue,
+	ObserverPtr<DX12RenderWindow> render_window
 	) = 0;
-	virtual void unload_content() = 0;
+
+	virtual void destroy() = 0;
 
 	// on game specific logic update and rendering update
-	virtual void on_update(float dt) = 0;
-	virtual void on_render( ObserverPtr<ID3D12GraphicsCommandList2> cl) = 0;
+	virtual void on_update(  ) = 0;
+	virtual void on_render(  ) = 0;
+	virtual void on_resize(  ) = 0;
 
 	// key and mouse events
 	virtual void on_key_event(UINT uMsg, WPARAM wParam, LPARAM lParam) {}
 	virtual void on_mouse_event(UINT uMsg, WPARAM wParam, LPARAM lParam) {}
-	
-	// when application infra resizes, the game might also need to know about this
-	virtual void on_window_resize(int width, int height) {}
 
 protected:
 

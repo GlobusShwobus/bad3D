@@ -35,44 +35,38 @@
 //		return desc;
 //	}
 
-//	WINDOW_CREATE_DESC example_window_desc()
-//	{
-//		const DWORD window_style = WS_OVERLAPPEDWINDOW;
-//	
-//		const RECT client_rect{ 0,0,1280,720 };
-//		// adjust client rect to window rect
-//		RECT window_rect{ 0,0,client_rect.right,client_rect.bottom };
-//		::AdjustWindowRect(&window_rect, window_style, FALSE);
-//	
-//		// obtain the cursor position then find the monitor where it is in
-//		POINT cursor_pos;
-//		::GetCursorPos(&cursor_pos);
-//		HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
-//		MONITORINFOEX monitorinfo = {};
-//		monitorinfo.cbSize = sizeof(MONITORINFOEX);
-//		::GetMonitorInfoW(hMonitor, &monitorinfo);
-//	
-//		// center window rect within monitors work area
-//		const RECT& mrect = monitorinfo.rcMonitor;
-//		const LONG monitor_w = mrect.right - mrect.left;
-//		const LONG monitor_h = mrect.bottom - mrect.top;
-//	
-//		const LONG window_w = window_rect.right - window_rect.left;
-//		const LONG window_h = window_rect.bottom - window_rect.top;
-//	
-//		const LONG x = mrect.left + std::max<LONG>(0, (monitor_w - window_w) / 2);
-//		const LONG y = mrect.top + std::max<LONG>(0, (monitor_h - window_h) / 2);
-//	
-//		WINDOW_CREATE_DESC desc = {};
-//		desc.window_name = L"demo";
-//		desc.window_style = window_style;
-//		desc.x = x;
-//		desc.y = y;
-//		desc.w = window_w;
-//		desc.h = window_h;
-//	
-//		return desc;
-//	}
+void find_centered_pos(UINT client_width, UINT client_height, UINT& xOut, UINT& yOut)
+{
+	const DWORD window_style = WS_OVERLAPPEDWINDOW;
+
+	const RECT client_rect{ 0,0,client_width,client_height };
+	// adjust client rect to window rect
+	RECT window_rect{ 0,0,client_rect.right,client_rect.bottom };
+	::AdjustWindowRect(&window_rect, window_style, FALSE);
+
+	// obtain the cursor position then find the monitor where it is in
+	POINT cursor_pos;
+	::GetCursorPos(&cursor_pos);
+	HMONITOR hMonitor = ::MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST);
+	MONITORINFOEX monitorinfo = {};
+	monitorinfo.cbSize = sizeof(MONITORINFOEX);
+	::GetMonitorInfoW(hMonitor, &monitorinfo);
+
+	// center window rect within monitors work area
+	const RECT& mrect = monitorinfo.rcMonitor;
+	const LONG monitor_w = mrect.right - mrect.left;
+	const LONG monitor_h = mrect.bottom - mrect.top;
+
+	const LONG window_w = window_rect.right - window_rect.left;
+	const LONG window_h = window_rect.bottom - window_rect.top;
+
+	const LONG x = mrect.left + std::max<LONG>(0, (monitor_w - window_w) / 2);
+	const LONG y = mrect.top + std::max<LONG>(0, (monitor_h - window_h) / 2);
+
+
+	xOut = x;
+	yOut = y;
+}
 
 
 
@@ -89,16 +83,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	// turn on debug layer before initalizing Direct3D 12 device. Doing it after will cause the device to be released.
 	enable_GPU_debug_layer();
-
-	WINDOW_CREATE_DESC window_desc = example_window_desc();
+	UINT x, y;
+	find_centered_pos(1280, 720, x,y);
 
 	std::unique_ptr<Demo> demo1 = std::make_unique<Demo>();
 	try {
-		Application gfx(window_desc);
+		Application app;
 
-		gfx.bind_game(std::move(demo1));
+		app.initialise_dx12();
+		app.initialise_render_window(L"demo", x,y,1280,720);
+		app.initialise_IGame(std::move(demo1));
 
-		gfx.run();
+		app.run();
 	}
 	catch (const std::exception& e)
 	{

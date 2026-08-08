@@ -37,6 +37,9 @@ public:
 	ObserverPtr<ID3D12Resource> get_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc()const;
 	UINT                        get_buffer_index()const;
+	UINT                        get_buffer_count()const noexcept;
+	UINT                        get_buffer_width()const noexcept;
+	UINT                        get_buffer_height()const noexcept;
 	void                        get_client_size(UINT& width, UINT& height)const;
 
 protected:

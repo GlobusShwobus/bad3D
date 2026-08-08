@@ -3,6 +3,7 @@
 bool IWin32Window::create_window( const std::wstring& title, UINT x, UINT y, UINT window_width, UINT window_height, DWORD window_style ) noexcept
 {
     WNDCLASSEX register_info = get_class_register_info();
+    register_info.lpfnWndProc = IWin32Window::wnd_proc;
 
     if (RegisterClassExW(&register_info) == 0)
     {

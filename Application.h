@@ -9,7 +9,6 @@
 #include "IWindowEventListener.h"
 #include "DX12CommandQueue.h"
 #include "DX12RenderWindow.h"
-#include "Stopwatch.h"
 #include "IGame.h"
 
 class Application final: public IWindowEventListener
@@ -18,8 +17,6 @@ class Application final: public IWindowEventListener
 	static constexpr bool using_WARP_adapter = false;
 
 public:
-
-	// explicit Application(const WINDOW_CREATE_DESC& window_desc);
 
 	Application() = default;
 
@@ -33,6 +30,9 @@ public:
 
 	void initialise_dx12();
 	void initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT w, UINT h, DWORD window_style = WS_OVERLAPPEDWINDOW);
+	void initialise_IGame(std::unique_ptr<IGame> game);
+
+	void free_IGame();
 
 	ObserverPtr<DX12RenderWindow> get_render_window() noexcept
 	{
@@ -49,22 +49,11 @@ public:
 		return mCommandQueue.get();
 	}
 
-
-	void bind_game(std::unique_ptr<IGame> game);
-
 	void run();
 
 protected:
 
-	void reset_rendering();
-
-	void finish_rendering();
-
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-
-	void reset_signal_tracker();
-
-	void on_user_render();
 
 private:
 
@@ -74,13 +63,7 @@ private:
 	std::unique_ptr<DX12CommandQueue>   mCommandQueue;
 	std::unique_ptr<DX12RenderWindow>   mDXWindow;
 
-	ObserverPtr<ID3D12GraphicsCommandList2>		    mCommandList;
-	UINT64                                          mSignalTracker[number_of_back_buffers];
-
 	std::unique_ptr<IGame> mGame = nullptr;
-	std::unique_ptr<Stopwatch> mTimer = nullptr;
 
 	bool mIsDX12Initalised = false;
-	
-	bool mIsGameBound = false;
 };

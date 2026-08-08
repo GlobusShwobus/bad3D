@@ -5,8 +5,11 @@
 #include "DX12Fence.h"
 #include <queue>
 
+class Application;
+
 class DX12CommandQueue final
 {
+	friend class Application;
 	// keep track of command allocators that are executed
 	struct CommandAllocatorQueueEntry
 	{
@@ -46,14 +49,13 @@ public:
 	// get an available command list from command queue
 	ObserverPtr<ID3D12GraphicsCommandList2> get_command_list();
 
-	// get internal command queue, for swap list
-	// constexpr ObserverPtr<ID3D12CommandQueue> get_observer()const noexcept { return  mCommandQueue.Get(); }
-
 protected:
 
 	UINT64 signal();
 
 	D3D12CommandAllocator create_command_allocator();
+
+	constexpr ObserverPtr<ID3D12CommandQueue> get_observer()const noexcept { return  mCommandQueue.Get(); }
 
 private:
 

@@ -12,11 +12,19 @@ DX12RenderWindow::DX12RenderWindow(
 	:mDescHeap(device, back_buffer_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
 	// adjust client size to window size and create the window
-	RECT window_rect{ x,y, client_width, client_height };
+	RECT window_rect{ static_cast<LONG>(x), static_cast<LONG>(y),
+					   static_cast<LONG>(x + client_width), static_cast<LONG>(y + client_height) };
 	::AdjustWindowRect(&window_rect, window_style, FALSE);
 
-	if (!create_window(title, window_rect.left, window_rect.top, rect_width(window_rect), rect_height(window_rect), window_style))
-		throw_error_code_translation( ::GetLastError() );
+	// AdjustWindowRect can push left/top negative (e.g. x=0 plus border/caption insets).
+	// Clamp rather than let a negative LONG wrap into a huge UINT.
+	const UINT win_x = static_cast<UINT>(std::max<LONG>(window_rect.left, 0));
+	const UINT win_y = static_cast<UINT>(std::max<LONG>(window_rect.top, 0));
+	const UINT win_w = static_cast<UINT>(rect_width(window_rect));
+	const UINT win_h = static_cast<UINT>(rect_height(window_rect));
+
+	if (!create_window(title, win_x, win_y, win_w, win_h, window_style))
+		throw_error_code_translation(::GetLastError());
 
 	// disable alt + enter because fullscreen / windowed transitions are manual
 	execute_and_test_hresult(
@@ -103,9 +111,6 @@ void DX12RenderWindow::present_to_display()
 
 void DX12RenderWindow::resize(const UINT cwidth, const UINT cheight)
 {
-	// before resizing the resources, flush the current GPU activity
-	//mCommandQueue->flush();
-
 	// reset swap chains back buffers
 	DXGI_SWAP_CHAIN_DESC scDesc = {};
 	execute_and_test_hresult(
@@ -204,6 +209,21 @@ UINT DX12RenderWindow::get_buffer_index()const
 	return mCurrentBBIndex;
 }
 
+UINT DX12RenderWindow::get_buffer_count() const noexcept
+{
+	return back_buffer_count;
+}
+
+UINT DX12RenderWindow::get_buffer_width() const noexcept
+{
+	return mBBWidth;
+}
+
+UINT DX12RenderWindow::get_buffer_height() const noexcept
+{
+	return mBBHeight;
+}
+
 void DX12RenderWindow::get_client_size(UINT& width, UINT& height) const
 {
 	RECT client_rect;
@@ -228,6 +248,7 @@ WNDCLASSEX DX12RenderWindow::get_class_register_info() const noexcept
 {
 	WNDCLASSEX info = {};
 
+	info.cbSize = sizeof(WNDCLASSEX);
 	info.lpszClassName = L"DX12RenderWindow";
 	info.hInstance = g_hModule;
 	info.style = CS_HREDRAW | CS_VREDRAW;
@@ -236,8 +257,8 @@ WNDCLASSEX DX12RenderWindow::get_class_register_info() const noexcept
 	info.hCursor = nullptr;
 	info.hbrBackground = nullptr;
 	info.lpszMenuName = nullptr;
-	info.cbClsExtra = NULL;
-	info.cbWndExtra = NULL;
+	info.cbClsExtra = 0;
+	info.cbWndExtra = 0;
 
 	return info;
 }
