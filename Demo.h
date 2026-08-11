@@ -24,20 +24,18 @@ public:
 	}
 	~Demo()override
 	{
-		destroy();
+		unload_content();
 	}
-	void initialise(ObserverPtr<ID3D12Device4> device,
-		ObserverPtr<DX12CommandQueue> graphics_queue,
-		ObserverPtr<DX12RenderWindow> render_window)override
+	void load_content(Application& app)override
 	{
-		mDevice = device;
-		mCommandQueue = graphics_queue;
-		mWindow = render_window;
+		mDevice = app.get_device();
+		mCommandQueue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		mWindow = app.get_window();
 
 		mSignalTracker.resize(mWindow->get_buffer_count(), 0);
 		mTimer.reset();
 	}
-	void destroy()override {};
+	void unload_content() override {};
 
 	void on_update()override
 	{
@@ -110,13 +108,17 @@ protected:
 	void kb_resolve()
 	{
 		static bool fullscreen = false;
-		
-		const auto* keys = kb.get_keys();
-		if (keys[VK_F11])
+		static bool f11_previous = false;
+
+		const bool f11_current = kb.get_keys()[VK_F11];
+
+		if (f11_current && !f11_previous)
 		{
 			fullscreen = !fullscreen;
 			mWindow->toggle_fullscreen(fullscreen);
 		}
+
+		f11_previous = f11_current;
 	}
 
 	void mouse_resolve()
@@ -131,6 +133,24 @@ protected:
 			color[0] = 0;
 			color[1] = 1;
 		}
+	}
+
+	void set_transition_barrier(
+		ObserverPtr<ID3D12GraphicsCommandList2> command_list,
+		ObserverPtr<ID3D12Resource> back_buffer,
+		D3D12_RESOURCE_STATES before,
+		D3D12_RESOURCE_STATES after
+	)
+	{
+		D3D12_RESOURCE_BARRIER barrier = {};
+
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = back_buffer.get();
+		barrier.Transition.StateBefore = before;
+		barrier.Transition.StateAfter = after;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		command_list->ResourceBarrier(1, &barrier);
 	}
 
 private:

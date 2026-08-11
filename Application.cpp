@@ -70,14 +70,9 @@ void Application::initialise_dx12()
 	}
 #endif
 
-	// create command queue for graphics
-	D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
-	command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
-	command_queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
-	command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;            // enable / disable GPU timeouts. keep default enabled
-	command_queue_desc.NodeMask = 0;                                     // for multi adapter systems
-
-	mCommandQueue = std::make_unique<DX12CommandQueue>(command_queue_desc, mDevice.Get());
+	mDirectCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mComputeCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	mCopyCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
 
 	mIsDX12Initalised = true;
 }
@@ -93,41 +88,28 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 		window_style,
 		mFactory.Get(),
 		mDevice.Get(),
-		mCommandQueue->get_observer(),
+		mDirectCommandQueue->get_observer(),
 		this
 	);
 }
 
-void Application::initialise_IGame(std::unique_ptr<IGame> game)
+void Application::set_game(ObserverPtr<IGame> game)
 {
-	if (mGame)
-		throw std::runtime_error{"uninitalised IGame"};
-
-	if (!game)
-		throw std::runtime_error{"can not initialise from nullptr"};
-
-	// assign game
-	mGame = std::move(game);
-	mGame->initialise(mDevice.Get(), mCommandQueue.get(), mDXWindow.get());
-}
-
-void Application::free_IGame()
-{
-	if (mGame)
-	{
-		mCommandQueue->flush();
-		mGame->destroy();
-	}
+	mGame = game;
 }
 
 Application::~Application()
 {
 	mIsDX12Initalised = false;
 
-	mCommandQueue->flush();
-	
-	mGame.reset();
-	mCommandQueue.reset();
+	mDirectCommandQueue->flush();
+	mComputeCommandQueue->flush();
+	mCopyCommandQueue->flush();
+
+	mGame = nullptr;
+	mDirectCommandQueue.reset();
+	mComputeCommandQueue.reset();
+	mCopyCommandQueue.reset();
 	mDXWindow.reset();
 	mDevice.Reset();
 	mFactory.Reset();
@@ -186,7 +168,6 @@ void Application::run()
 {
 	while (mIsDX12Initalised)
 	{
-		// call wndproc
 		MSG msg = {};
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{

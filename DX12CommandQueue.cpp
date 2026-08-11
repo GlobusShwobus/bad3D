@@ -1,46 +1,26 @@
 #include "DX12CommandQueue.h"
 #include "Utils.h"
 
-DX12CommandQueue::DX12CommandQueue(D3D12_COMMAND_QUEUE_DESC desc, ObserverPtr<ID3D12Device4> device)
-	:mType(desc.Type), mDevice(device), mFence(device)
+DX12CommandQueue::DX12CommandQueue(ObserverPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
+	:mType(type), mDevice(device), mFence(device)
 {
+	// create command queue for graphics
+	D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
+	command_queue_desc.Type = type;            // command list type and command queue types must match. generally either: direct, compute or copy but there are others 
+	command_queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;   // for rendering normal, for non sequential use high priority ( not sure for what currently )
+	command_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;            // enable / disable GPU timeouts. keep default enabled
+	command_queue_desc.NodeMask = 0;
+	
 	if(!device) // fence will throw before this check though...
 		throw_error_code_translation(static_cast<DWORD>(E_POINTER));
 
 	execute_and_test_hresult(
-		mDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(&mCommandQueue))
+		mDevice->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&mCommandQueue))
 	);
 
 	execute_and_test_hresult(
 		mDevice->CreateCommandList1(NULL, mType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&mCommandContext.command_list))
 	);
-}
-
-ObserverPtr<ID3D12GraphicsCommandList2> DX12CommandQueue::get_command_list()
-{
-	// if there is at least allocator in the queue attempt to reuse it.
-	// ID3D2CommandQueue internal signal counter always increments sequentially.
-	// Since the queue is first in first out it works out generally but the second check for value is still required for safety.
-	if (!mAllocatorQueue.empty() && (mFence.get_completed_value() >= mAllocatorQueue.front().fence_value))
-	{
-		mCommandContext.command_allocator = mAllocatorQueue.front().command_allocator;
-		mAllocatorQueue.pop();
-
-		execute_and_test_hresult(
-			mCommandContext.command_allocator->Reset() // indicates to re-use memory, not to let go of the ptr
-		);
-	}
-	else // otherwise create a new allocator
-	{
-		mCommandContext.command_allocator = create_command_allocator();
-	}
-
-	// reset the command list and tie it with the new allocator
-	execute_and_test_hresult(
-		mCommandContext.command_list->Reset(mCommandContext.command_allocator.Get(), nullptr)
-	);
-
-	return mCommandContext.command_list.Get();
 }
 
 UINT64 DX12CommandQueue::execute()
@@ -88,6 +68,33 @@ void DX12CommandQueue::wait(UINT64 expected_value)
 	{
 		mFence.stall_thread_until(expected_value);
 	}
+}
+
+ObserverPtr<ID3D12GraphicsCommandList2> DX12CommandQueue::get_command_list()
+{
+	// if there is at least allocator in the queue attempt to reuse it.
+	// ID3D2CommandQueue internal signal counter always increments sequentially.
+	// Since the queue is first in first out it works out generally but the second check for value is still required for safety.
+	if (!mAllocatorQueue.empty() && (mFence.get_completed_value() >= mAllocatorQueue.front().fence_value))
+	{
+		mCommandContext.command_allocator = mAllocatorQueue.front().command_allocator;
+		mAllocatorQueue.pop();
+
+		execute_and_test_hresult(
+			mCommandContext.command_allocator->Reset() // indicates to re-use memory, not to let go of the ptr
+		);
+	}
+	else // otherwise create a new allocator
+	{
+		mCommandContext.command_allocator = create_command_allocator();
+	}
+
+	// reset the command list and tie it with the new allocator
+	execute_and_test_hresult(
+		mCommandContext.command_list->Reset(mCommandContext.command_allocator.Get(), nullptr)
+	);
+
+	return mCommandContext.command_list.Get();
 }
 
 D3D12CommandAllocator DX12CommandQueue::create_command_allocator()

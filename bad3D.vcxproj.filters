@@ -16,6 +16,9 @@
     <Filter Include="memes">
       <UniqueIdentifier>{67f393b6-a525-43cb-ad2c-b2e1b0122b70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="demos">
+      <UniqueIdentifier>{f496a91a-db38-4c2b-bd97-24858a85a015}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="badMain.cpp">
@@ -45,6 +48,9 @@
     <ClCompile Include="DX12CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Demo_Cube.cpp">
+      <Filter>demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -63,9 +69,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="WIN32_CORE.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderFrameContext.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="ObserverPtr.h">
@@ -89,17 +92,17 @@
     <ClInclude Include="Application.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Demo.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="DX12RenderWindow.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="IWindowEventListener.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tutorial2.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Demo.h">
+      <Filter>demos</Filter>
+    </ClInclude>
+    <ClInclude Include="Demo_Cube.h">
+      <Filter>demos</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

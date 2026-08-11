@@ -13,7 +13,7 @@ class DX12CommandQueue final
 	// keep track of command allocators that are executed
 	struct CommandAllocatorQueueEntry
 	{
-		UINT64                fence_value;
+		UINT64                fence_value = 0ull;
 		D3D12CommandAllocator command_allocator;
 	};
 
@@ -27,7 +27,7 @@ class DX12CommandQueue final
 
 public:
 
-	DX12CommandQueue(D3D12_COMMAND_QUEUE_DESC desc, ObserverPtr<ID3D12Device4> device);
+	DX12CommandQueue(ObserverPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type);
 	
 	DX12CommandQueue(const DX12CommandQueue&) = delete;
 	DX12CommandQueue& operator=(const DX12CommandQueue&) = delete;
@@ -46,7 +46,7 @@ public:
 	// checks if expected value is more than fence value. if fence value is less, it will stall the CPU, otherwise nothing
 	void wait(UINT64 expected_value);
 
-	// get an available command list from command queue
+	// get the command list
 	ObserverPtr<ID3D12GraphicsCommandList2> get_command_list();
 
 protected:
