@@ -93,6 +93,30 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 	);
 }
 
+void Application::flush()
+{
+	mDirectCommandQueue->flush();
+	mComputeCommandQueue->flush();
+	mCopyCommandQueue->flush();
+}
+
+void Application::shutdown()
+{
+	if (!mIsDX12Initalised)
+		return;
+
+	flush();
+
+	mDXWindow.reset();
+	mDirectCommandQueue.reset();
+	mComputeCommandQueue.reset();
+	mCopyCommandQueue.reset();
+	mDevice.Reset();
+	mFactory.Reset();
+
+	mIsDX12Initalised = false;
+}
+
 void Application::set_game(ObserverPtr<IGame> game)
 {
 	mGame = game;
@@ -100,19 +124,7 @@ void Application::set_game(ObserverPtr<IGame> game)
 
 Application::~Application()
 {
-	mIsDX12Initalised = false;
-
-	mDirectCommandQueue->flush();
-	mComputeCommandQueue->flush();
-	mCopyCommandQueue->flush();
-
-	mGame = nullptr;
-	mDirectCommandQueue.reset();
-	mComputeCommandQueue.reset();
-	mCopyCommandQueue.reset();
-	mDXWindow.reset();
-	mDevice.Reset();
-	mFactory.Reset();
+	assert(!mIsDX12Initalised && "Application::shutdown() was not called before exit");
 }
 
 LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -122,7 +134,8 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		mIsDX12Initalised = false;
-		return 0;
+		mGame = nullptr;
+		break;
 
 	case WM_SIZE:
 
@@ -173,6 +186,9 @@ void Application::run()
 		{
 			DispatchMessage(&msg);
 		}
+
+		if (!mIsDX12Initalised) // WM_DESTROY may have just fired inside DispatchMessage
+			break;
 
 		if (mGame) {
 			mGame->on_update();

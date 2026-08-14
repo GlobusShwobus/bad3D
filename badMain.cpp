@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "Demo.h"
+#include "Demo_Cube.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -86,15 +87,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	UINT x, y;
 	find_centered_pos(1280, 720, x,y);
 
-	std::unique_ptr<Demo> demo1 = std::make_unique<Demo>();
+	std::unique_ptr<DemoCube> demo1 = std::make_unique<DemoCube>();
 	try {
-		Application app;
+		auto& app = Application::instance();
 
 		app.initialise_dx12();
 		app.initialise_render_window(L"demo", x,y,1280,720);
-		app.initialise_IGame(std::move(demo1));
+
+		demo1->load_content();
+
+		app.set_game(demo1.get());
 
 		app.run();
+
+		demo1->unload_content();
+		app.shutdown();
 	}
 	catch (const std::exception& e)
 	{

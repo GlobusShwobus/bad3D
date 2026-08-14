@@ -10,6 +10,8 @@
 #include "DX12CommandQueue.h"
 #include "DX12RenderWindow.h"
 
+// todo:: include redistributable direct x bullshit in the soruce ( also goes for GPU_CORE shit )
+
 class DemoCube :public IGame
 {
 public:
@@ -17,7 +19,7 @@ public:
 	DemoCube();
 	~DemoCube()override;
 
-	void load_content(Application& app) override;
+	void load_content() override;
 	void unload_content() override;
 
 	void on_update() override;
@@ -36,6 +38,9 @@ protected:
 	void set_transition_barrier(ObserverPtr<ID3D12GraphicsCommandList2> command_list, ObserverPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 	void clearRTV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color);
+
+	void clearDSV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth);
+
 
 	// Create a GPU buffer.
 	void update_buffer_resource(ObserverPtr<ID3D12GraphicsCommandList2> command_list,

@@ -26,3 +26,38 @@ VertexShaderOutput main(VertexPosColor IN)
     
     return OUT;
 }
+
+/*
+
+struct ModelViewProjection
+{
+    matrix MVP;
+};
+ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
+
+struct VertexPosColor
+{
+    float3 position;
+    float3 color;
+};
+
+StructuredBuffer<VertexPosColor> Vertices : register(t0);
+
+struct VertexShaderOutput
+{
+    float4 color : COLOR;
+    float4 position : SV_Position;
+};
+
+VertexShaderOutput main(uint vertexID : SV_VertexID)
+{
+    VertexShaderOutput OUT;
+
+    VertexPosColor v = Vertices[vertexID];
+
+    OUT.position = mul(ModelViewProjectionCB.MVP, float4(v.position, 1.0f));
+    OUT.color = float4(v.color, 1.0f);
+
+    return OUT;
+}
+*/

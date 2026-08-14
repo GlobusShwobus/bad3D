@@ -9,16 +9,19 @@
 #include "IWindowEventListener.h"
 #include "DX12CommandQueue.h"
 #include "DX12RenderWindow.h"
+#include "ObserverPtr.h"
 #include "IGame.h"
+
+// application will not load nor unload games, just set
 
 class Application final: public IWindowEventListener
 {
 	// windows advanced rasterization protocol
 	static constexpr bool using_WARP_adapter = false;
 
-public:
-
 	Application() = default;
+
+public:
 
 	// doesnt make sense for these 
 	Application(const Application&) = delete;
@@ -28,9 +31,18 @@ public:
 
 	virtual ~Application();
 
+	static Application& instance()
+	{
+		static Application sInstance;
+		return sInstance;
+	}
+
 	void initialise_dx12();
 	void initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT w, UINT h, DWORD window_style = WS_OVERLAPPEDWINDOW);
 	
+	void flush();
+
+	void shutdown();
 
 	ObserverPtr<ID3D12Device4> get_device() const noexcept { return mDevice.Get(); }
 	ObserverPtr<DX12RenderWindow> get_window() const noexcept { return mDXWindow.get(); }

@@ -11,6 +11,8 @@
 #include <DirectXMath.h>
 #include <vector>
 
+#include "Application.h"
+
 class Demo :public IGame
 {
 public:
@@ -26,8 +28,10 @@ public:
 	{
 		unload_content();
 	}
-	void load_content(Application& app)override
+	void load_content()override
 	{
+		auto& app = Application::instance();
+
 		mDevice = app.get_device();
 		mCommandQueue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 		mWindow = app.get_window();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Application.h"
+#include "WIN32_CORE.h"
 
 class IGame
 {
@@ -8,7 +8,7 @@ public:
 	virtual ~IGame() = default;
 
 	// content loading / unloading
-	virtual void load_content(Application& app) = 0;
+	virtual void load_content() = 0;
 	virtual void unload_content() = 0;
 
 	// on game specific logic update and rendering update

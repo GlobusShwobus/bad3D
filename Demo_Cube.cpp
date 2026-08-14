@@ -1,10 +1,14 @@
 #include "Demo_Cube.h"
 
 #include <d3dcompiler.h>
-#pragma comment(lib, "D3Dcompiler_47.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+
 #include <algorithm>
 
 #include "Utils.h"
+#include "Application.h"
+
+#include <d3dx12.h>
 
 // Vertex data for a colored cube.
 struct VertexPosColor
@@ -48,24 +52,16 @@ DemoCube::~DemoCube()
 	unload_content();
 }
 
-void DemoCube::load_content(Application& app)
+void DemoCube::load_content()
 {
+	auto& app = Application::instance();
+
 	mDevice = app.get_device();
 	mDireectCommandQueue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
-	auto copy_command_list = copy_command_queue->get_command_list();
 	mWindow = app.get_window();
 
-	// scissor rect is responsible for culling any pixels that are not within the dimensions of the RT
-	mScissorRect = D3D12_RECT{ 0,0,LONG_MAX, LONG_MAX };
-
-	// viewport rect is responsible for saying where to write to but it should not be outside the RT
-	UINT width, height;
-	mWindow->get_client_size(width, height);
-	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-
-	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
-	mFOV = 45.0f;
+	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
+	auto copy_command_list = copy_command_queue->get_command_list();
 
 	// upload vertex buffer data and assign the view data
 	D3D12Resource intermediateVertexBuffer; // a temporary, make sure to stall the CPU util copy command queue is donzo
@@ -97,10 +93,174 @@ void DemoCube::load_content(Application& app)
 	mIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
 	mIndexBufferView.SizeInBytes = sizeof(gCubeIndicies);
 
+	// create the descriptor heap for the depth stencil view
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvHeapDesc.NodeMask = 0;
+	
+	execute_and_test_hresult(
+		mDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDSVHeap))
+	);
 
-	// bullshit
+	// load the vertex shader and pixel shader
+	Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
+	execute_and_test_hresult(
+		D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob)
+	);
+	Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
+	execute_and_test_hresult(
+		D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob)
+	);
+
+	// Create the vertex input layout
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	// create a root signature
+	// check for root sig version, 1.1 is recommended
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+	if (FAILED(mDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+	{
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+	}
+	
+	// allow input layout and deny unnecessary acces to certain pipeline stages
+	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = 
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+
+	// root sig desc
+	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
+	rootsigdesc.Version = featureData.HighestVersion;
+
+	if (featureData.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1)
+	{
+		D3D12_ROOT_PARAMETER1 rootParameters11[1];
+		rootParameters11[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+		rootParameters11[0].Constants.ShaderRegister = 0;                        // b0
+		rootParameters11[0].Constants.RegisterSpace = 0;                         // space0
+		rootParameters11[0].Constants.Num32BitValues = sizeof(DirectX::XMMATRIX) / 4;     // 16
+		rootParameters11[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+		rootsigdesc.Desc_1_1.NumParameters = _countof(rootParameters11);
+		rootsigdesc.Desc_1_1.pParameters = rootParameters11;
+		rootsigdesc.Desc_1_1.NumStaticSamplers = 0;
+		rootsigdesc.Desc_1_1.pStaticSamplers = nullptr;
+		rootsigdesc.Desc_1_1.Flags = rootsigflags;
+	}
+	else
+	{
+		D3D12_ROOT_PARAMETER rootParameters10[1];
+		rootParameters10[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+		rootParameters10[0].Constants.ShaderRegister = 0;
+		rootParameters10[0].Constants.RegisterSpace = 0;
+		rootParameters10[0].Constants.Num32BitValues = sizeof(DirectX::XMMATRIX) / 4;
+		rootParameters10[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+		rootsigdesc.Desc_1_0.NumParameters = _countof(rootParameters10);
+		rootsigdesc.Desc_1_0.pParameters = rootParameters10;
+		rootsigdesc.Desc_1_0.NumStaticSamplers = 0;
+		rootsigdesc.Desc_1_0.pStaticSamplers = nullptr;
+		rootsigdesc.Desc_1_0.Flags = rootsigflags;
+	}
+
+	// serialize
+	Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+	execute_and_test_hresult(
+		D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob)
+	);
+
+	execute_and_test_hresult(
+		mDevice->CreateRootSignature( 0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature))
+	);
+
+	// pipeline state object
+	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+	rtvFormats.NumRenderTargets = 1;
+	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	struct PipelineStateStream
+	{
+		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+	} pipelineStateStream;
+
+	pipelineStateStream.pRootSignature = mRootSignature.Get();
+	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
+	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
+	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
+	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	pipelineStateStream.RTVFormats = rtvFormats;
+
+	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+		sizeof(PipelineStateStream), &pipelineStateStream
+	};
+
+	execute_and_test_hresult(
+		mDevice->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&mPipelineState))
+	);
+	
+	copy_command_list->Close(); // DO NOT FORGET TO CLOSE
+	auto fenceVal = copy_command_queue->execute();
+	copy_command_queue->wait(fenceVal);
+
+	//other
+	// 
+	// scissor rect is responsible for culling any pixels that are not within the dimensions of the RT
+	mScissorRect = D3D12_RECT{ 0,0,LONG_MAX, LONG_MAX };
+
+	// viewport rect is responsible for saying where to write to but it should not be outside the RT
+	UINT width, height;
+	mWindow->get_client_size(width, height);
+	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+
+	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
+	mFOV = 45.0f;
+
 	mSignalTracker.resize(mWindow->get_buffer_count(), 0);
 	mTimer.reset();
+
+	mContentLoaded = true;
+
+	// resize/ create the depth buffer
+	UINT cwidth, cheight;
+	mWindow->get_client_size(cwidth,cheight);
+	resize_depth_buffer(cwidth, cheight);
+}
+
+void DemoCube::unload_content()
+{
+	auto& app = Application::instance();
+	app.flush();
+
+	mDevice = nullptr;
+	mDireectCommandQueue = nullptr;
+	mWindow = nullptr;
+
+	mVertexBuffer.Reset();
+	mIndexBuffer.Reset();
+	mDepthBuffer.Reset();
+	mDSVHeap.Reset();
+	mRootSignature.Reset();
+	mPipelineState.Reset();
 }
 
 void DemoCube::on_update()
@@ -110,6 +270,29 @@ void DemoCube::on_update()
 	mouse_resolve();
 	kb_resolve();
 	mouse.update_mouse_buttons(dt);
+
+	// this demo specific:
+	static double totalTime = 0;
+	totalTime += dt;
+
+	// update the model matrix
+	float angle = static_cast<float>(totalTime * 90.0);
+	const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
+	mModelMatrix = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
+
+	// Update the view matrix.
+	const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(0, 0, -10, 1);
+	const DirectX::XMVECTOR focusPoint  = DirectX::XMVectorSet(0, 0, 0, 1);
+	const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
+	mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition,focusPoint,upDirection);
+
+	// update the proj matrix
+	UINT cwidth, cheight;
+	mWindow->get_client_size(cwidth, cheight);
+	cheight = std::max(1u, cheight);
+	float aspectRatio = cwidth / static_cast<float>(cheight);
+
+	mProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(mFOV), aspectRatio, 0.1f, 100.0f);
 }
 
 void DemoCube::on_render() 
@@ -117,12 +300,36 @@ void DemoCube::on_render()
 	ObserverPtr<ID3D12GraphicsCommandList2> command_list = mDireectCommandQueue->get_command_list();
 	ObserverPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 
 	set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// any rendering logic goes here until another transition barrier
 	clearRTV(command_list, buffer_desc, color);
+	clearDSV(command_list, dsv_desc, 1.0f);
 
+	// pre stuff, in this case vertex and pixel shaders stuff
+	command_list->SetPipelineState(mPipelineState.Get());
+	command_list->SetGraphicsRootSignature(mRootSignature.Get());
+	// input assembler
+	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	command_list->IASetVertexBuffers(0,1,&mVertexBufferView);
+	command_list->IASetIndexBuffer(&mIndexBufferView);
+	// rasteriser state
+	command_list->RSSetViewports(1, &mViewport);
+	command_list->RSSetScissorRects(1, &mScissorRect);
+	// output merger state
+	command_list->OMSetRenderTargets(1,&buffer_desc, FALSE, &dsv_desc);
+
+	// update the MVP matrix
+	DirectX::XMMATRIX mvpMatrix = DirectX::XMMatrixMultiply(mModelMatrix, mViewMatrix);
+	mvpMatrix = DirectX::XMMatrixMultiply(mvpMatrix, mProjectionMatrix);
+	command_list->SetGraphicsRoot32BitConstants(0, sizeof(DirectX::XMMATRIX) / 4, &mvpMatrix, 0);
+
+	// draw
+	command_list->DrawIndexedInstanced(_countof(gCubeIndicies),1,0,0,0);
+
+	// present
 	set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	command_list->Close();
@@ -156,6 +363,10 @@ void DemoCube::on_resize()
 			fence_val = current_val;
 
 		mWindow->resize(client_width, client_height);
+
+		// this demo specific:
+		mViewport = CD3DX12_VIEWPORT(0.0f,0.0f, static_cast<float>(client_width), static_cast<float>(client_height));
+		resize_depth_buffer(client_width,client_height);
 	}
 }
 
@@ -215,6 +426,11 @@ void DemoCube::set_transition_barrier(ObserverPtr<ID3D12GraphicsCommandList2> co
 void DemoCube::clearRTV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color)
 {
 	command_list->ClearRenderTargetView(desc, clear_color, 0, nullptr);
+}
+
+void DemoCube::clearDSV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
+{
+	command_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 }
 
 void DemoCube::update_buffer_resource(ObserverPtr<ID3D12GraphicsCommandList2> command_list,
@@ -301,4 +517,49 @@ void DemoCube::update_buffer_resource(ObserverPtr<ID3D12GraphicsCommandList2> co
 		*pDestinationResource, 0,
 		*pIntermediateResource, 0,
 		bufferSize);
+}
+
+void DemoCube::resize_depth_buffer(int width, int height)
+{
+	if (mContentLoaded)
+	{
+		Application::instance().flush();
+
+		width = std::max(1, width);
+		height = std::max(1, height);
+
+		// resize screen dependent resources
+		// create depth buffer
+		D3D12_CLEAR_VALUE optimizedClearValue = {};
+		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		optimizedClearValue.DepthStencil = { 1.0f,0 };
+
+		const D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		const D3D12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			DXGI_FORMAT_D32_FLOAT,
+			width, height,
+			1, 0, 1, 0,
+			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		);
+
+		execute_and_test_hresult(
+			mDevice->CreateCommittedResource(
+				&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&depthDesc,
+				D3D12_RESOURCE_STATE_DEPTH_WRITE,
+				&optimizedClearValue,
+				IID_PPV_ARGS(&mDepthBuffer)
+			)
+		);
+
+		// update the depth stencil view
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+		dsv.Format = DXGI_FORMAT_D32_FLOAT;
+		dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		dsv.Texture2D.MipSlice = 0;
+		dsv.Flags = D3D12_DSV_FLAG_NONE;
+
+		mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv, mDSVHeap->GetCPUDescriptorHandleForHeapStart());	
+	}
 }
