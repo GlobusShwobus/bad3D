@@ -1,5 +1,5 @@
 #pragma once
-#include <windef.h>
+#include "badWin32.h"
 
 class IGame
 {

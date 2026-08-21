@@ -207,8 +207,6 @@ void Application::initialise_dx12()
 	mDirectCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
 	mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	mCopyCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
-
-	dx12_initalised = true;
 }
 
 void Application::initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
