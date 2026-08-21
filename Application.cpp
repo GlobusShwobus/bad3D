@@ -259,13 +259,13 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 	if (!hwnd)
 		throw std::runtime_error("class creation failed");
 
+	// make swap chain
+	mRenderWindow = std::make_unique<RenderWindow>(hwnd, mFactory.Get(), mDevice.Get(), mDirectCommandQueue->get_queue(), window_style);
+
 	// disable alt + enter because fullscreen / windowed transitions are manual
 	execute_and_test_hresult(
 		mFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)
 	);
-
-	// make swap chain
-	mRenderWindow = std::make_unique<RenderWindow>(hwnd, mFactory.Get(), mDevice.Get(), mDirectCommandQueue->get_queue(), window_style);
 
 	// show
 	::ShowWindow(hwnd, SW_SHOW);
