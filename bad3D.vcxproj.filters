@@ -24,28 +24,22 @@
     <ClCompile Include="badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GPU_CORE.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="IWin32Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX12RenderWindow.cpp">
+    <ClCompile Include="RenderWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX12Fence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DX12DescriptorHeap.cpp">
+    <ClCompile Include="Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX12CommandQueue.cpp">
+    <ClCompile Include="CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Demo_Cube.cpp">
@@ -62,28 +56,19 @@
     <ClInclude Include="Stopwatch.h">
       <Filter>memes</Filter>
     </ClInclude>
-    <ClInclude Include="GPU_CORE.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="WIN32_CORE.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ObserverPtr.h">
+    <ClInclude Include="ViewPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="IGame.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX12Fence.h">
+    <ClInclude Include="Fence.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX12CommandQueue.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DX12DescriptorHeap.h">
+    <ClInclude Include="CommandQueue.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="IWin32Window.h">
@@ -92,10 +77,7 @@
     <ClInclude Include="Application.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX12RenderWindow.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IWindowEventListener.h">
+    <ClInclude Include="RenderWindow.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Demo.h">
@@ -103,6 +85,15 @@
     </ClInclude>
     <ClInclude Include="Demo_Cube.h">
       <Filter>demos</Filter>
+    </ClInclude>
+    <ClInclude Include="badWin32.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="badDirectX.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandList.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

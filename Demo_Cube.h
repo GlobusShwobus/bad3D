@@ -1,14 +1,17 @@
 #pragma once
 
+#include "badWin32.h"
+
 #include <DirectXMath.h>
 #include <vector>
+
 
 #include "IGame.h"
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Stopwatch.h"
-#include "DX12CommandQueue.h"
-#include "DX12RenderWindow.h"
+#include "CommandQueue.h"
+#include "RenderWindow.h"
 
 // todo:: include redistributable direct x bullshit in the soruce ( also goes for GPU_CORE shit )
 
@@ -35,15 +38,15 @@ protected:
 
 	void mouse_resolve();
 	
-	void set_transition_barrier(ObserverPtr<ID3D12GraphicsCommandList2> command_list, ObserverPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
+	void set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
-	void clearRTV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color);
+	void clearRTV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color);
 
-	void clearDSV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth);
+	void clearDSV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth);
 
 
 	// Create a GPU buffer.
-	void update_buffer_resource(ObserverPtr<ID3D12GraphicsCommandList2> command_list,
+	void update_buffer_resource(ViewPtr<ID3D12GraphicsCommandList2> command_list,
 		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 		size_t numElements, size_t elementSize, const void* bufferData,
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
@@ -55,25 +58,25 @@ private:
 	Keyboard kb;
 	Mouse mouse;
 
-	ObserverPtr<ID3D12Device4>    mDevice;
-	ObserverPtr<DX12CommandQueue> mDireectCommandQueue;
-	ObserverPtr<DX12RenderWindow> mWindow;
+	ViewPtr<ID3D12Device4>    mDevice;
+	ViewPtr<CommandQueue> mDireectCommandQueue;
+	ViewPtr<RenderWindow> mWindow;
 
 	std::vector<UINT64> mSignalTracker;
 	Stopwatch mTimer;
 
 
 	// vertex buffer for the cube
-	D3D12Resource mVertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mVertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW mVertexBufferView;
 	// index buffer for the cube
-	D3D12Resource mIndexBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mIndexBuffer;
 	D3D12_INDEX_BUFFER_VIEW mIndexBufferView;
 	
 	// depth buffer
-	D3D12Resource mDepthBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;
 	// desc heap for the depth buffer
-	D3D12DescriptorHeap mDSVHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDSVHeap;
 
 	// root sig
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;

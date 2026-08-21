@@ -2,9 +2,144 @@
 #include "Utils.h"
 #include <stdexcept>
 
+
+Application::~Application()
+{
+	assert(!dx12_initalised && "Application::shutdown() was not called before exit");
+}
+
+void Application::initialise(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
+{
+	initialise_dx12();
+	initialise_render_window(title, x, y, client_width, client_height, window_style, hInstance);
+	// if no exceptions up until this point, it should be all good
+	dx12_initalised = true;
+}
+
+void Application::shutdown()
+{
+	assert(dx12_initalised && "Application must be initalized before shutdown()");
+
+	// first flush the GPU
+	flush();
+
+	// game no longer needs graphics resources
+	mGame = nullptr;
+
+	// destroy the swap cahin before HWND and before GPU command queues (in case the swap chain would reference command queues in the future)
+	mRenderWindow.reset();
+
+	// destroy the command queues
+	mDirectCommandQueue.reset();
+	mComputeCommandQueue.reset();
+	mCopyCommandQueue.reset();
+
+	// destroy HWND
+	if (mHwnd)
+	{
+		::DestroyWindow(mHwnd);
+		mHwnd = nullptr;
+	}
+
+	// destroy device and DXGI
+	mDevice.Reset();
+	mFactory.Reset();
+
+	dx12_initalised = false;
+}
+
+void Application::flush()
+{
+	mDirectCommandQueue->flush();
+	mComputeCommandQueue->flush();
+	mCopyCommandQueue->flush();
+}
+
+void Application::run()
+{
+	assert(dx12_initalised && "Application must be initalised before run()");
+
+	bool running = true;
+
+	while (running)
+	{
+		MSG msg = {};
+		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+			{
+				running = false;
+				break;
+			}
+
+			DispatchMessage(&msg);
+		}
+
+		if (!running) // WM_DESTROY may have fired inside DispatchMessage in which case ignore further code
+			break;
+
+		if (mGame) {
+			mGame->on_update();
+			mGame->on_render();
+		}
+	}
+}
+
+Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(ViewPtr<IDXGIFactory4> factory, bool use_warp)
+{
+	assert(factory && "factory nullptr");
+
+	HRESULT hr = E_FAIL;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4;
+	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
+	{
+		hr = factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4));
+	}
+	else         // if not using WARP, need to look for an adapter
+	{
+		// first, if looking for adapter manually, it is not possible to enumerate with Adapter4 since EnumAdapters and EnumAdapters1 take specific types.
+		// secondly, need to find adapter with a good amount of memory...
+		LUID best_luid = {};
+		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
+		SIZE_T largest_memory_pool = 0;
+
+		for (UINT adapterIndex = 0; ; ++adapterIndex)
+		{
+			// if reached end of the line
+			if (factory->EnumAdapters1(adapterIndex, &adapter1) == DXGI_ERROR_NOT_FOUND)
+				break;
+
+			DXGI_ADAPTER_DESC1 desc1;
+			adapter1->GetDesc1(&desc1);
+
+			// ignore software adapters
+			if ((desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
+			{
+				// call create device to check if it succeeds but don't instantiate the type, by passing nullptr to output
+				if (SUCCEEDED(D3D12CreateDevice(adapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
+				{
+					// if create device runs successfully then store the dedicated mem size and LUID and later actually enumerate the adapter by LUID
+					if (desc1.DedicatedVideoMemory > largest_memory_pool)
+					{
+						largest_memory_pool = desc1.DedicatedVideoMemory;
+						best_luid = desc1.AdapterLuid;
+					}
+				}
+			}
+
+			adapter1.Reset();
+		}
+
+		// enumerate adapter by the best LUID
+		hr = factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4));
+	}
+
+	return adapter4;
+}
+
 void Application::initialise_dx12()
 {
-	if (mIsDX12Initalised)
+	if (dx12_initalised)
 		return;
 
 	// create DXGI factory
@@ -17,10 +152,9 @@ void Application::initialise_dx12()
 	);
 
 	// find a good adapter
-	DXGIAdapter4 adapter4;
-	execute_and_test_hresult(
-		find_adapter(mFactory.Get(), using_WARP_adapter, adapter4)
-	);
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(mFactory.Get(), using_WARP_adapter);
+	if (!adapter4)
+		throw std::runtime_error("failed to find adapter");
 
 	// create device
 	execute_and_test_hresult(
@@ -55,7 +189,7 @@ void Application::initialise_dx12()
 	}
 
 	// set device debug info
-	D3D12InfoQueue infoQueue;
+	Microsoft::WRL::ComPtr<ID3D12InfoQueue> infoQueue;
 	if (SUCCEEDED(mDevice.As(&infoQueue)))
 	{
 		// set break point for types
@@ -70,61 +204,73 @@ void Application::initialise_dx12()
 	}
 #endif
 
-	mDirectCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	mComputeCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	mCopyCommandQueue = std::make_unique<DX12CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
+	mDirectCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	mCopyCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
 
-	mIsDX12Initalised = true;
+	dx12_initalised = true;
 }
 
-void Application::initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style)
+void Application::initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
 {
-	mDXWindow = std::make_unique<DX12RenderWindow>(
-		title,
-		x,
-		y,
-		client_width,
-		client_height,
+	WNDCLASSEX register_desc = {};
+	register_desc.cbSize = sizeof(WNDCLASSEX);
+	register_desc.lpszClassName = L"DX12RenderWindow";
+	register_desc.lpfnWndProc = Application::wnd_proc;
+	register_desc.hInstance = hInstance;
+	register_desc.style = CS_HREDRAW | CS_VREDRAW;
+	register_desc.hIcon = nullptr;
+	register_desc.hIconSm = nullptr;
+	register_desc.hCursor = nullptr;
+	register_desc.hbrBackground = nullptr;
+	register_desc.lpszMenuName = nullptr;
+	register_desc.cbClsExtra = 0;
+	register_desc.cbWndExtra = 0;
+
+	if (RegisterClassExW(&register_desc) == 0)
+	{
+		if (::GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+			throw std::runtime_error("class register failure");
+	}
+
+	// adjust client size to window size and create the window
+	RECT window_rect{ static_cast<LONG>(x), static_cast<LONG>(y),
+					   static_cast<LONG>(x + client_width), static_cast<LONG>(y + client_height) };
+	::AdjustWindowRect(&window_rect, window_style, FALSE);
+
+	const int win_x = static_cast<int>(std::max<LONG>(window_rect.left, 0));
+	const int win_y = static_cast<int>(std::max<LONG>(window_rect.top, 0));
+	const int win_w = static_cast<int>(rect_width(window_rect));
+	const int win_h = static_cast<int>(rect_height(window_rect));
+
+	HWND hwnd = CreateWindowExW(
+		NULL,
+		register_desc.lpszClassName,
+		title.c_str(),
 		window_style,
-		mFactory.Get(),
-		mDevice.Get(),
-		mDirectCommandQueue->get_observer(),
+		win_x,
+		win_y,
+		win_w,
+		win_h,
+		NULL,
+		NULL,
+		register_desc.hInstance,
 		this
 	);
-}
 
-void Application::flush()
-{
-	mDirectCommandQueue->flush();
-	mComputeCommandQueue->flush();
-	mCopyCommandQueue->flush();
-}
+	if (!hwnd)
+		throw std::runtime_error("class creation failed");
 
-void Application::shutdown()
-{
-	if (!mIsDX12Initalised)
-		return;
+	// disable alt + enter because fullscreen / windowed transitions are manual
+	execute_and_test_hresult(
+		mFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)
+	);
 
-	flush();
+	// make swap chain
+	mRenderWindow = std::make_unique<RenderWindow>(hwnd, mFactory.Get(), mDevice.Get(), mDirectCommandQueue->get_queue(), window_style);
 
-	mDXWindow.reset();
-	mDirectCommandQueue.reset();
-	mComputeCommandQueue.reset();
-	mCopyCommandQueue.reset();
-	mDevice.Reset();
-	mFactory.Reset();
-
-	mIsDX12Initalised = false;
-}
-
-void Application::set_game(ObserverPtr<IGame> game)
-{
-	mGame = game;
-}
-
-Application::~Application()
-{
-	assert(!mIsDX12Initalised && "Application::shutdown() was not called before exit");
+	// show
+	::ShowWindow(hwnd, SW_SHOW);
 }
 
 LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -133,8 +279,6 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		mIsDX12Initalised = false;
-		mGame = nullptr;
 		break;
 
 	case WM_SIZE:
@@ -174,25 +318,4 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	}
 
 	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
-}
-
-
-void Application::run()
-{
-	while (mIsDX12Initalised)
-	{
-		MSG msg = {};
-		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-		{
-			DispatchMessage(&msg);
-		}
-
-		if (!mIsDX12Initalised) // WM_DESTROY may have just fired inside DispatchMessage
-			break;
-
-		if (mGame) {
-			mGame->on_update();
-			mGame->on_render();
-		}
-	}
 }

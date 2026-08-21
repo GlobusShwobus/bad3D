@@ -1,6 +1,6 @@
 #include "IWin32Window.h"
 
-bool IWin32Window::create_window( const std::wstring& title, UINT x, UINT y, UINT window_width, UINT window_height, DWORD window_style ) noexcept
+HWND IWin32Window::create_window(LPCWSTR name, int x, int y, int window_width, int window_height, DWORD window_style ) noexcept
 {
     WNDCLASSEX register_info = get_class_register_info();
     register_info.lpfnWndProc = IWin32Window::wnd_proc;
@@ -8,15 +8,16 @@ bool IWin32Window::create_window( const std::wstring& title, UINT x, UINT y, UIN
     if (RegisterClassExW(&register_info) == 0)
     {
         if (::GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-            return false;
+            return nullptr;
     }
 
     HWND hwnd = CreateWindowExW(
         NULL,
         register_info.lpszClassName,
-        title.c_str(),
+        name,
         window_style,
-        x,y,
+        x,
+        y,
         window_width,
         window_height,
         NULL,
@@ -25,7 +26,7 @@ bool IWin32Window::create_window( const std::wstring& title, UINT x, UINT y, UIN
         this
     );
 
-    return hwnd != nullptr;
+    return hwnd;
 }
 
 bool IWin32Window::destroy() noexcept
@@ -39,6 +40,6 @@ bool IWin32Window::destroy() noexcept
 
     if (result != 0)
         mHwnd = nullptr;
-    mListener = nullptr;
+
     return result != 0;
 }

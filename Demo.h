@@ -52,8 +52,9 @@ public:
 
 	void on_render( ) override
 	{
-		ObserverPtr<ID3D12GraphicsCommandList2> command_list = mCommandQueue->get_command_list();
-		ObserverPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
+		auto command_context = mCommandQueue->acquire_command_list();
+		ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
+		ViewPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
 		D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
 
 		set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -66,7 +67,7 @@ public:
 		command_list->Close();
 
 		const UINT64 current_index = mWindow->get_buffer_index();
-		const UINT64 signal_val = mCommandQueue->execute();
+		const UINT64 signal_val = mCommandQueue->execute( command_context );
 		mSignalTracker[current_index] = signal_val;
 
 		mWindow->present_to_display();
@@ -78,11 +79,12 @@ public:
 
 	void on_resize() override
 	{
-		UINT client_width, client_height;
-		mWindow->get_client_size(client_width, client_height);
+		RECT client_rect = mWindow->get_client_rect();
 
 		const UINT buffer_width = mWindow->get_buffer_width();
 		const UINT buffer_height = mWindow->get_buffer_height();
+		const UINT client_width = static_cast<UINT>(rect_width(client_rect));
+		const UINT client_height = static_cast<UINT>(rect_height(client_rect));
 
 		if (buffer_width != client_width || buffer_height != client_height)
 		{
@@ -140,8 +142,8 @@ protected:
 	}
 
 	void set_transition_barrier(
-		ObserverPtr<ID3D12GraphicsCommandList2> command_list,
-		ObserverPtr<ID3D12Resource> back_buffer,
+		ViewPtr<ID3D12GraphicsCommandList2> command_list,
+		ViewPtr<ID3D12Resource> back_buffer,
 		D3D12_RESOURCE_STATES before,
 		D3D12_RESOURCE_STATES after
 	)
@@ -162,9 +164,9 @@ private:
 	Keyboard kb;
 	Mouse mouse;
 
-	ObserverPtr<ID3D12Device4> mDevice;
-	ObserverPtr<DX12CommandQueue> mCommandQueue;
-	ObserverPtr<DX12RenderWindow> mWindow;
+	ViewPtr<ID3D12Device4> mDevice;
+	ViewPtr<CommandQueue> mCommandQueue;
+	ViewPtr<RenderWindow> mWindow;
 
 	std::vector<UINT64> mSignalTracker;
 	Stopwatch mTimer;

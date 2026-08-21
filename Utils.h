@@ -1,10 +1,12 @@
 #pragma once
 
-#include "WIN32_CORE.h"
+#include "badWin32.h"
 
 void throw_error_code_translation(DWORD error_code);
 void execute_and_test_hresult(HRESULT hr);
 void execute_and_test_BOOL(BOOL b);
 
-constexpr LONG rect_width(const RECT& rect) noexcept { return rect.right - rect.left; }
-constexpr LONG rect_height(const RECT& rect) noexcept { return rect.bottom - rect.top; }
+template <typename TypeRect>
+constexpr auto rect_width(const TypeRect& rect) noexcept { return rect.right - rect.left; }
+template <typename TypeRect>
+constexpr auto rect_height(const TypeRect& rect) noexcept { return rect.bottom - rect.top; }

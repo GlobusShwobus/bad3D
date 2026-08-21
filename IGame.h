@@ -1,6 +1,5 @@
 #pragma once
-
-#include "WIN32_CORE.h"
+#include <windef.h>
 
 class IGame
 {

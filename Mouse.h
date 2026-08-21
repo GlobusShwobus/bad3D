@@ -1,10 +1,12 @@
 #pragma once
 
-#include "WIN32_CORE.h"
-#include <windowsx.h>
+#include "badWin32.h"
 #include <array>
 
 //todo: wheel class
+
+#define GET_MOUSE_X_POS(lp) ((int)(short)LOWORD(lParam))
+#define GET_MOUSE_Y_POS(lp) ((int)(short)HIWORD(lParam))
 
 class Mouse;
 
@@ -47,6 +49,7 @@ private:
 class Mouse
 {   
     using Buttons = std::array<MouseButton, static_cast<unsigned int>(MouseButtonType::Count)>;
+
 public:
 
     Mouse() = default;
@@ -76,8 +79,8 @@ public:
         {
         case WM_MOUSEMOVE:
         {
-            int nx = GET_X_LPARAM(lParam);
-            int ny = GET_Y_LPARAM(lParam);
+            int nx = GET_MOUSE_X_POS(lParam);
+            int ny = GET_MOUSE_Y_POS(lParam);
 
             if (nx != mX || ny != mY) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
                 mHoverTime = 0.0f;

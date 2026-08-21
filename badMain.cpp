@@ -69,12 +69,24 @@ void find_centered_pos(UINT client_width, UINT client_height, UINT& xOut, UINT& 
 	yOut = y;
 }
 
+HRESULT enable_GPU_debug_layer()
+{
+	HRESULT hr = S_OK;
+#if defined(_DEBUG)
+	// Always enable the debug layer before doing anything DX12 related
+	// so all possible errors generated while creating DX12 objects
+	// are caught by the debug layer.
+	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
+	hr = D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 
+	if (SUCCEEDED(hr))
+		debugInterface->EnableDebugLayer();
+#endif
+	return hr;
+}
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	// set the one global value for module.
-	g_hModule = hInstance;
 
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
 	// Using this awareness context allows the client area of the window 
@@ -91,8 +103,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	try {
 		auto& app = Application::instance();
 
-		app.initialise_dx12();
-		app.initialise_render_window(L"demo", x,y,1280,720);
+		app.initialise(L"demo", x,y,1280,720, WS_OVERLAPPEDWINDOW, hInstance);
 
 		demo1->load_content();
 

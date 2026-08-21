@@ -61,12 +61,12 @@ void DemoCube::load_content()
 	mWindow = app.get_window();
 
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
-	auto copy_command_list = copy_command_queue->get_command_list();
+	auto copy_command_list = copy_command_queue->acquire_command_list();
 
 	// upload vertex buffer data and assign the view data
-	D3D12Resource intermediateVertexBuffer; // a temporary, make sure to stall the CPU util copy command queue is donzo
+	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateVertexBuffer; // a temporary, make sure to stall the CPU util copy command queue is donzo
 	update_buffer_resource(
-		copy_command_list,
+		copy_command_list.command_list.Get(),
 		&mVertexBuffer,
 		&intermediateVertexBuffer, 
 		_countof(gCubeVerts),
@@ -79,9 +79,9 @@ void DemoCube::load_content()
 	mVertexBufferView.StrideInBytes = sizeof(VertexPosColor);
 
 	// upload index buffer and assign the view data
-	D3D12Resource internmeduateIndexBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> internmeduateIndexBuffer;
 	update_buffer_resource(
-		copy_command_list,
+		copy_command_list.command_list.Get(),
 		&mIndexBuffer,
 		&internmeduateIndexBuffer,
 		_countof(gCubeIndicies),
@@ -218,19 +218,19 @@ void DemoCube::load_content()
 		mDevice->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&mPipelineState))
 	);
 	
-	copy_command_list->Close(); // DO NOT FORGET TO CLOSE
-	auto fenceVal = copy_command_queue->execute();
+	auto fenceVal = copy_command_queue->execute( copy_command_list );
 	copy_command_queue->wait(fenceVal);
 
 	//other
 	// 
 	// scissor rect is responsible for culling any pixels that are not within the dimensions of the RT
+	RECT client_rect = mWindow->get_client_rect();
+	const UINT client_width = static_cast<UINT>(rect_width(client_rect));
+	const UINT client_height = static_cast<UINT>(rect_height(client_rect));
 	mScissorRect = D3D12_RECT{ 0,0,LONG_MAX, LONG_MAX };
 
 	// viewport rect is responsible for saying where to write to but it should not be outside the RT
-	UINT width, height;
-	mWindow->get_client_size(width, height);
-	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(client_width), static_cast<float>(client_height), 0.0f, 1.0f };
 
 	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
 	mFOV = 45.0f;
@@ -241,26 +241,28 @@ void DemoCube::load_content()
 	mContentLoaded = true;
 
 	// resize/ create the depth buffer
-	UINT cwidth, cheight;
-	mWindow->get_client_size(cwidth,cheight);
-	resize_depth_buffer(cwidth, cheight);
+	resize_depth_buffer(client_width, client_height);
 }
 
 void DemoCube::unload_content()
 {
-	auto& app = Application::instance();
-	app.flush();
+	if (mContentLoaded) {
+		auto& app = Application::instance();
+		app.flush();
 
-	mDevice = nullptr;
-	mDireectCommandQueue = nullptr;
-	mWindow = nullptr;
+		mDevice = nullptr;
+		mDireectCommandQueue = nullptr;
+		mWindow = nullptr;
 
-	mVertexBuffer.Reset();
-	mIndexBuffer.Reset();
-	mDepthBuffer.Reset();
-	mDSVHeap.Reset();
-	mRootSignature.Reset();
-	mPipelineState.Reset();
+		mVertexBuffer.Reset();
+		mIndexBuffer.Reset();
+		mDepthBuffer.Reset();
+		mDSVHeap.Reset();
+		mRootSignature.Reset();
+		mPipelineState.Reset();
+	
+		mContentLoaded = false;
+	}
 }
 
 void DemoCube::on_update()
@@ -287,18 +289,21 @@ void DemoCube::on_update()
 	mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition,focusPoint,upDirection);
 
 	// update the proj matrix
-	UINT cwidth, cheight;
-	mWindow->get_client_size(cwidth, cheight);
-	cheight = std::max(1u, cheight);
-	float aspectRatio = cwidth / static_cast<float>(cheight);
+	RECT client_rect = mWindow->get_client_rect();
+	UINT client_width = static_cast<UINT>(rect_width(client_rect));
+	UINT client_height = static_cast<UINT>(rect_height(client_rect));
+
+	client_height = std::max(1u, client_height);
+	float aspectRatio = client_width / static_cast<float>(client_height);
 
 	mProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(mFOV), aspectRatio, 0.1f, 100.0f);
 }
 
 void DemoCube::on_render() 
 {
-	ObserverPtr<ID3D12GraphicsCommandList2> command_list = mDireectCommandQueue->get_command_list();
-	ObserverPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
+	auto command_context = mDireectCommandQueue->acquire_command_list();
+	ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
+	ViewPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -332,10 +337,8 @@ void DemoCube::on_render()
 	// present
 	set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-	command_list->Close();
-
 	const UINT64 current_index = mWindow->get_buffer_index();
-	const UINT64 signal_val = mDireectCommandQueue->execute();
+	const UINT64 signal_val = mDireectCommandQueue->execute( command_context );
 	mSignalTracker[current_index] = signal_val;
 
 	mWindow->present_to_display();
@@ -347,11 +350,12 @@ void DemoCube::on_render()
 
 void DemoCube::on_resize() 
 {
-	UINT client_width, client_height;
-	mWindow->get_client_size(client_width, client_height);
+	RECT client_rect = mWindow->get_client_rect();
 
 	const UINT buffer_width = mWindow->get_buffer_width();
 	const UINT buffer_height = mWindow->get_buffer_height();
+	const UINT client_width = static_cast<UINT>(rect_width(client_rect));
+	const UINT client_height = static_cast<UINT>(rect_height(client_rect));
 
 	if (buffer_width != client_width || buffer_height != client_height)
 	{
@@ -410,7 +414,7 @@ void DemoCube::mouse_resolve()
 	}
 }
 
-void DemoCube::set_transition_barrier(ObserverPtr<ID3D12GraphicsCommandList2> command_list, ObserverPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+void DemoCube::set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
 
@@ -423,17 +427,17 @@ void DemoCube::set_transition_barrier(ObserverPtr<ID3D12GraphicsCommandList2> co
 	command_list->ResourceBarrier(1, &barrier);
 }
 
-void DemoCube::clearRTV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color)
+void DemoCube::clearRTV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color)
 {
 	command_list->ClearRenderTargetView(desc, clear_color, 0, nullptr);
 }
 
-void DemoCube::clearDSV(ObserverPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
+void DemoCube::clearDSV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
 {
 	command_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 }
 
-void DemoCube::update_buffer_resource(ObserverPtr<ID3D12GraphicsCommandList2> command_list,
+void DemoCube::update_buffer_resource(ViewPtr<ID3D12GraphicsCommandList2> command_list,
 	ID3D12Resource** pDestinationResource,
 	ID3D12Resource** pIntermediateResource,
 	size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)

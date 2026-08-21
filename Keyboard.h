@@ -1,5 +1,5 @@
 #pragma once
-#include "WIN32_CORE.h"
+#include "badWin32.h"
 
 class Keyboard
 {
@@ -15,7 +15,7 @@ public:
 
 	const bool* get_keys()const noexcept { return mKeys; }
 
-	constexpr void resolve_message(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	constexpr void resolve_message(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 	{
 		switch (uMsg)
 		{
