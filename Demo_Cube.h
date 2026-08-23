@@ -1,8 +1,8 @@
 #pragma once
 
 #include "badWin32.h"
+#include "badDirectX.h"
 
-#include <DirectXMath.h>
 #include <vector>
 
 

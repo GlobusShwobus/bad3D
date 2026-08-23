@@ -64,8 +64,6 @@ public:
 
 		set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-		command_list->Close();
-
 		const UINT64 current_index = mWindow->get_buffer_index();
 		const UINT64 signal_val = mCommandQueue->execute( command_context );
 		mSignalTracker[current_index] = signal_val;

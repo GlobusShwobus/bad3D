@@ -9,15 +9,15 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="memes">
       <UniqueIdentifier>{67f393b6-a525-43cb-ad2c-b2e1b0122b70}</UniqueIdentifier>
     </Filter>
     <Filter Include="demos">
       <UniqueIdentifier>{f496a91a-db38-4c2b-bd97-24858a85a015}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="memes\Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -93,6 +93,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandList.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineStateStream.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

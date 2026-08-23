@@ -1,14 +1,11 @@
 #include "Demo_Cube.h"
 
-#include <d3dcompiler.h>
-#pragma comment(lib, "d3dcompiler.lib")
-
 #include <algorithm>
 
 #include "Utils.h"
 #include "Application.h"
+#include "PipelineStateStream.h"
 
-#include <d3dx12.h>
 
 // Vertex data for a colored cube.
 struct VertexPosColor
@@ -193,20 +190,20 @@ void DemoCube::load_content()
 
 	struct PipelineStateStream
 	{
-		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+		PSS_ROOT_SIGNATURE pRootSignature;
+		PSS_INPUT_LAYOUT InputLayout;
+		PSS_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		PSS_VERTEX_SHADER VS;
+		PSS_PIXEL_SHADER PS;
+		PSS_DSV_FORMAT DSVFormat;
+		PSS_RTV_FORMATS RTVFormats;
 	} pipelineStateStream;
 
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
 	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
-	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
+	pipelineStateStream.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+	pipelineStateStream.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineStateStream.RTVFormats = rtvFormats;
 
@@ -369,7 +366,7 @@ void DemoCube::on_resize()
 		mWindow->resize(client_width, client_height);
 
 		// this demo specific:
-		mViewport = CD3DX12_VIEWPORT(0.0f,0.0f, static_cast<float>(client_width), static_cast<float>(client_height));
+		mViewport = D3D12_VIEWPORT{ 0.0f,0.0f, static_cast<float>(client_width), static_cast<float>(client_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
 		resize_depth_buffer(client_width,client_height);
 	}
 }
@@ -538,13 +535,25 @@ void DemoCube::resize_depth_buffer(int width, int height)
 		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f,0 };
 
-		const D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		const D3D12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_D32_FLOAT,
-			width, height,
-			1, 0, 1, 0,
-			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-		);
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+
+		D3D12_RESOURCE_DESC depthDesc = {};
+		depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		depthDesc.Alignment = 0;
+		depthDesc.Width = width;
+		depthDesc.Height = height;
+		depthDesc.DepthOrArraySize = 1;
+		depthDesc.MipLevels = 0;
+		depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthDesc.SampleDesc.Count = 1;
+		depthDesc.SampleDesc.Quality = 0;
+		depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		execute_and_test_hresult(
 			mDevice->CreateCommittedResource(
