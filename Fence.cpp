@@ -2,12 +2,12 @@
 #include "Utils.h"
 #include <utility>
 
-Fence::Fence(ViewPtr<ID3D12Device4> device)
+Fence::Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value)
 {
 	assert(device && "device nullptr");
 
 	execute_and_test_hresult(
-		device->CreateFence(mCounter, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence))
+		device->CreateFence(initial_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence))
 	);
 
 	mEventHandle = ::CreateEventW(NULL, FALSE, FALSE, NULL);
@@ -28,26 +28,30 @@ UINT64 Fence::get_completed_value() const
 	return mFence->GetCompletedValue(); 
 }
 
-UINT64 Fence::signal(ViewPtr<ID3D12CommandQueue> command_queue)
+void Fence::set_event(UINT64 value)
 {
-	assert(command_queue && "command_queue nullptr");
-
-	UINT64 signaled_value = mCounter;
-	mCounter++;
-
 	execute_and_test_hresult(
-		command_queue->Signal(mFence.Get(), signaled_value)
+		mFence->SetEventOnCompletion(value, mEventHandle)
 	);
-
-	return signaled_value;
 }
 
-void Fence::wait(UINT64 expected_value)
+void Fence::wait_event() const
 {
-	// trigger event when value is reached
-	execute_and_test_hresult(
-		mFence->SetEventOnCompletion(expected_value, mEventHandle)
-	);
-	// stall the CPU thread
 	::WaitForSingleObject(mEventHandle, INFINITE);
+}
+
+void Fence::wait(UINT64 value)
+{
+	if (get_completed_value() >= value)
+		return;
+
+	set_event(value);
+	wait_event();
+}
+
+void Fence::manual_signal(UINT64 value)
+{
+	execute_and_test_hresult(
+		mFence->Signal(value)
+	);
 }

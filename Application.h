@@ -15,9 +15,6 @@
 
 class Application final
 {
-	// windows advanced rasterization protocol
-	static constexpr bool using_WARP_adapter = false;
-
 	Application() = default;
 	Application(const Application&) = delete;
 	Application& operator=(const Application&) = delete;
@@ -61,8 +58,12 @@ public:
 protected:
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(ViewPtr<IDXGIFactory4> factory, bool use_warp);
-	void initialise_dx12();
-	void initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT w, UINT h, DWORD window_style, HINSTANCE hInstance);
+
+	void init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdapter4> adapter4);
+	void init_command_queues();
+	void init_HWND(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance);
+	void init_swap_chain(ViewPtr<IDXGIFactory4> factory4, DWORD window_style);
+
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -85,7 +86,6 @@ protected:
 	}
 private:
 
-	Microsoft::WRL::ComPtr<IDXGIFactory4> mFactory = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Device4> mDevice = nullptr;
 
 	std::unique_ptr<CommandQueue>   mDirectCommandQueue = nullptr;

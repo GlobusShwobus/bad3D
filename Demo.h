@@ -72,7 +72,7 @@ public:
 
 		const UINT64 some_new_buffer_index = mWindow->get_buffer_index();
 
-		mCommandQueue->wait(mSignalTracker[some_new_buffer_index]);
+		mCommandQueue->wait_CPU(mSignalTracker[some_new_buffer_index]);
 	}
 
 	void on_resize() override
@@ -86,7 +86,7 @@ public:
 
 		if (buffer_width != client_width || buffer_height != client_height)
 		{
-			mCommandQueue->flush();
+			mCommandQueue->flush_execution();
 
 			const UINT current_val = mSignalTracker[mWindow->get_buffer_index()];
 

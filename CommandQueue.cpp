@@ -2,7 +2,7 @@
 #include "Utils.h"
 
 CommandQueue::CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
-	:mType(type), mFence(device)
+	:mType(type), mFence(device, mFenceValue)
 {
 	assert(device && "device nullptr");
 
@@ -44,14 +44,34 @@ UINT64 CommandQueue::execute( CommandList list )
 	return signal_value;
 }
 
-void CommandQueue::flush()
-{
-	wait( signal() );
-}
-
 UINT64 CommandQueue::signal()
 {
-	return mFence.signal( mCommandQueue.Get() );
+	UINT64 value = mFenceValue++;
+
+	execute_and_test_hresult(
+		mCommandQueue->Signal(mFence.get().get(), value)
+	);
+
+	return value;
+}
+
+void CommandQueue::wait_CPU(UINT64 value)
+{
+	mFence.wait(value);
+}
+
+void CommandQueue::wait_GPU(ViewPtr<ID3D12Fence> fence, UINT64 value)
+{
+	execute_and_test_hresult(
+		mCommandQueue->Wait(fence.get(), value)
+	);
+}
+
+void CommandQueue::flush_execution()
+{
+	wait_CPU(
+		signal() 
+	);
 }
 
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CommandQueue::create_command_allocator() const
@@ -74,14 +94,6 @@ Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::create_command_
 	);
 
 	return list;
-}
-
-// checks if the internal fence value has reached the expected value. if not stalls the CPU
-void CommandQueue::wait(UINT64 expected_value)
-{
-	// if current completed value is less than expected value, then stalling is required
-	if (mFence.get_completed_value() < expected_value)
-		mFence.wait(expected_value);
 }
 
 CommandList CommandQueue::acquire_command_list()

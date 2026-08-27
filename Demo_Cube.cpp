@@ -216,7 +216,7 @@ void DemoCube::load_content()
 	);
 	
 	auto fenceVal = copy_command_queue->execute( copy_command_list );
-	copy_command_queue->wait(fenceVal);
+	copy_command_queue->wait_CPU(fenceVal);
 
 	//other
 	// 
@@ -342,7 +342,7 @@ void DemoCube::on_render()
 
 	const UINT64 some_new_buffer_index = mWindow->get_buffer_index();
 
-	mDireectCommandQueue->wait(mSignalTracker[some_new_buffer_index]);
+	mDireectCommandQueue->wait_CPU(mSignalTracker[some_new_buffer_index]);
 }
 
 void DemoCube::on_resize() 
@@ -356,7 +356,7 @@ void DemoCube::on_resize()
 
 	if (buffer_width != client_width || buffer_height != client_height)
 	{
-		mDireectCommandQueue->flush();
+		mDireectCommandQueue->flush_execution();
 
 		const UINT current_val = mSignalTracker[mWindow->get_buffer_index()];
 
@@ -411,13 +411,13 @@ void DemoCube::mouse_resolve()
 	}
 }
 
-void DemoCube::set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+void DemoCube::set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
 
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = back_buffer.get();
+	barrier.Transition.pResource = resource.get();
 	barrier.Transition.StateBefore = before;
 	barrier.Transition.StateAfter = after;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;

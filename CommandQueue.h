@@ -32,22 +32,29 @@ public:
 	// the destructor is not responsible for making sure if there is anything in execution in the background. the application must manually stall
 	virtual ~CommandQueue() = default;
 
+	// signals my fence
+	UINT64 signal();
+
+	// stalls the CPU if the current fence completed value has not reached value
+	void wait_CPU(UINT64 value);
+
+	// stalls this queue ( GPU ) if another queue has not finished work ( reached value )
+	void wait_GPU(ViewPtr<ID3D12Fence> fence, UINT64 value);
+
+	// signals the fence then stalls the CPU until completion
+	void flush_execution();
+
 	// execute a command list. retruns the fence value to wait for
 	UINT64 execute( CommandList list );
 
-	// forces a CPU stall
-	void flush();
+	constexpr ViewPtr<ID3D12CommandQueue> get() const noexcept { return mCommandQueue.Get(); }
+	constexpr ViewPtr<ID3D12Fence>        get_fence() const noexcept { return mFence.get(); }
 
-	// checks if expected value is more than fence value. if fence value is less, it will stall the CPU, otherwise nothing
-	void wait(UINT64 expected_value);
 
 	// get the command list
 	CommandList acquire_command_list();
-	constexpr ViewPtr<ID3D12CommandQueue> get_queue()const noexcept { return mCommandQueue.Get(); }
 
 protected:
-
-	UINT64 signal();
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> create_command_allocator() const;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> create_command_list2() const;
@@ -58,7 +65,8 @@ private:
 	ViewPtr<ID3D12Device4>                     mDevice       = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue = nullptr;
 	
-	Fence mFence;
+	Fence                               mFence;
+	UINT64                              mFenceValue = 0ull;
 
 	QAllocEntry                        mAllocatorQueue;
 	QListEntry                         mListQueue;

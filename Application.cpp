@@ -1,7 +1,5 @@
 #include "Application.h"
 #include "Utils.h"
-#include <stdexcept>
-
 
 Application::~Application()
 {
@@ -10,9 +8,38 @@ Application::~Application()
 
 void Application::initialise(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
 {
-	initialise_dx12();
-	initialise_render_window(title, x, y, client_width, client_height, window_style, hInstance);
-	// if no exceptions up until this point, it should be all good
+	if (dx12_initalised)
+		return;
+
+	// create DXGI factory
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4;
+	UINT create_factory_flags = 0;
+
+#if defined(_DEBUG)
+	create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+	execute_and_test_hresult(
+		CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory4))
+	);
+
+	assert(factory4 && "factory nullptr");
+
+	// create adapter
+	static const bool using_WARP = false;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(factory4.Get(), using_WARP);
+
+	assert(adapter4 && "adapter nullptr");
+
+	// init stuff
+	init_device(factory4.Get(), adapter4.Get());
+	init_command_queues();
+	init_HWND(title, x, y, client_width, client_height, window_style, hInstance);
+	init_swap_chain(factory4.Get(), window_style);
+
+	// show
+	::ShowWindow(mHwnd, SW_SHOW);
+
 	dx12_initalised = true;
 }
 
@@ -43,16 +70,15 @@ void Application::shutdown()
 
 	// destroy device and DXGI
 	mDevice.Reset();
-	mFactory.Reset();
 
 	dx12_initalised = false;
 }
 
 void Application::flush()
 {
-	mDirectCommandQueue->flush();
-	mComputeCommandQueue->flush();
-	mCopyCommandQueue->flush();
+	mDirectCommandQueue->flush_execution();
+	mComputeCommandQueue->flush_execution();
+	mCopyCommandQueue->flush_execution();
 }
 
 void Application::run()
@@ -137,28 +163,11 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(ViewPtr<IDXGIFac
 	return adapter4;
 }
 
-void Application::initialise_dx12()
+void Application::init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdapter4> adapter4)
 {
-	if (dx12_initalised)
-		return;
-
-	// create DXGI factory
-	UINT create_factory_flags = 0;  // only 2 values are valid: 0 or debug.
-#if defined(_DEBUG)
-	create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
-	execute_and_test_hresult(
-		CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&mFactory))
-	);
-
-	// find a good adapter
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(mFactory.Get(), using_WARP_adapter);
-	if (!adapter4)
-		throw std::runtime_error("failed to find adapter");
-
 	// create device
 	execute_and_test_hresult(
-		D3D12CreateDevice(adapter4.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
+		D3D12CreateDevice(adapter4.get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
 	);
 
 	// if debug mode then set some triggers for easier debugging (>easier kek)
@@ -203,13 +212,16 @@ void Application::initialise_dx12()
 		);
 	}
 #endif
-
-	mDirectCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	mCopyCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
 }
 
-void Application::initialise_render_window(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
+void Application::init_command_queues()
+{
+	mDirectCommandQueue  = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	mCopyCommandQueue    = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
+}
+
+void Application::init_HWND(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
 {
 	WNDCLASSEX register_desc = {};
 	register_desc.cbSize = sizeof(WNDCLASSEX);
@@ -225,11 +237,8 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 	register_desc.cbClsExtra = 0;
 	register_desc.cbWndExtra = 0;
 
-	if (RegisterClassExW(&register_desc) == 0)
-	{
-		if (::GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-			throw std::runtime_error("class register failure");
-	}
+	static ATOM atom = ::RegisterClassExW(&register_desc);
+	assert(atom > 0);
 
 	// adjust client size to window size and create the window
 	RECT window_rect{ static_cast<LONG>(x), static_cast<LONG>(y),
@@ -241,7 +250,7 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 	const int win_w = static_cast<int>(rect_width(window_rect));
 	const int win_h = static_cast<int>(rect_height(window_rect));
 
-	HWND hwnd = CreateWindowExW(
+	mHwnd = CreateWindowExW(
 		NULL,
 		register_desc.lpszClassName,
 		title.c_str(),
@@ -256,19 +265,20 @@ void Application::initialise_render_window(const std::wstring& title, UINT x, UI
 		this
 	);
 
-	if (!hwnd)
-		throw std::runtime_error("class creation failed");
+	assert(mHwnd && "window nullptr");
+}
 
+void Application::init_swap_chain(ViewPtr<IDXGIFactory4> factory4, DWORD window_style)
+{
 	// make swap chain
-	mRenderWindow = std::make_unique<RenderWindow>(hwnd, mFactory.Get(), mDevice.Get(), mDirectCommandQueue->get_queue(), window_style);
+	mRenderWindow = std::make_unique<RenderWindow>(mHwnd, factory4.get(), mDevice.Get(), mDirectCommandQueue->get(), window_style);
+
+	assert(mRenderWindow && "swap chain nullptr");
 
 	// disable alt + enter because fullscreen / windowed transitions are manual
 	execute_and_test_hresult(
-		mFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)
+		factory4->MakeWindowAssociation(mHwnd, DXGI_MWA_NO_ALT_ENTER)
 	);
-
-	// show
-	::ShowWindow(hwnd, SW_SHOW);
 }
 
 LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -38,7 +38,7 @@ protected:
 
 	void mouse_resolve();
 	
-	void set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> back_buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
+	void set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 	void clearRTV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color);
 

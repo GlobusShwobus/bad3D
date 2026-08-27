@@ -15,7 +15,6 @@ class RenderWindow final
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>   mDescriptorHeap = nullptr;
 		UINT                                           mDescriptorSize = 0;
 
-		void init(ViewPtr<ID3D12Device4> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT count);
 		D3D12_CPU_DESCRIPTOR_HANDLE get_descriptor_handle_for(SIZE_T index) const noexcept;
 	};
 
@@ -52,10 +51,10 @@ public:
 	ViewPtr<ID3D12Resource>     get_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const;
 
-	constexpr UINT              get_buffer_index()  const noexcept  { return mCurrentBBIndex;   }
+	constexpr UINT              get_buffer_index()  const noexcept  { return mCurrentBufferIndex;   }
 	constexpr UINT              get_buffer_count()  const noexcept  { return back_buffer_count; }
-	constexpr UINT              get_buffer_width()  const noexcept  { return mBBWidth;          }
-	constexpr UINT              get_buffer_height() const noexcept  { return mBBHeight;         }
+	constexpr UINT              get_buffer_width()  const noexcept  { return mBufferWidth;          }
+	constexpr UINT              get_buffer_height() const noexcept  { return mBufferHeight;         }
 
 	RECT                        get_client_rect() const;
 
@@ -73,9 +72,9 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain = nullptr;
 
 	// buffer info
-	UINT mCurrentBBIndex = 0;
-	UINT mBBWidth = 0;
-	UINT mBBHeight = 0;
+	UINT mCurrentBufferIndex = 0;
+	UINT mBufferWidth = 0;
+	UINT mBufferHeight = 0;
 
 	// stuffz
 	DescHeap     mDescHeap;

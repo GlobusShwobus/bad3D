@@ -13,8 +13,19 @@ RenderWindow::RenderWindow(
 	assert(factory && "factory nullptr");
 	assert(device && "device nullptr");
 	assert(command_queue && "command_queue nullptr");
+
 	// desc heap for the buffers
-	mDescHeap.init(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, back_buffer_count);
+	D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {};
+	descriptor_heap_desc.NumDescriptors = back_buffer_count;
+	descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	descriptor_heap_desc.NodeMask = 0;
+	descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+	execute_and_test_hresult(
+		device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&mDescHeap.mDescriptorHeap))
+	);
+
+	mDescHeap.mDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	// check if tearing is supported
 	BOOL allow_tearing = FALSE;
@@ -63,9 +74,9 @@ RenderWindow::RenderWindow(
 	mScreenToggle.is_fullscreen = false;
 	::GetWindowRect(mHwnd.get(), &mScreenToggle.window_rect);
 	mScreenToggle.window_style = window_style;
-	mCurrentBBIndex = mSwapChain->GetCurrentBackBufferIndex();
-	mBBWidth = width;
-	mBBHeight = height;
+	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+	mBufferWidth = width;
+	mBufferHeight = height;
 	mDevice = device;
 	mHwnd = hwnd;
 
@@ -84,7 +95,7 @@ void RenderWindow::present_to_display()
 	);
 
 	// reset the current back buffer index
-	mCurrentBBIndex = mSwapChain->GetCurrentBackBufferIndex();
+	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 }
 
 void RenderWindow::resize( UINT client_width,  UINT client_height)
@@ -104,11 +115,11 @@ void RenderWindow::resize( UINT client_width,  UINT client_height)
 		));
 
 	// set size handles
-	mBBWidth = client_width;
-	mBBHeight = client_height;
+	mBufferWidth = client_width;
+	mBufferHeight = client_height;
 
 	// reset current index
-	mCurrentBBIndex = mSwapChain->GetCurrentBackBufferIndex();
+	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 	// update back buffer handles
 	reset_description_info();
@@ -129,12 +140,12 @@ ViewPtr<ID3D12Resource> RenderWindow::get_buffer_at(UINT index) const
 
 ViewPtr<ID3D12Resource> RenderWindow::get_buffer() const
 {
-	return get_buffer_at(mCurrentBBIndex);
+	return get_buffer_at(mCurrentBufferIndex);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::get_buffer_desc()const
 {
-	return mDescHeap.get_descriptor_handle_for(mCurrentBBIndex);
+	return mDescHeap.get_descriptor_handle_for(mCurrentBufferIndex);
 }
 
 RECT RenderWindow::get_client_rect() const
@@ -154,21 +165,6 @@ void RenderWindow::reset_description_info() const
 
 		heapPos.ptr += mDescHeap.mDescriptorSize;
 	}
-}
-
-void RenderWindow::DescHeap::init(ViewPtr<ID3D12Device4> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT count)
-{
-	D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {};
-	descriptor_heap_desc.NumDescriptors = count;
-	descriptor_heap_desc.Type = type;
-	descriptor_heap_desc.NodeMask = 0;
-	descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-	execute_and_test_hresult(
-		device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&mDescriptorHeap))
-	);
-
-	mDescriptorSize = device->GetDescriptorHandleIncrementSize(type);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::DescHeap::get_descriptor_handle_for(SIZE_T index) const noexcept
