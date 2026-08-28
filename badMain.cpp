@@ -3,7 +3,8 @@
 #include "Stopwatch.h"
 
 #include "Application.h"
-#include "Demo.h"
+#include "AppWinDesc.h"
+
 #include "Demo_Cube.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
@@ -99,11 +100,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	UINT x, y;
 	find_centered_pos(1280, 720, x,y);
 
+	AppWinDesc winDesc;
+	winDesc.window_name = L"Demo";
+	winDesc.window_style = WS_OVERLAPPEDWINDOW;
+	winDesc.x = x;
+	winDesc.y = y;
+	winDesc.cw = 1280;
+	winDesc.ch = 720;
+	winDesc.hInstance = hInstance;
+
 	std::unique_ptr<DemoCube> demo1 = std::make_unique<DemoCube>();
 	try {
 		auto& app = Application::instance();
 
-		app.initialise(L"demo", x,y,1280,720, WS_OVERLAPPEDWINDOW, hInstance);
+		app.initialise(winDesc);
 
 		demo1->load_content();
 

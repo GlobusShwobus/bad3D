@@ -164,13 +164,13 @@ dxgi.lib
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="AppWinDesc.h" />
     <ClInclude Include="badDirectX.h" />
     <ClInclude Include="badWin32.h" />
     <ClInclude Include="CommandList.h" />
-    <ClInclude Include="Demo.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="Fence.h" />
-    <ClInclude Include="PipelineStateStream.h" />
+    <ClInclude Include="EasyDirectX.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />

@@ -2,11 +2,10 @@
 
 #include "badWin32.h"
 #include "badDirectX.h"
-
 #include <wrl/client.h>
 
 #include <memory>
-#include <string>
+#include "AppWinDesc.h"
 
 #include "CommandQueue.h"
 #include "RenderWindow.h"
@@ -31,13 +30,14 @@ public:
 		return sInstance;
 	}
 
-	void    initialise(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance);
+	void    initialise(AppWinDesc window_desc);
 	void    shutdown();
 
 	void flush();
 
 	constexpr ViewPtr<ID3D12Device4> get_device() const noexcept { return mDevice.Get(); }
-	constexpr ViewPtr<RenderWindow>  get_window() const noexcept { return mRenderWindow.get(); }
+	constexpr ViewPtr<HWND__>        get_hwnd() const noexcept { return mHwnd; }
+	constexpr ViewPtr<RenderWindow>  get_render_window() const noexcept { return mRenderWindow.get(); }
 	constexpr ViewPtr<CommandQueue>  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
 	{
 		ViewPtr<CommandQueue> p = nullptr;
@@ -61,7 +61,7 @@ protected:
 
 	void init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdapter4> adapter4);
 	void init_command_queues();
-	void init_HWND(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance);
+	void init_HWND(const AppWinDesc& window_desc);
 	void init_swap_chain(ViewPtr<IDXGIFactory4> factory4, DWORD window_style);
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

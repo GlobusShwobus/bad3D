@@ -6,7 +6,7 @@ Application::~Application()
 	assert(!dx12_initalised && "Application::shutdown() was not called before exit");
 }
 
-void Application::initialise(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
+void Application::initialise(AppWinDesc window_desc)
 {
 	if (dx12_initalised)
 		return;
@@ -34,8 +34,8 @@ void Application::initialise(const std::wstring& title, UINT x, UINT y, UINT cli
 	// init stuff
 	init_device(factory4.Get(), adapter4.Get());
 	init_command_queues();
-	init_HWND(title, x, y, client_width, client_height, window_style, hInstance);
-	init_swap_chain(factory4.Get(), window_style);
+	init_HWND(window_desc);
+	init_swap_chain(factory4.Get(), window_desc.window_style);
 
 	// show
 	::ShowWindow(mHwnd, SW_SHOW);
@@ -221,17 +221,19 @@ void Application::init_command_queues()
 	mCopyCommandQueue    = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
 }
 
-void Application::init_HWND(const std::wstring& title, UINT x, UINT y, UINT client_width, UINT client_height, DWORD window_style, HINSTANCE hInstance)
+void Application::init_HWND(const AppWinDesc& window_desc)
 {
+	assert(window_desc.cw > 0 && window_desc.ch > 0);
+
 	WNDCLASSEX register_desc = {};
 	register_desc.cbSize = sizeof(WNDCLASSEX);
 	register_desc.lpszClassName = L"DX12RenderWindow";
 	register_desc.lpfnWndProc = Application::wnd_proc;
-	register_desc.hInstance = hInstance;
+	register_desc.hInstance = window_desc.hInstance;
 	register_desc.style = CS_HREDRAW | CS_VREDRAW;
-	register_desc.hIcon = nullptr;
-	register_desc.hIconSm = nullptr;
-	register_desc.hCursor = nullptr;
+	register_desc.hIcon = window_desc.hIcon;
+	register_desc.hIconSm = window_desc.hIconSm;
+	register_desc.hCursor = window_desc.hCursor;
 	register_desc.hbrBackground = nullptr;
 	register_desc.lpszMenuName = nullptr;
 	register_desc.cbClsExtra = 0;
@@ -241,9 +243,9 @@ void Application::init_HWND(const std::wstring& title, UINT x, UINT y, UINT clie
 	assert(atom > 0);
 
 	// adjust client size to window size and create the window
-	RECT window_rect{ static_cast<LONG>(x), static_cast<LONG>(y),
-					   static_cast<LONG>(x + client_width), static_cast<LONG>(y + client_height) };
-	::AdjustWindowRect(&window_rect, window_style, FALSE);
+	RECT window_rect{ static_cast<LONG>(window_desc.x), static_cast<LONG>(window_desc.y),
+					   static_cast<LONG>(window_desc.x + window_desc.cw), static_cast<LONG>(window_desc.y + window_desc.ch) };
+	::AdjustWindowRect(&window_rect, window_desc.window_style, FALSE);
 
 	const int win_x = static_cast<int>(std::max<LONG>(window_rect.left, 0));
 	const int win_y = static_cast<int>(std::max<LONG>(window_rect.top, 0));
@@ -253,8 +255,8 @@ void Application::init_HWND(const std::wstring& title, UINT x, UINT y, UINT clie
 	mHwnd = CreateWindowExW(
 		NULL,
 		register_desc.lpszClassName,
-		title.c_str(),
-		window_style,
+		window_desc.window_name.c_str(),
+		window_desc.window_style,
 		win_x,
 		win_y,
 		win_w,

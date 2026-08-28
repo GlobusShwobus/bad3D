@@ -4,7 +4,7 @@
 
 #include "Utils.h"
 #include "Application.h"
-#include "PipelineStateStream.h"
+#include "EasyDirectX.h"
 
 
 // Vertex data for a colored cube.
@@ -55,7 +55,7 @@ void DemoCube::load_content()
 
 	mDevice = app.get_device();
 	mDireectCommandQueue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	mWindow = app.get_window();
+	mWindow = app.get_render_window();
 
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
@@ -304,11 +304,12 @@ void DemoCube::on_render()
 	D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 
-	set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// any rendering logic goes here until another transition barrier
-	clearRTV(command_list, buffer_desc, color);
-	clearDSV(command_list, dsv_desc, 1.0f);
+
+	command_context.clear_RTV(buffer_desc, color);
+	command_context.clear_DSV(dsv_desc, 1.0f);
 
 	// pre stuff, in this case vertex and pixel shaders stuff
 	command_list->SetPipelineState(mPipelineState.Get());
@@ -332,7 +333,7 @@ void DemoCube::on_render()
 	command_list->DrawIndexedInstanced(_countof(gCubeIndicies),1,0,0,0);
 
 	// present
-	set_transition_barrier(command_list, current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	const UINT64 current_index = mWindow->get_buffer_index();
 	const UINT64 signal_val = mDireectCommandQueue->execute( command_context );
@@ -409,29 +410,6 @@ void DemoCube::mouse_resolve()
 		color[0] = 0;
 		color[1] = 1;
 	}
-}
-
-void DemoCube::set_transition_barrier(ViewPtr<ID3D12GraphicsCommandList2> command_list, ViewPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
-{
-	D3D12_RESOURCE_BARRIER barrier = {};
-
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = resource.get();
-	barrier.Transition.StateBefore = before;
-	barrier.Transition.StateAfter = after;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	command_list->ResourceBarrier(1, &barrier);
-}
-
-void DemoCube::clearRTV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE desc, FLOAT* clear_color)
-{
-	command_list->ClearRenderTargetView(desc, clear_color, 0, nullptr);
-}
-
-void DemoCube::clearDSV(ViewPtr<ID3D12GraphicsCommandList2> command_list, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
-{
-	command_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 }
 
 void DemoCube::update_buffer_resource(ViewPtr<ID3D12GraphicsCommandList2> command_list,

@@ -80,9 +80,6 @@
     <ClInclude Include="RenderWindow.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Demo.h">
-      <Filter>demos</Filter>
-    </ClInclude>
     <ClInclude Include="Demo_Cube.h">
       <Filter>demos</Filter>
     </ClInclude>
@@ -95,7 +92,10 @@
     <ClInclude Include="CommandList.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="PipelineStateStream.h">
+    <ClInclude Include="EasyDirectX.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AppWinDesc.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
