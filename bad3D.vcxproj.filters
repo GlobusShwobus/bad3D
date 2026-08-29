@@ -45,6 +45,9 @@
     <ClCompile Include="Demo_Cube.cpp">
       <Filter>demos</Filter>
     </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -95,7 +98,7 @@
     <ClInclude Include="EasyDirectX.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="AppWinDesc.h">
+    <ClInclude Include="DescriptorHeap.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

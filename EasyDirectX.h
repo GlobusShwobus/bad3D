@@ -33,10 +33,9 @@ using PSS_DSV_FORMAT         = PIPELINE_STATE_STREAM_OBJECT<DXGI_FORMAT,        
 using PSS_RTV_FORMATS        = PIPELINE_STATE_STREAM_OBJECT<D3D12_RT_FORMAT_ARRAY,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>;
 
 // barriers
-
-namespace RBarriers
+struct Barriers 
 {
-	constexpr D3D12_RESOURCE_BARRIER transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) noexcept
+	static constexpr D3D12_RESOURCE_BARRIER transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) noexcept
 	{
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -46,5 +45,25 @@ namespace RBarriers
 		barrier.Transition.StateAfter = after;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		return barrier;
+	}
+};
+
+// heap descs
+struct HeapDesc 
+{
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_masks = 0) noexcept
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.NumDescriptors = desc_count;
+		desc.Type = type;
+		desc.NodeMask = node_masks;
+		desc.Flags = flags;
+
+		return desc;
+	}
+
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC RTV(UINT desc_count) noexcept
+	{
+		return custom(desc_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
 };

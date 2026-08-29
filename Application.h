@@ -5,12 +5,28 @@
 #include <wrl/client.h>
 
 #include <memory>
-#include "AppWinDesc.h"
+#include <string>
 
 #include "CommandQueue.h"
 #include "RenderWindow.h"
 #include "ViewPtr.h"
 #include "IGame.h"
+
+struct AppWinDesc
+{
+	std::wstring window_name;
+	DWORD window_style = 0;
+	HINSTANCE hInstance = nullptr;
+
+	HICON hIcon = nullptr;
+	HICON hIconSm = nullptr;
+	HCURSOR hCursor = nullptr;
+
+	int x = 0;
+	int y = 0;
+	int cw = 0;
+	int ch = 0;
+};
 
 class Application final
 {
@@ -38,7 +54,7 @@ public:
 	constexpr ViewPtr<ID3D12Device4> get_device() const noexcept { return mDevice.Get(); }
 	constexpr ViewPtr<HWND__>        get_hwnd() const noexcept { return mHwnd; }
 	constexpr ViewPtr<RenderWindow>  get_render_window() const noexcept { return mRenderWindow.get(); }
-	constexpr ViewPtr<CommandQueue>  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
+	inline ViewPtr<CommandQueue>     get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
 	{
 		ViewPtr<CommandQueue> p = nullptr;
 
@@ -52,7 +68,7 @@ public:
 		return p;
 	}
 
-	constexpr void set_game(ViewPtr<IGame> game) noexcept { mGame = game; }
+	inline void set_game(ViewPtr<IGame> game) noexcept { mGame = game; }
 	void run();
 
 protected:

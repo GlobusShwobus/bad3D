@@ -157,6 +157,7 @@ dxgi.lib
     <ClCompile Include="badMain.cpp" />
     <ClCompile Include="Demo_Cube.cpp" />
     <ClCompile Include="CommandQueue.cpp" />
+    <ClCompile Include="DescriptorHeap.cpp" />
     <ClCompile Include="Fence.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
     <ClCompile Include="IWin32Window.cpp" />
@@ -164,11 +165,11 @@ dxgi.lib
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
-    <ClInclude Include="AppWinDesc.h" />
     <ClInclude Include="badDirectX.h" />
     <ClInclude Include="badWin32.h" />
     <ClInclude Include="CommandList.h" />
     <ClInclude Include="CommandQueue.h" />
+    <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="EasyDirectX.h" />
     <ClInclude Include="RenderWindow.h" />

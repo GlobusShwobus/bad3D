@@ -7,7 +7,7 @@ class Fence final
 {
 public:
 
-	Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value);
+	Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value, D3D12_FENCE_FLAGS flags = D3D12_FENCE_FLAG_NONE);
 
 	Fence(const Fence&) = delete;
 	Fence& operator=(const Fence&) = delete;

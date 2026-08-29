@@ -2,12 +2,12 @@
 #include "Utils.h"
 #include <utility>
 
-Fence::Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value)
+Fence::Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value, D3D12_FENCE_FLAGS flags)
 {
 	assert(device && "device nullptr");
 
 	execute_and_test_hresult(
-		device->CreateFence(initial_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence))
+		device->CreateFence(initial_value, flags, IID_PPV_ARGS(&mFence))
 	);
 
 	mEventHandle = ::CreateEventW(NULL, FALSE, FALSE, NULL);

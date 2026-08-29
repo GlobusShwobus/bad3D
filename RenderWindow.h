@@ -3,20 +3,13 @@
 #include "badWin32.h"
 #include "badDirectX.h"
 #include <wrl/client.h>
+#include "DescriptorHeap.h"
 
 #include "ViewPtr.h"
 
 class RenderWindow final
 {
 	static constexpr UINT back_buffer_count = 3;
-
-	struct DescHeap
-	{
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>   mDescriptorHeap = nullptr;
-		UINT                                           mDescriptorSize = 0;
-
-		D3D12_CPU_DESCRIPTOR_HANDLE get_descriptor_handle_for(SIZE_T index) const noexcept;
-	};
 
 	struct ScreenToggle
 	{
@@ -77,8 +70,8 @@ private:
 	UINT mBufferHeight = 0;
 
 	// stuffz
-	DescHeap     mDescHeap;
-	ScreenToggle mScreenToggle;
+	DescriptorHeap     mDescHeap;
+	ScreenToggle       mScreenToggle;
 	
 	// settings
 	bool mIsVSync            = false;

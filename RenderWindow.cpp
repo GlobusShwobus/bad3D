@@ -1,5 +1,6 @@
 #include "RenderWindow.h"
 #include "Utils.h"
+#include "EasyDirectX.h"
 
 RenderWindow::RenderWindow(
 	ViewPtr<HWND__> hwnd,
@@ -7,25 +8,13 @@ RenderWindow::RenderWindow(
 	ViewPtr<ID3D12Device4> device,
 	ViewPtr<ID3D12CommandQueue> command_queue,
 	DWORD window_style
-	)
+)
+	:mDescHeap(device, back_buffer_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
 	assert(hwnd && "window nullptr");
 	assert(factory && "factory nullptr");
 	assert(device && "device nullptr");
 	assert(command_queue && "command_queue nullptr");
-
-	// desc heap for the buffers
-	D3D12_DESCRIPTOR_HEAP_DESC descriptor_heap_desc = {};
-	descriptor_heap_desc.NumDescriptors = back_buffer_count;
-	descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	descriptor_heap_desc.NodeMask = 0;
-	descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-	execute_and_test_hresult(
-		device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&mDescHeap.mDescriptorHeap))
-	);
-
-	mDescHeap.mDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	// check if tearing is supported
 	BOOL allow_tearing = FALSE;
@@ -157,25 +146,15 @@ RECT RenderWindow::get_client_rect() const
 
 void RenderWindow::reset_description_info() const
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.get_descriptor_handle_for(NULL);
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.get_desc_begin();
+	const UINT stride = mDescHeap.stride();
 
 	for (UINT i = 0; i < back_buffer_count; i++)
 	{
 		mDevice->CreateRenderTargetView(get_buffer_at(i).get(), nullptr, heapPos);
 
-		heapPos.ptr += mDescHeap.mDescriptorSize;
+		heapPos.ptr += stride;
 	}
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::DescHeap::get_descriptor_handle_for(SIZE_T index) const noexcept
-{
-	assert(mDescriptorHeap && "nullptr");
-
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = { 0 };
-	// pointer arithmetic, offset from begin to index times size in bytes
-	handle.ptr = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr
-		+ index * mDescriptorSize;
-	return handle;
 }
 
 void RenderWindow::ScreenToggle::toggle_window_to( HWND hwnd, bool mode )

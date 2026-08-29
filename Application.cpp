@@ -216,9 +216,10 @@ void Application::init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdap
 
 void Application::init_command_queues()
 {
-	mDirectCommandQueue  = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	mCopyCommandQueue    = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY);
+	ViewPtr<ID3D12Device4> device_ = mDevice.Get();
+	mDirectCommandQueue  = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mComputeCommandQueue = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	mCopyCommandQueue    = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COPY);
 }
 
 void Application::init_HWND(const AppWinDesc& window_desc)

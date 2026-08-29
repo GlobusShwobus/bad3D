@@ -3,7 +3,6 @@
 #include "Stopwatch.h"
 
 #include "Application.h"
-#include "AppWinDesc.h"
 
 #include "Demo_Cube.h"
 
