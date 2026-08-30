@@ -2,6 +2,39 @@
 
 #include "badDirectX.h"
 
+// input elements for HLSL <-> c++
+
+struct InputElement
+{
+	// semantic index is if HLSL struct has more than 1 "POSITION" semantic
+	// input slot identifies which buffer this element comes from ( in case of struct of arrays )
+
+	static constexpr D3D12_INPUT_ELEMENT_DESC custom_PV(LPCSTR semantic_name, UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	{
+		D3D12_INPUT_ELEMENT_DESC desc = {};
+
+		desc.SemanticName = semantic_name;
+		desc.SemanticIndex = semantic_index;
+		desc.InputSlot = input_slot;
+		desc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+		desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+		desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+		desc.InstanceDataStepRate = 0;
+
+		return desc;
+	}
+
+	static constexpr D3D12_INPUT_ELEMENT_DESC position_PV(UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	{
+		return custom_PV("POSITION", semantic_index, input_slot);
+	}
+
+	static constexpr D3D12_INPUT_ELEMENT_DESC color_PV(UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	{
+		return custom_PV("COLOR", semantic_index, input_slot);
+	}
+};
+
 // pipeline state object defs
 
 template <typename T, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE TypeValue>
@@ -65,5 +98,10 @@ struct HeapDesc
 	static constexpr D3D12_DESCRIPTOR_HEAP_DESC RTV(UINT desc_count) noexcept
 	{
 		return custom(desc_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	}
+
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC DSV(UINT desc_count) noexcept
+	{
+		return custom(desc_count, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	}
 };

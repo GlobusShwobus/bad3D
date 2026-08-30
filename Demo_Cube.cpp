@@ -91,11 +91,7 @@ void DemoCube::load_content()
 	mIndexBufferView.SizeInBytes = sizeof(gCubeIndicies);
 
 	// create the descriptor heap for the depth stencil view
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	dsvHeapDesc.NodeMask = 0;
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = HeapDesc::DSV(1);
 	
 	execute_and_test_hresult(
 		mDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDSVHeap))
@@ -113,8 +109,8 @@ void DemoCube::load_content()
 
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		InputElement::position_PV(),
+		InputElement::color_PV()
 	};
 
 	// create a root signature

@@ -3,7 +3,7 @@ struct ModelViewProjection
     matrix MVP;
 };
 
-ConstantBuffer<ModelViewProjection> ModelViewProjectionCG : register(b0);
+ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
 
 struct VertexPosColor
 {
@@ -21,7 +21,7 @@ VertexShaderOutput main(VertexPosColor IN)
 {
     VertexShaderOutput OUT;
     
-    OUT.position = mul(ModelViewProjectionCG.MVP, float4(IN.position, 1.0f));
+    OUT.position = mul(ModelViewProjectionCB.MVP, float4(IN.position, 1.0f));
     OUT.color = float4(IN.color, 1.0f);
     
     return OUT;
