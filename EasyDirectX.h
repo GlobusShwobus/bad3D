@@ -4,7 +4,7 @@
 
 // input elements for HLSL <-> c++
 
-struct InputElement
+struct INPUT_ELEMENT
 {
 	// semantic index is if HLSL struct has more than 1 "POSITION" semantic
 	// input slot identifies which buffer this element comes from ( in case of struct of arrays )
@@ -35,6 +35,18 @@ struct InputElement
 	}
 };
 
+// root sig flags - basically tells what stages can use the root signature
+// (e.g. b0 is used by the vertex shader, so the vertex shader needs root-signature access)
+struct ROOT_SIGNATURE_FLAGS
+{
+	static constexpr D3D12_ROOT_SIGNATURE_FLAGS ALLOW_IA_MINIMAL =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+};
 // pipeline state object defs
 
 template <typename T, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE TypeValue>

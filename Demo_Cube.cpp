@@ -109,8 +109,8 @@ void DemoCube::load_content()
 
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		InputElement::position_PV(),
-		InputElement::color_PV()
+		INPUT_ELEMENT::position_PV(),
+		INPUT_ELEMENT::color_PV()
 	};
 
 	// create a root signature
@@ -124,13 +124,7 @@ void DemoCube::load_content()
 	}
 	
 	// allow input layout and deny unnecessary acces to certain pipeline stages
-	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = 
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
+	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = ROOT_SIGNATURE_FLAGS::ALLOW_IA_MINIMAL;
 
 	// root sig desc
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
