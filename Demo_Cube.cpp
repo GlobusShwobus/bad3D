@@ -135,22 +135,17 @@ void DemoCube::load_content()
 
 	if (featureData.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1)
 	{
-		D3D12_ROOT_PARAMETER1 rootParameters11[1];
-		rootParameters11[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters11[0].Constants = ROOT_CONSTANT::constant(0, sizeof(DirectX::XMMATRIX) / 4);
-		rootParameters11[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+		D3D12_ROOT_PARAMETER1 rootParameters11[1] = {
+			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 0,  sizeof(DirectX::XMMATRIX) / 4)
+		};
 
-		rootsigdesc.Desc_1_1.NumParameters = _countof(rootParameters11);
-		rootsigdesc.Desc_1_1.pParameters = rootParameters11;
-		rootsigdesc.Desc_1_1.NumStaticSamplers = 0;
-		rootsigdesc.Desc_1_1.pStaticSamplers = nullptr;
-		rootsigdesc.Desc_1_1.Flags = rootsigflags;
+		rootsigdesc.Desc_1_1 = ROOT_DESCRIPTION::custom(_countof(rootParameters11), rootParameters11, rootsigflags);
 	}
 	else
 	{
 		D3D12_ROOT_PARAMETER rootParameters10[1];
 		rootParameters10[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters10[0].Constants = ROOT_CONSTANT::constant(0, sizeof(DirectX::XMMATRIX) / 4);
+		rootParameters10[0].Constants = ROOT_PARAMETER::CONSTANT::constant(0, sizeof(DirectX::XMMATRIX) / 4);
 		rootParameters10[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
 		rootsigdesc.Desc_1_0.NumParameters = _countof(rootParameters10);

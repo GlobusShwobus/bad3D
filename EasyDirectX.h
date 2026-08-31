@@ -43,125 +43,159 @@ struct INPUT_ELEMENT
 // Input elements is for input assembly - what data i have in code and creating contracts that must match the shader in hlsl
 // root signature is similar however instead of what gets passed into hlsl main(...), root signature is responsible for the register data b,t,s...
 
-struct ROOT_RANGE
-{
-
-	static constexpr D3D12_DESCRIPTOR_RANGE1 custom(
-		D3D12_DESCRIPTOR_RANGE_TYPE type,
-		UINT                        count,
-		UINT                        shader_register,
-		UINT                        register_space = 0,
-		UINT                        offset = 0,
-		D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
-	{
-		D3D12_DESCRIPTOR_RANGE1 desc{};
-
-		desc.RangeType = type;
-		desc.NumDescriptors = count;
-		desc.BaseShaderRegister = shader_register;
-		desc.RegisterSpace = register_space;
-		desc.OffsetInDescriptorsFromTableStart = offset;
-		desc.Flags = flags;
-		
-		return desc;
-	}
-
-	static constexpr D3D12_DESCRIPTOR_RANGE1 SRV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
-	{
-		return custom(
-			D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-			count,
-			shader_register,
-			register_space,
-			offset,
-			flags
-		);
-	}
-
-	static constexpr D3D12_DESCRIPTOR_RANGE1 CBV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
-	{
-		return custom(
-			D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-			count,
-			shader_register,
-			register_space,
-			offset,
-			flags
-		);
-	}
-
-	static constexpr D3D12_DESCRIPTOR_RANGE1 UAV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
-	{
-		return custom(
-			D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-			count,
-			shader_register,
-			register_space,
-			offset,
-			flags
-		);
-	}
-
-	static constexpr D3D12_DESCRIPTOR_RANGE1 sampler( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
-	{
-		return custom(
-			D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
-			count,
-			shader_register,
-			register_space,
-			offset,
-			flags
-		);
-	}
-};
-
-struct ROOT_DESCRIPTOR
-{
-	static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
-	{
-
-		D3D12_ROOT_DESCRIPTOR1 desc{};
-
-		desc.ShaderRegister = shader_register;
-		desc.RegisterSpace = register_space;
-		desc.Flags = flags;
-
-		return desc;
-	}
-};
-
-struct ROOT_CONSTANT
-{
-	static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0)
-	{
-		D3D12_ROOT_CONSTANTS desc{};
-
-		desc.ShaderRegister = shader_register;
-		desc.Num32BitValues = count;
-		desc.RegisterSpace = register_space;
-
-		return desc;
-	}
-};
-
 struct ROOT_PARAMETER
 {
-	static constexpr D3D12_ROOT_PARAMETER1 constant(UINT shader_register, UINT count, D3D12_SHADER_VISIBILITY visibility, UINT register_space = 0) noexcept
+	struct DESCRIPTOR_RANGE
+	{
+		static constexpr D3D12_DESCRIPTOR_RANGE1 custom(
+			D3D12_DESCRIPTOR_RANGE_TYPE type,
+			UINT                        count,
+			UINT                        shader_register,
+			UINT                        register_space = 0,
+			UINT                        offset = 0,
+			D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		{
+			D3D12_DESCRIPTOR_RANGE1 desc{};
+
+			desc.RangeType = type;
+			desc.NumDescriptors = count;
+			desc.BaseShaderRegister = shader_register;
+			desc.RegisterSpace = register_space;
+			desc.OffsetInDescriptorsFromTableStart = offset;
+			desc.Flags = flags;
+
+			return desc;
+		}
+
+		static constexpr D3D12_DESCRIPTOR_RANGE1 SRV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		{
+			return custom(
+				D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+				count,
+				shader_register,
+				register_space,
+				offset,
+				flags
+			);
+		}
+
+		static constexpr D3D12_DESCRIPTOR_RANGE1 CBV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		{
+			return custom(
+				D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+				count,
+				shader_register,
+				register_space,
+				offset,
+				flags
+			);
+		}
+
+		static constexpr D3D12_DESCRIPTOR_RANGE1 UAV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		{
+			return custom(
+				D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+				count,
+				shader_register,
+				register_space,
+				offset,
+				flags
+			);
+		}
+
+		static constexpr D3D12_DESCRIPTOR_RANGE1 sampler(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		{
+			return custom(
+				D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+				count,
+				shader_register,
+				register_space,
+				offset,
+				flags
+			);
+		}
+	};
+
+	struct DESCRIPTOR
+	{
+		static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+		{
+
+			D3D12_ROOT_DESCRIPTOR1 desc{};
+
+			desc.ShaderRegister = shader_register;
+			desc.RegisterSpace = register_space;
+			desc.Flags = flags;
+
+			return desc;
+		}
+	};
+
+	struct CONSTANT
+	{
+		static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0) noexcept
+		{
+			D3D12_ROOT_CONSTANTS desc{};
+
+			desc.ShaderRegister = shader_register;
+			desc.Num32BitValues = count;
+			desc.RegisterSpace = register_space;
+
+			return desc;
+		}
+	};
+
+	static constexpr D3D12_ROOT_PARAMETER1 constant(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT count, UINT register_space = 0) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
 
 		desc.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		desc.ShaderVisibility = visibility;
-		desc.Constants = ROOT_CONSTANT::constant(shader_register, count, register_space);
+		desc.Constants = CONSTANT::constant(shader_register, count, register_space);
 
 		return desc;
 	}
 
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor(D3D12_ROOT_PARAMETER_TYPE type, D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	{
+		D3D12_ROOT_PARAMETER1 desc{};
 
+		desc.ParameterType = type;
+		desc.ShaderVisibility = visibility;
+		desc.Descriptor = DESCRIPTOR::descriptor(shader_register, register_space, flags);
+
+		return desc;
+	}
+
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_CBV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	{
+		return descriptor(D3D12_ROOT_PARAMETER_TYPE_CBV, visibility, shader_register, register_space, flags);
+	}
+
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_SRV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	{
+		return descriptor(D3D12_ROOT_PARAMETER_TYPE_SRV, visibility, shader_register, register_space, flags);
+	}
+
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_UAV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	{
+		return descriptor(D3D12_ROOT_PARAMETER_TYPE_UAV, visibility, shader_register, register_space, flags);
+	}
+
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_table(D3D12_SHADER_VISIBILITY visibility, UINT range_count, const D3D12_DESCRIPTOR_RANGE1* range) noexcept
+	{
+		D3D12_ROOT_PARAMETER1 desc{};
+
+		desc.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		desc.ShaderVisibility = visibility;
+		desc.DescriptorTable.NumDescriptorRanges = range_count;
+		desc.DescriptorTable.pDescriptorRanges = range;
+
+		return desc;
+	}
 };
 
-// root sig flags - basically tells what stages can use the root signature
-// (e.g. b0 is used by the vertex shader, so the vertex shader needs root-signature access)
+// what shader stage root sig is visible in, like a global (different from D3D12_SHADER_VISIBILITY which is per paramter per shader stage)
 struct ROOT_SIGNATURE_FLAGS
 {
 	static constexpr D3D12_ROOT_SIGNATURE_FLAGS ALLOW_IA_MINIMAL =
@@ -171,6 +205,28 @@ struct ROOT_SIGNATURE_FLAGS
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
+};
+
+struct ROOT_DESCRIPTION
+{
+	static constexpr D3D12_ROOT_SIGNATURE_DESC1 custom(
+		UINT num_parameters,
+		const D3D12_ROOT_PARAMETER1* parameters,
+		D3D12_ROOT_SIGNATURE_FLAGS flags,
+		UINT num_static_samplers = 0,
+		const D3D12_STATIC_SAMPLER_DESC* static_samplers = nullptr
+		) noexcept
+	{
+		D3D12_ROOT_SIGNATURE_DESC1 desc{};
+
+		desc.NumParameters = num_parameters;
+		desc.pParameters = parameters;
+		desc.NumStaticSamplers = num_static_samplers;
+		desc.pStaticSamplers = static_samplers;
+		desc.Flags = flags;
+
+		return desc;
+	}
 };
 
 // pipeline state object defs
