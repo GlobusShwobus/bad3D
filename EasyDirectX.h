@@ -1,12 +1,17 @@
 #pragma once
 
 #include "badDirectX.h"
+#include <concepts>
 
-// input elements for HLSL <-> c++
+// TODO: consistency... go over what should have templates, what doesnt need them, what needs custom(...) etc...
+
+// input elements
+// - what data comes from c++ side vertex buffers, into hlsl side vertex shader
+// - a verbose explicit way of describing a struct that exists in c++ to shader HLSL
 
 struct INPUT_ELEMENT
 {
-	// semantic index is if HLSL struct has more than 1 "POSITION" semantic
+	// semantic index is if struct has more than 1 "POSITION" (or any same) semantic
 	// input slot identifies which buffer this element comes from ( in case of struct of arrays )
 
 	static constexpr D3D12_INPUT_ELEMENT_DESC custom_PV(LPCSTR semantic_name, UINT semantic_index = 0, UINT input_slot = 0) noexcept
@@ -35,6 +40,123 @@ struct INPUT_ELEMENT
 	}
 };
 
+// Input elements is for input assembly - what data i have in code and creating contracts that must match the shader in hlsl
+// root signature is similar however instead of what gets passed into hlsl main(...), root signature is responsible for the register data b,t,s...
+
+struct ROOT_RANGE
+{
+	template<typename RANGE_DESC>
+	static constexpr RANGE_DESC custom(
+		D3D12_DESCRIPTOR_RANGE_TYPE type,
+		UINT                        count,
+		UINT                        shader_register,
+		UINT                        register_space = 0,
+		UINT                        offset = 0,
+		D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE)
+	{
+		RANGE_DESC desc{};
+
+		desc.RangeType = type;
+		desc.NumDescriptors = count;
+		desc.BaseShaderRegister = shader_register;
+		desc.RegisterSpace = register_space;
+		desc.OffsetInDescriptorsFromTableStart = offset;
+
+		if constexpr (std::same_as<RANGE_DESC, D3D12_DESCRIPTOR_RANGE1>)
+		{
+			desc.Flags = flags;
+		}
+
+		return desc;
+	}
+
+	static constexpr D3D12_DESCRIPTOR_RANGE1 SRV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE)
+	{
+		return custom<D3D12_DESCRIPTOR_RANGE1>(
+			D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+			count,
+			shader_register,
+			register_space,
+			offset,
+			flags
+		);
+	}
+
+	static constexpr D3D12_DESCRIPTOR_RANGE1 CBV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE)
+	{
+		return custom<D3D12_DESCRIPTOR_RANGE1>(
+			D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+			count,
+			shader_register,
+			register_space,
+			offset,
+			flags
+		);
+	}
+
+	static constexpr D3D12_DESCRIPTOR_RANGE1 UAV( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE)
+	{
+		return custom<D3D12_DESCRIPTOR_RANGE1>(
+			D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+			count,
+			shader_register,
+			register_space,
+			offset,
+			flags
+		);
+	}
+
+	static constexpr D3D12_DESCRIPTOR_RANGE1 sampler( UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE)
+	{
+		return custom<D3D12_DESCRIPTOR_RANGE1>(
+			D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+			count,
+			shader_register,
+			register_space,
+			offset,
+			flags
+		);
+	}
+};
+
+struct ROOT_DESCRIPTOR
+{
+	template <typename DESC>
+	static constexpr DESC custom(UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE)
+	{
+		DESC desc{};
+
+		desc.ShaderRegister = shader_register;
+		desc.RegisterSpace = register_space;
+
+		if constexpr (std::same_as<DESC, D3D12_ROOT_DESCRIPTOR1>)
+		{
+			desc.Flags = flags;
+		}
+
+		return desc;
+	}
+
+	static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE)
+	{
+		return custom<D3D12_ROOT_DESCRIPTOR1>(shader_register, register_space, flags);
+	}
+};
+
+struct ROOT_CONSTANT
+{
+	static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0)
+	{
+		D3D12_ROOT_CONSTANTS desc{};
+
+		desc.ShaderRegister = shader_register;
+		desc.Num32BitValues = count;
+		desc.RegisterSpace = register_space;
+
+		return desc;
+	}
+};
+
 // root sig flags - basically tells what stages can use the root signature
 // (e.g. b0 is used by the vertex shader, so the vertex shader needs root-signature access)
 struct ROOT_SIGNATURE_FLAGS
@@ -47,6 +169,7 @@ struct ROOT_SIGNATURE_FLAGS
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
 };
+
 // pipeline state object defs
 
 template <typename T, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE TypeValue>
@@ -78,7 +201,7 @@ using PSS_DSV_FORMAT         = PIPELINE_STATE_STREAM_OBJECT<DXGI_FORMAT,        
 using PSS_RTV_FORMATS        = PIPELINE_STATE_STREAM_OBJECT<D3D12_RT_FORMAT_ARRAY,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>;
 
 // barriers
-struct Barriers 
+struct BARRIERS 
 {
 	static constexpr D3D12_RESOURCE_BARRIER transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) noexcept
 	{
@@ -94,7 +217,7 @@ struct Barriers
 };
 
 // heap descs
-struct HeapDesc 
+struct DESC_HEAP 
 {
 	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_masks = 0) noexcept
 	{

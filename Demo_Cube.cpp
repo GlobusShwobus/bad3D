@@ -6,6 +6,9 @@
 #include "Application.h"
 #include "EasyDirectX.h"
 
+//TODO challange: this demo draws just one cube. strictly speaking it is wasteful to assign MVP matrix to GPU register b0 because the model changes per cube.
+//                instead of binding MVP to register b0, try binding view and projection matricies separately ( or without model transformation ) then apply model transformation
+//                in HLSL, for example by editing the shader to take main(vertex IN, matrix IN_model)
 
 // Vertex data for a colored cube.
 struct VertexPosColor
@@ -91,7 +94,7 @@ void DemoCube::load_content()
 	mIndexBufferView.SizeInBytes = sizeof(gCubeIndicies);
 
 	// create the descriptor heap for the depth stencil view
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = HeapDesc::DSV(1);
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESC_HEAP::DSV(1);
 	
 	execute_and_test_hresult(
 		mDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDSVHeap))
@@ -134,9 +137,7 @@ void DemoCube::load_content()
 	{
 		D3D12_ROOT_PARAMETER1 rootParameters11[1];
 		rootParameters11[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters11[0].Constants.ShaderRegister = 0;                        // b0
-		rootParameters11[0].Constants.RegisterSpace = 0;                         // space0
-		rootParameters11[0].Constants.Num32BitValues = sizeof(DirectX::XMMATRIX) / 4;     // 16
+		rootParameters11[0].Constants = ROOT_CONSTANT::constant(0, sizeof(DirectX::XMMATRIX) / 4);
 		rootParameters11[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
 		rootsigdesc.Desc_1_1.NumParameters = _countof(rootParameters11);
@@ -149,9 +150,7 @@ void DemoCube::load_content()
 	{
 		D3D12_ROOT_PARAMETER rootParameters10[1];
 		rootParameters10[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters10[0].Constants.ShaderRegister = 0;
-		rootParameters10[0].Constants.RegisterSpace = 0;
-		rootParameters10[0].Constants.Num32BitValues = sizeof(DirectX::XMMATRIX) / 4;
+		rootParameters10[0].Constants = ROOT_CONSTANT::constant(0, sizeof(DirectX::XMMATRIX) / 4);
 		rootParameters10[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
 		rootsigdesc.Desc_1_0.NumParameters = _countof(rootParameters10);

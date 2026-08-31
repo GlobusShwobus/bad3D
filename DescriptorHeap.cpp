@@ -7,7 +7,7 @@ DescriptorHeap::DescriptorHeap(ViewPtr<ID3D12Device4> device, UINT desc_count, D
 {
 	assert(device && "device nullptr");
 	
-	D3D12_DESCRIPTOR_HEAP_DESC desc = HeapDesc::custom(desc_count, type, flags, node_masks);
+	D3D12_DESCRIPTOR_HEAP_DESC desc = DESC_HEAP::custom(desc_count, type, flags, node_masks);
 
 	execute_and_test_hresult(
 		device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mHeap))
