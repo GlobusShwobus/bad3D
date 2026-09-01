@@ -10,35 +10,6 @@
 //                instead of binding MVP to register b0, try binding view and projection matricies separately ( or without model transformation ) then apply model transformation
 //                in HLSL, for example by editing the shader to take main(vertex IN, matrix IN_model)
 
-// Vertex data for a colored cube.
-struct VertexPosColor
-{
-	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT3 Color;
-};
-
-static VertexPosColor gCubeVerts[8] = {
-	{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
-	{ DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-	{ DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-	{ DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
-	{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
-	{ DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-	{ DirectX::XMFLOAT3(1.0f,  1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-	{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
-};
-
-static WORD gCubeIndicies[36] =
-{
-	0, 1, 2, 0, 2, 3,
-	4, 6, 5, 4, 7, 6,
-	4, 5, 1, 4, 1, 0,
-	3, 2, 6, 3, 6, 7,
-	1, 5, 6, 1, 6, 2,
-	4, 0, 3, 4, 3, 7
-};
-
-
 DemoCube::DemoCube()
 {
 	// check of directX math library support
@@ -54,6 +25,7 @@ DemoCube::~DemoCube()
 
 void DemoCube::load_content()
 {
+	// gets
 	auto& app = Application::instance();
 
 	mDevice = app.get_device();
@@ -63,19 +35,23 @@ void DemoCube::load_content()
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
 
+	// assign cube values to the mesh (since demo, is hardcoded. from file is cooler)
+	set_mesh();
+
+
 	// upload vertex buffer data and assign the view data
 	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateVertexBuffer; // a temporary, make sure to stall the CPU util copy command queue is donzo
 	update_buffer_resource(
 		copy_command_list.command_list.Get(),
 		&mVertexBuffer,
 		&intermediateVertexBuffer, 
-		_countof(gCubeVerts),
+		mCubeMesh.vertex_count(),
 		sizeof(VertexPosColor),
-		gCubeVerts
+		mCubeMesh.vertex_data()
 	);
 
 	mVertexBufferView.BufferLocation = mVertexBuffer->GetGPUVirtualAddress();
-	mVertexBufferView.SizeInBytes = sizeof(gCubeVerts);
+	mVertexBufferView.SizeInBytes = mCubeMesh.vertex_count() * sizeof(VertexPosColor);
 	mVertexBufferView.StrideInBytes = sizeof(VertexPosColor);
 
 	// upload index buffer and assign the view data
@@ -84,14 +60,14 @@ void DemoCube::load_content()
 		copy_command_list.command_list.Get(),
 		&mIndexBuffer,
 		&internmeduateIndexBuffer,
-		_countof(gCubeIndicies),
+		mCubeMesh.index_count(),
 		sizeof(WORD),
-		gCubeIndicies
+		mCubeMesh.index_data()
 	);
 
 	mIndexBufferView.BufferLocation = mIndexBuffer->GetGPUVirtualAddress();
 	mIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-	mIndexBufferView.SizeInBytes = sizeof(gCubeIndicies);
+	mIndexBufferView.SizeInBytes = mCubeMesh.index_count()*sizeof(WORD);
 
 	// create the descriptor heap for the depth stencil view
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESC_HEAP::DSV(1);
@@ -314,7 +290,7 @@ void DemoCube::on_render()
 	command_list->SetGraphicsRoot32BitConstants(0, sizeof(DirectX::XMMATRIX) / 4, &mvpMatrix, 0);
 
 	// draw
-	command_list->DrawIndexedInstanced(_countof(gCubeIndicies),1,0,0,0);
+	command_list->DrawIndexedInstanced(mCubeMesh.index_count(), 1, 0, 0, 0);
 
 	// present
 	command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -537,4 +513,28 @@ void DemoCube::resize_depth_buffer(int width, int height)
 
 		mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv, mDSVHeap->GetCPUDescriptorHandleForHeapStart());	
 	}
+}
+
+void DemoCube::set_mesh()
+{
+	mCubeMesh = Mesh<VertexPosColor>{
+	{ // pos/ color
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
+		{ DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
+		{ DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
+		{ DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
+		{ DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
+		{ DirectX::XMFLOAT3(1.0f,  1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
+		{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7		
+	},
+	{ // index
+			0, 1, 2, 0, 2, 3,
+			4, 6, 5, 4, 7, 6,
+			4, 5, 1, 4, 1, 0,
+			3, 2, 6, 3, 6, 7,
+			1, 5, 6, 1, 6, 2,
+			4, 0, 3, 4, 3, 7
+	}
+	};
 }

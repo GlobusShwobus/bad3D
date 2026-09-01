@@ -176,6 +176,7 @@ dxgi.lib
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
     <ClInclude Include="Demo_Cube.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="ViewPtr.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />

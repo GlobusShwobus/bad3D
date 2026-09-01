@@ -13,10 +13,17 @@
 #include "CommandQueue.h"
 #include "RenderWindow.h"
 
-// todo:: include redistributable direct x bullshit in the soruce ( also goes for GPU_CORE shit )
+#include "Mesh.h"
+
 
 class DemoCube :public IGame
 {
+	struct VertexPosColor
+	{
+		DirectX::XMFLOAT3 Position;
+		DirectX::XMFLOAT3 Color;
+	};
+
 public:
 	
 	DemoCube();
@@ -46,6 +53,8 @@ protected:
 
 	// Resize the depth buffer to match the size of the client area.
 	void resize_depth_buffer(int width, int height);
+
+	void set_mesh();
 private:
 	FLOAT color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 	Keyboard kb;
@@ -58,6 +67,8 @@ private:
 	std::vector<UINT64> mSignalTracker;
 	Stopwatch mTimer;
 
+	// CPU side cube data
+	Mesh<VertexPosColor> mCubeMesh;
 
 	// vertex buffer for the cube
 	Microsoft::WRL::ComPtr<ID3D12Resource> mVertexBuffer;

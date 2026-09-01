@@ -101,6 +101,9 @@
     <ClInclude Include="DescriptorHeap.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="VertexShader.hlsl">
