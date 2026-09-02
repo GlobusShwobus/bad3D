@@ -104,6 +104,9 @@
     <ClInclude Include="Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="EasyDirectXUtils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="VertexShader.hlsl">

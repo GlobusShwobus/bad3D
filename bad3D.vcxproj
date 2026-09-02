@@ -170,6 +170,7 @@ dxgi.lib
     <ClInclude Include="CommandList.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="EasyDirectXUtils.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="EasyDirectX.h" />
     <ClInclude Include="RenderWindow.h" />

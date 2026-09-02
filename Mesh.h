@@ -10,18 +10,20 @@ class Mesh
 public:
 	Mesh() = default;
 	Mesh(std::vector<vertex> vertecies, std::vector<WORD> indecies)
-		:mVertex(std::move(vertecies)), mIndex(std::move(indecies))
+		:mVertexBuffer(std::move(vertecies)), mIndexBuffer(std::move(indecies))
 	{
-		assert(mVertex.size() > 2);
-		assert(mIndex.size() % 3 == 0);
+		assert(mVertexBuffer.size() > 2);
+		assert(mIndexBuffer.size() % 3 == 0);
 	}
 
-	constexpr std::size_t vertex_count() const noexcept { return mVertex.size(); }
-	constexpr std::size_t index_count() const noexcept { return mIndex.size(); }
+	constexpr std::size_t vertex_count() const noexcept       { return mVertexBuffer.size(); }
+	constexpr std::size_t vertex_type_size() const noexcept   { return sizeof(vertex); }
+	constexpr std::size_t vertex_buffer_size() const noexcept { return mVertexBuffer.size() * sizeof(vertex); }
 
-	constexpr vertex* vertex_data()  noexcept { return mVertex.data(); }
-	constexpr WORD* index_data()  noexcept { return mIndex.data(); }
+	constexpr std::size_t index_count() const noexcept        { return mIndexBuffer.size(); }
+	constexpr std::size_t index_type_size() const noexcept    { return sizeof(WORD); }
+	constexpr std::size_t index_buffer_size() const noexcept  { return mIndexBuffer.size() * sizeof(WORD); }
 
-	std::vector<vertex> mVertex;
-	std::vector<WORD> mIndex;
+	std::vector<vertex> mVertexBuffer;
+	std::vector<WORD> mIndexBuffer;
 };

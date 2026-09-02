@@ -1,7 +1,6 @@
 #pragma once
 
 #include "badDirectX.h"
-#include <concepts>
 
 // TODO: consistency... go over what should have templates, what doesnt need them, what needs custom(...) etc...
 
@@ -14,7 +13,7 @@ struct INPUT_ELEMENT
 	// semantic index is if struct has more than 1 "POSITION" (or any same) semantic
 	// input slot identifies which buffer this element comes from ( in case of struct of arrays )
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC custom_PV(LPCSTR semantic_name, UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC custom_PV(LPCSTR semantic_name, UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
 	{
 		D3D12_INPUT_ELEMENT_DESC desc = {};
 
@@ -29,12 +28,12 @@ struct INPUT_ELEMENT
 		return desc;
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC position_PV(UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC position_PV(UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
 	{
 		return custom_PV("POSITION", semantic_index, input_slot);
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC color_PV(UINT semantic_index = 0, UINT input_slot = 0) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC color_PV(UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
 	{
 		return custom_PV("COLOR", semantic_index, input_slot);
 	}
@@ -51,8 +50,8 @@ struct ROOT_PARAMETER
 			D3D12_DESCRIPTOR_RANGE_TYPE type,
 			UINT                        count,
 			UINT                        shader_register,
-			UINT                        register_space = 0,
-			UINT                        offset = 0,
+			UINT                        register_space = 0U,
+			UINT                        offset = 0U,
 			D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
 			D3D12_DESCRIPTOR_RANGE1 desc{};
@@ -67,7 +66,7 @@ struct ROOT_PARAMETER
 			return desc;
 		}
 
-		static constexpr D3D12_DESCRIPTOR_RANGE1 SRV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		static constexpr D3D12_DESCRIPTOR_RANGE1 SRV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
 			return custom(
 				D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -79,7 +78,7 @@ struct ROOT_PARAMETER
 			);
 		}
 
-		static constexpr D3D12_DESCRIPTOR_RANGE1 CBV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		static constexpr D3D12_DESCRIPTOR_RANGE1 CBV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
 			return custom(
 				D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
@@ -91,7 +90,7 @@ struct ROOT_PARAMETER
 			);
 		}
 
-		static constexpr D3D12_DESCRIPTOR_RANGE1 UAV(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		static constexpr D3D12_DESCRIPTOR_RANGE1 UAV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
 			return custom(
 				D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
@@ -103,7 +102,7 @@ struct ROOT_PARAMETER
 			);
 		}
 
-		static constexpr D3D12_DESCRIPTOR_RANGE1 sampler(UINT count, UINT shader_register, UINT register_space = 0, UINT offset = 0, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+		static constexpr D3D12_DESCRIPTOR_RANGE1 sampler(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
 			return custom(
 				D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
@@ -118,7 +117,7 @@ struct ROOT_PARAMETER
 
 	struct DESCRIPTOR
 	{
-		static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+		static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 		{
 
 			D3D12_ROOT_DESCRIPTOR1 desc{};
@@ -133,7 +132,7 @@ struct ROOT_PARAMETER
 
 	struct CONSTANT
 	{
-		static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0) noexcept
+		static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0U) noexcept
 		{
 			D3D12_ROOT_CONSTANTS desc{};
 
@@ -145,7 +144,7 @@ struct ROOT_PARAMETER
 		}
 	};
 
-	static constexpr D3D12_ROOT_PARAMETER1 constant(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT count, UINT register_space = 0) noexcept
+	static constexpr D3D12_ROOT_PARAMETER1 constant(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT count, UINT register_space = 0U) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
 
@@ -156,7 +155,7 @@ struct ROOT_PARAMETER
 		return desc;
 	}
 
-	static constexpr D3D12_ROOT_PARAMETER1 descriptor(D3D12_ROOT_PARAMETER_TYPE type, D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor(D3D12_ROOT_PARAMETER_TYPE type, D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
 
@@ -167,17 +166,17 @@ struct ROOT_PARAMETER
 		return desc;
 	}
 
-	static constexpr D3D12_ROOT_PARAMETER1 descriptor_CBV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_CBV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 	{
 		return descriptor(D3D12_ROOT_PARAMETER_TYPE_CBV, visibility, shader_register, register_space, flags);
 	}
 
-	static constexpr D3D12_ROOT_PARAMETER1 descriptor_SRV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_SRV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 	{
 		return descriptor(D3D12_ROOT_PARAMETER_TYPE_SRV, visibility, shader_register, register_space, flags);
 	}
 
-	static constexpr D3D12_ROOT_PARAMETER1 descriptor_UAV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
+	static constexpr D3D12_ROOT_PARAMETER1 descriptor_UAV(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 	{
 		return descriptor(D3D12_ROOT_PARAMETER_TYPE_UAV, visibility, shader_register, register_space, flags);
 	}
@@ -276,26 +275,103 @@ struct BARRIERS
 };
 
 // heap descs
-struct DESC_HEAP 
+struct DESCRIPTOR_HEAP_DESC 
 {
-	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_masks = 0) noexcept
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT desc_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_mask = 0U) noexcept
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.NumDescriptors = desc_count;
 		desc.Type = type;
-		desc.NodeMask = node_masks;
+		desc.NodeMask = node_mask;
 		desc.Flags = flags;
 
 		return desc;
 	}
 
-	static constexpr D3D12_DESCRIPTOR_HEAP_DESC RTV(UINT desc_count) noexcept
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC RTV(UINT desc_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_mask = 0U) noexcept
 	{
-		return custom(desc_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		return custom(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, desc_count, flags, node_mask);
 	}
 
-	static constexpr D3D12_DESCRIPTOR_HEAP_DESC DSV(UINT desc_count) noexcept
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC DSV(UINT desc_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_mask = 0U) noexcept
 	{
-		return custom(desc_count, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		return custom(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, desc_count, flags, node_mask);
 	}
 };
+
+struct HEAP_PROPERTY
+{
+	static constexpr D3D12_HEAP_PROPERTIES custom(
+		D3D12_HEAP_TYPE type,
+		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL memPoolPreference= D3D12_MEMORY_POOL_UNKNOWN,
+		UINT creationNodeMask = 1U,
+		UINT visibleNodeMask = 1U) noexcept // both 1 and 0 are valid as defaults, 0 just becomes 1 in d3d12 side
+	{
+		D3D12_HEAP_PROPERTIES desc{};
+
+		desc.Type = type;
+		desc.CPUPageProperty = cpu_page_property;
+		desc.MemoryPoolPreference = memPoolPreference;
+		desc.CreationNodeMask = creationNodeMask;
+		desc.VisibleNodeMask = visibleNodeMask;
+
+		return desc;
+	}
+
+	static constexpr D3D12_HEAP_PROPERTIES default_heap(
+		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+		UINT creationNodeMask = 1U,
+		UINT visibleNodeMask = 1U) noexcept
+	{
+		return custom(D3D12_HEAP_TYPE_DEFAULT, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
+	}
+
+	static constexpr D3D12_HEAP_PROPERTIES upload_heap(
+		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+		UINT creationNodeMask = 1U,
+		UINT visibleNodeMask = 1U) noexcept
+	{
+		return custom(D3D12_HEAP_TYPE_UPLOAD, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
+	}
+};
+
+struct RESOURCE_DESC
+{
+	static constexpr D3D12_RESOURCE_DESC custom(
+		D3D12_RESOURCE_DIMENSION Dimension,
+		UINT64                   Alignment,
+		UINT64                   Width,
+		UINT                     Height,
+		UINT16                   DepthOrArraySize,
+		UINT16                   MipLevels,
+		DXGI_FORMAT              Format,
+		DXGI_SAMPLE_DESC         SampleDesc,
+		D3D12_TEXTURE_LAYOUT     Layout,
+		D3D12_RESOURCE_FLAGS     Flags
+	) noexcept
+	{
+		D3D12_RESOURCE_DESC desc{};
+
+		desc.Dimension = Dimension;
+		desc.Alignment = Alignment;
+		desc.Width = Width;
+		desc.Height = Height;
+		desc.DepthOrArraySize = DepthOrArraySize;
+		desc.MipLevels = MipLevels;
+		desc.Format = Format;
+		desc.SampleDesc = SampleDesc;
+		desc.Layout = Layout;
+		desc.Flags = Flags;
+
+		return desc;
+	}
+
+	static constexpr D3D12_RESOURCE_DESC buffer_desc(UINT64 byte_width, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) noexcept
+	{
+		return custom(D3D12_RESOURCE_DIMENSION_BUFFER, 0ULL, byte_width, 1U, 1, 1, DXGI_FORMAT_UNKNOWN, { 1, 0 }, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, flags);
+	}
+};
+

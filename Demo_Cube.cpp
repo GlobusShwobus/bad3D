@@ -5,6 +5,7 @@
 #include "Utils.h"
 #include "Application.h"
 #include "EasyDirectX.h"
+#include "EasyDirectXUtils.h"
 
 //TODO challange: this demo draws just one cube. strictly speaking it is wasteful to assign MVP matrix to GPU register b0 because the model changes per cube.
 //                instead of binding MVP to register b0, try binding view and projection matricies separately ( or without model transformation ) then apply model transformation
@@ -38,39 +39,46 @@ void DemoCube::load_content()
 	// assign cube values to the mesh (since demo, is hardcoded. from file is cooler)
 	set_mesh();
 
+	// create vertex buffer then copy CPU side data to it then make view handle
+	mVertexBuffer = create_commited_resource(
+		mDevice,
+		HEAP_PROPERTY::default_heap(),
+		RESOURCE_DESC::buffer_desc(mCubeMesh.vertex_buffer_size()),
+		D3D12_RESOURCE_STATE_COMMON
+	);
 
-	// upload vertex buffer data and assign the view data
-	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateVertexBuffer; // a temporary, make sure to stall the CPU util copy command queue is donzo
-	update_buffer_resource(
+	auto vertex_upload_resource = copy_buffer_to_resource_and_get_intermediary(
+		mDevice,
 		copy_command_list.command_list.Get(),
-		&mVertexBuffer,
-		&intermediateVertexBuffer, 
-		mCubeMesh.vertex_count(),
-		sizeof(VertexPosColor),
-		mCubeMesh.vertex_data()
+		mVertexBuffer.Get(),
+		mCubeMesh.mVertexBuffer
 	);
 
 	mVertexBufferView.BufferLocation = mVertexBuffer->GetGPUVirtualAddress();
-	mVertexBufferView.SizeInBytes = mCubeMesh.vertex_count() * sizeof(VertexPosColor);
-	mVertexBufferView.StrideInBytes = sizeof(VertexPosColor);
+	mVertexBufferView.SizeInBytes = mCubeMesh.vertex_buffer_size();
+	mVertexBufferView.StrideInBytes = mCubeMesh.vertex_type_size();
 
-	// upload index buffer and assign the view data
-	Microsoft::WRL::ComPtr<ID3D12Resource> internmeduateIndexBuffer;
-	update_buffer_resource(
+	// create index buffer then copy CPU side data to it then make handle
+	mIndexBuffer = create_commited_resource(
+		mDevice,
+		HEAP_PROPERTY::default_heap(),
+		RESOURCE_DESC::buffer_desc(mCubeMesh.index_buffer_size()),
+		D3D12_RESOURCE_STATE_COMMON
+	);
+
+	auto index_upload_resource = copy_buffer_to_resource_and_get_intermediary(
+		mDevice,
 		copy_command_list.command_list.Get(),
-		&mIndexBuffer,
-		&internmeduateIndexBuffer,
-		mCubeMesh.index_count(),
-		sizeof(WORD),
-		mCubeMesh.index_data()
+		mIndexBuffer.Get(),
+		mCubeMesh.mIndexBuffer
 	);
 
 	mIndexBufferView.BufferLocation = mIndexBuffer->GetGPUVirtualAddress();
 	mIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-	mIndexBufferView.SizeInBytes = mCubeMesh.index_count()*sizeof(WORD);
+	mIndexBufferView.SizeInBytes = mCubeMesh.index_buffer_size();
 
 	// create the descriptor heap for the depth stencil view
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESC_HEAP::DSV(1);
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESCRIPTOR_HEAP_DESC::DSV(1);
 	
 	execute_and_test_hresult(
 		mDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDSVHeap))
@@ -372,91 +380,6 @@ void DemoCube::mouse_resolve()
 	}
 }
 
-void DemoCube::update_buffer_resource(ViewPtr<ID3D12GraphicsCommandList2> command_list,
-	ID3D12Resource** pDestinationResource,
-	ID3D12Resource** pIntermediateResource,
-	size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)
-{
-	const std::size_t bufferSize = numElements * elementSize;
-
-	D3D12_HEAP_PROPERTIES dest_heap_desc{};
-	dest_heap_desc.Type = D3D12_HEAP_TYPE_DEFAULT;
-	dest_heap_desc.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	dest_heap_desc.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	dest_heap_desc.CreationNodeMask = 1;
-	dest_heap_desc.VisibleNodeMask = 1;
-
-	D3D12_RESOURCE_DESC dest_buffer_desc{};
-	dest_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	dest_buffer_desc.Alignment = 0;
-	dest_buffer_desc.Width = bufferSize;
-	dest_buffer_desc.Height = 1;
-	dest_buffer_desc.DepthOrArraySize = 1;
-	dest_buffer_desc.MipLevels = 1;
-	dest_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;
-	dest_buffer_desc.SampleDesc = { 1, 0 };
-	dest_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	dest_buffer_desc.Flags = flags;
-
-	execute_and_test_hresult(
-		mDevice->CreateCommittedResource(
-			&dest_heap_desc,
-			D3D12_HEAP_FLAG_NONE,
-			&dest_buffer_desc,
-			D3D12_RESOURCE_STATE_COMMON,
-			nullptr,
-			IID_PPV_ARGS(pDestinationResource))
-	);
-
-	if (bufferData)
-	{
-		D3D12_HEAP_PROPERTIES intermediate_heap_desc{};
-		intermediate_heap_desc.Type = D3D12_HEAP_TYPE_UPLOAD;
-		intermediate_heap_desc.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		intermediate_heap_desc.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		intermediate_heap_desc.CreationNodeMask = 1;
-		intermediate_heap_desc.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC intermediate_buffer_desc{};
-		intermediate_buffer_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		intermediate_buffer_desc.Alignment = 0;
-		intermediate_buffer_desc.Width = bufferSize;
-		intermediate_buffer_desc.Height = 1;
-		intermediate_buffer_desc.DepthOrArraySize = 1;
-		intermediate_buffer_desc.MipLevels = 1;
-		intermediate_buffer_desc.Format = DXGI_FORMAT_UNKNOWN;
-		intermediate_buffer_desc.SampleDesc = { 1, 0 };
-		intermediate_buffer_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		intermediate_buffer_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-		execute_and_test_hresult(
-			mDevice->CreateCommittedResource(
-				&intermediate_heap_desc,
-				D3D12_HEAP_FLAG_NONE,
-				&intermediate_buffer_desc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(pIntermediateResource))
-		);
-	}
-
-	// 3dgep does some bs func UpdateSubresources
-
-	// --- CPU copy into the upload resource ---
-	void* mappedPtr = nullptr;
-	D3D12_RANGE readRange{ 0, 0 }; // we don't intend to read from this resource on the CPU
-	execute_and_test_hresult(
-		(*pIntermediateResource)->Map(0, &readRange, &mappedPtr) // to map means to get the address of the internal GPU address, kind of idk
-	);
-	memcpy(mappedPtr, bufferData, bufferSize); // copy my manual data read via cpu onto the buffer
-	(*pIntermediateResource)->Unmap(0, nullptr); // release the mappedPtr view thingy
-
-	// --- GPU copy: upload -> default heap ---
-	command_list->CopyBufferRegion(
-		*pDestinationResource, 0,
-		*pIntermediateResource, 0,
-		bufferSize);
-}
 
 void DemoCube::resize_depth_buffer(int width, int height)
 {
