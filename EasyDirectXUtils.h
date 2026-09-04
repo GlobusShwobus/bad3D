@@ -38,8 +38,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 
 	auto intermediary = create_commited_resource(
 		device,
-		HEAP_PROPERTY::upload_heap(),
-		RESOURCE_DESC::buffer_desc(num_bytes),
+		HEAP_PROPERTY::upload(),
+		RESOURCE_DESC::buffer(num_bytes),
 		D3D12_RESOURCE_STATE_GENERIC_READ
 	);
 

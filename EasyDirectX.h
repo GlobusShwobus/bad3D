@@ -2,45 +2,39 @@
 
 #include "badDirectX.h"
 
-// TODO: consistency... go over what should have templates, what doesnt need them, what needs custom(...) etc...
-
-// input elements
-// - what data comes from c++ side vertex buffers, into hlsl side vertex shader
-// - a verbose explicit way of describing a struct that exists in c++ to shader HLSL
-
 struct INPUT_ELEMENT
-{
-	// semantic index is if struct has more than 1 "POSITION" (or any same) semantic
-	// input slot identifies which buffer this element comes from ( in case of struct of arrays )
-
-	static constexpr D3D12_INPUT_ELEMENT_DESC custom_PV(LPCSTR semantic_name, UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
+{	
+	static constexpr D3D12_INPUT_ELEMENT_DESC custom(
+		LPCSTR SemanticName,
+		UINT SemanticIndex,
+		DXGI_FORMAT Format,
+		UINT InputSlot,
+		UINT AlignedByteOffset,
+		D3D12_INPUT_CLASSIFICATION InputSlotClass,
+		UINT InstanceDataStepRate
+	) noexcept
 	{
 		D3D12_INPUT_ELEMENT_DESC desc = {};
-
-		desc.SemanticName = semantic_name;
-		desc.SemanticIndex = semantic_index;
-		desc.InputSlot = input_slot;
-		desc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-		desc.InstanceDataStepRate = 0;
-
+		desc.SemanticName = SemanticName;
+		desc.SemanticIndex = SemanticIndex;
+		desc.Format = Format;
+		desc.InputSlot = InputSlot;
+		desc.AlignedByteOffset = AlignedByteOffset;
+		desc.InputSlotClass = InputSlotClass;
+		desc.InstanceDataStepRate = InstanceDataStepRate;
 		return desc;
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC position_PV(UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC position(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT) noexcept
 	{
-		return custom_PV("POSITION", semantic_index, input_slot);
+		return custom("POSITION", semantic_index, format, input_slot, aligned_byte_offset, input_class, instance_step_rate);
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC color_PV(UINT semantic_index = 0U, UINT input_slot = 0U) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC color(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT) noexcept
 	{
-		return custom_PV("COLOR", semantic_index, input_slot);
+		return custom("COLOR", semantic_index, format, input_slot, aligned_byte_offset, input_class, instance_step_rate);
 	}
 };
-
-// Input elements is for input assembly - what data i have in code and creating contracts that must match the shader in hlsl
-// root signature is similar however instead of what gets passed into hlsl main(...), root signature is responsible for the register data b,t,s...
 
 struct ROOT_PARAMETER
 {
@@ -50,68 +44,39 @@ struct ROOT_PARAMETER
 			D3D12_DESCRIPTOR_RANGE_TYPE type,
 			UINT                        count,
 			UINT                        shader_register,
-			UINT                        register_space = 0U,
-			UINT                        offset = 0U,
-			D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
+			UINT                        register_space,
+			UINT                        offset,
+			D3D12_DESCRIPTOR_RANGE_FLAGS flags
+		) noexcept
 		{
 			D3D12_DESCRIPTOR_RANGE1 desc{};
-
 			desc.RangeType = type;
 			desc.NumDescriptors = count;
 			desc.BaseShaderRegister = shader_register;
 			desc.RegisterSpace = register_space;
 			desc.OffsetInDescriptorsFromTableStart = offset;
 			desc.Flags = flags;
-
 			return desc;
 		}
 
 		static constexpr D3D12_DESCRIPTOR_RANGE1 SRV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
-			return custom(
-				D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-				count,
-				shader_register,
-				register_space,
-				offset,
-				flags
-			);
+			return custom( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, count, shader_register, register_space, offset, flags );
 		}
 
 		static constexpr D3D12_DESCRIPTOR_RANGE1 CBV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
-			return custom(
-				D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-				count,
-				shader_register,
-				register_space,
-				offset,
-				flags
-			);
+			return custom( D3D12_DESCRIPTOR_RANGE_TYPE_CBV, count, shader_register, register_space, offset, flags );
 		}
 
 		static constexpr D3D12_DESCRIPTOR_RANGE1 UAV(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
-			return custom(
-				D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-				count,
-				shader_register,
-				register_space,
-				offset,
-				flags
-			);
+			return custom( D3D12_DESCRIPTOR_RANGE_TYPE_UAV, count, shader_register, register_space, offset, flags );
 		}
 
 		static constexpr D3D12_DESCRIPTOR_RANGE1 sampler(UINT count, UINT shader_register, UINT register_space = 0U, UINT offset = 0U, D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE) noexcept
 		{
-			return custom(
-				D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
-				count,
-				shader_register,
-				register_space,
-				offset,
-				flags
-			);
+			return custom( D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, count, shader_register, register_space, offset, flags );
 		}
 	};
 
@@ -119,13 +84,10 @@ struct ROOT_PARAMETER
 	{
 		static constexpr D3D12_ROOT_DESCRIPTOR1 descriptor(UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 		{
-
 			D3D12_ROOT_DESCRIPTOR1 desc{};
-
 			desc.ShaderRegister = shader_register;
 			desc.RegisterSpace = register_space;
 			desc.Flags = flags;
-
 			return desc;
 		}
 	};
@@ -135,11 +97,9 @@ struct ROOT_PARAMETER
 		static constexpr D3D12_ROOT_CONSTANTS constant(UINT shader_register, UINT count, UINT register_space = 0U) noexcept
 		{
 			D3D12_ROOT_CONSTANTS desc{};
-
 			desc.ShaderRegister = shader_register;
 			desc.Num32BitValues = count;
 			desc.RegisterSpace = register_space;
-
 			return desc;
 		}
 	};
@@ -147,22 +107,18 @@ struct ROOT_PARAMETER
 	static constexpr D3D12_ROOT_PARAMETER1 constant(D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT count, UINT register_space = 0U) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
-
 		desc.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		desc.ShaderVisibility = visibility;
 		desc.Constants = CONSTANT::constant(shader_register, count, register_space);
-
 		return desc;
 	}
 
 	static constexpr D3D12_ROOT_PARAMETER1 descriptor(D3D12_ROOT_PARAMETER_TYPE type, D3D12_SHADER_VISIBILITY visibility, UINT shader_register, UINT register_space = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
-
 		desc.ParameterType = type;
 		desc.ShaderVisibility = visibility;
 		desc.Descriptor = DESCRIPTOR::descriptor(shader_register, register_space, flags);
-
 		return desc;
 	}
 
@@ -184,17 +140,14 @@ struct ROOT_PARAMETER
 	static constexpr D3D12_ROOT_PARAMETER1 descriptor_table(D3D12_SHADER_VISIBILITY visibility, UINT range_count, const D3D12_DESCRIPTOR_RANGE1* range) noexcept
 	{
 		D3D12_ROOT_PARAMETER1 desc{};
-
 		desc.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		desc.ShaderVisibility = visibility;
 		desc.DescriptorTable.NumDescriptorRanges = range_count;
 		desc.DescriptorTable.pDescriptorRanges = range;
-
 		return desc;
 	}
 };
 
-// what shader stage root sig is visible in, like a global (different from D3D12_SHADER_VISIBILITY which is per paramter per shader stage)
 struct ROOT_SIGNATURE_FLAGS
 {
 	static constexpr D3D12_ROOT_SIGNATURE_FLAGS ALLOW_IA_MINIMAL =
@@ -212,20 +165,24 @@ struct ROOT_DESCRIPTION
 		UINT num_parameters,
 		const D3D12_ROOT_PARAMETER1* parameters,
 		D3D12_ROOT_SIGNATURE_FLAGS flags,
-		UINT num_static_samplers = 0,
-		const D3D12_STATIC_SAMPLER_DESC* static_samplers = nullptr
+		UINT num_static_samplers,
+		const D3D12_STATIC_SAMPLER_DESC* static_samplers
 		) noexcept
 	{
 		D3D12_ROOT_SIGNATURE_DESC1 desc{};
-
 		desc.NumParameters = num_parameters;
 		desc.pParameters = parameters;
 		desc.NumStaticSamplers = num_static_samplers;
 		desc.pStaticSamplers = static_samplers;
 		desc.Flags = flags;
-
 		return desc;
 	}
+
+	static constexpr D3D12_ROOT_SIGNATURE_DESC1 description( UINT num_parameters, const D3D12_ROOT_PARAMETER1* parameters, D3D12_ROOT_SIGNATURE_FLAGS flags , UINT num_static_samplers = 0U, const D3D12_STATIC_SAMPLER_DESC* static_samplers = nullptr) noexcept
+	{
+		return custom(num_parameters, parameters, flags, num_static_samplers, static_samplers);
+	}
+
 };
 
 // pipeline state object defs
@@ -250,41 +207,28 @@ struct PIPELINE_STATE_STREAM_OBJECT
 	T object{};
 };
 
-using PSS_ROOT_SIGNATURE     = PIPELINE_STATE_STREAM_OBJECT<ID3D12RootSignature*,          D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>;
-using PSS_INPUT_LAYOUT       = PIPELINE_STATE_STREAM_OBJECT<D3D12_INPUT_LAYOUT_DESC,       D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>;
-using PSS_PRIMITIVE_TOPOLOGY = PIPELINE_STATE_STREAM_OBJECT<D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>;
-using PSS_VERTEX_SHADER      = PIPELINE_STATE_STREAM_OBJECT<D3D12_SHADER_BYTECODE,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>;
-using PSS_PIXEL_SHADER       = PIPELINE_STATE_STREAM_OBJECT<D3D12_SHADER_BYTECODE,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>;
-using PSS_DSV_FORMAT         = PIPELINE_STATE_STREAM_OBJECT<DXGI_FORMAT,                   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT>;
-using PSS_RTV_FORMATS        = PIPELINE_STATE_STREAM_OBJECT<D3D12_RT_FORMAT_ARRAY,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>;
-
-// barriers
-struct BARRIERS 
+namespace PSS
 {
-	static constexpr D3D12_RESOURCE_BARRIER transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) noexcept
-	{
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = resource;
-		barrier.Transition.StateBefore = before;
-		barrier.Transition.StateAfter = after;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		return barrier;
-	}
-};
+	using ROOT_SIGNATURE     = PIPELINE_STATE_STREAM_OBJECT< ID3D12RootSignature*,          D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE         >;
+	using INPUT_LAYOUT       = PIPELINE_STATE_STREAM_OBJECT< D3D12_INPUT_LAYOUT_DESC,       D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT           >;
+	using PRIMITIVE_TOPOLOGY = PIPELINE_STATE_STREAM_OBJECT< D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY     >;
+	using VERTEX_SHADER      = PIPELINE_STATE_STREAM_OBJECT< D3D12_SHADER_BYTECODE,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS                     >;
+	using PIXEL_SHADER       = PIPELINE_STATE_STREAM_OBJECT< D3D12_SHADER_BYTECODE,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS                     >;
+	using DSV_FORMAT         = PIPELINE_STATE_STREAM_OBJECT< DXGI_FORMAT,                   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT   >;
+	using RTV_FORMATS        = PIPELINE_STATE_STREAM_OBJECT< D3D12_RT_FORMAT_ARRAY,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS  >;
+}
 
-// heap descs
+
+// heap type shit (currently have not used HEAP DESC regular)
 struct DESCRIPTOR_HEAP_DESC 
 {
-	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT desc_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_mask = 0U) noexcept
+	static constexpr D3D12_DESCRIPTOR_HEAP_DESC custom(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT desc_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT node_mask) noexcept
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-		desc.NumDescriptors = desc_count;
+		D3D12_DESCRIPTOR_HEAP_DESC desc{};
 		desc.Type = type;
+		desc.NumDescriptors = desc_count;
 		desc.NodeMask = node_mask;
 		desc.Flags = flags;
-
 		return desc;
 	}
 
@@ -303,40 +247,33 @@ struct HEAP_PROPERTY
 {
 	static constexpr D3D12_HEAP_PROPERTIES custom(
 		D3D12_HEAP_TYPE type,
-		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-		D3D12_MEMORY_POOL memPoolPreference= D3D12_MEMORY_POOL_UNKNOWN,
-		UINT creationNodeMask = 1U,
-		UINT visibleNodeMask = 1U) noexcept // both 1 and 0 are valid as defaults, 0 just becomes 1 in d3d12 side
+		D3D12_CPU_PAGE_PROPERTY cpu_page_property,
+		D3D12_MEMORY_POOL memPoolPreference,
+		UINT creationNodeMask,
+		UINT visibleNodeMask
+	) noexcept
 	{
 		D3D12_HEAP_PROPERTIES desc{};
-
 		desc.Type = type;
 		desc.CPUPageProperty = cpu_page_property;
 		desc.MemoryPoolPreference = memPoolPreference;
 		desc.CreationNodeMask = creationNodeMask;
 		desc.VisibleNodeMask = visibleNodeMask;
-
 		return desc;
 	}
 
-	static constexpr D3D12_HEAP_PROPERTIES default_heap(
-		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-		D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-		UINT creationNodeMask = 1U,
-		UINT visibleNodeMask = 1U) noexcept
+	static constexpr D3D12_HEAP_PROPERTIES base( D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN, UINT creationNodeMask = 1U, UINT visibleNodeMask = 1U ) noexcept
 	{
 		return custom(D3D12_HEAP_TYPE_DEFAULT, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
 	}
 
-	static constexpr D3D12_HEAP_PROPERTIES upload_heap(
-		D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-		D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-		UINT creationNodeMask = 1U,
-		UINT visibleNodeMask = 1U) noexcept
+	static constexpr D3D12_HEAP_PROPERTIES upload( D3D12_CPU_PAGE_PROPERTY cpu_page_property = D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL memPoolPreference = D3D12_MEMORY_POOL_UNKNOWN, UINT creationNodeMask = 1U, UINT visibleNodeMask = 1U ) noexcept
 	{
 		return custom(D3D12_HEAP_TYPE_UPLOAD, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
 	}
 };
+
+// RESOURCE SHIT
 
 struct RESOURCE_DESC
 {
@@ -354,7 +291,6 @@ struct RESOURCE_DESC
 	) noexcept
 	{
 		D3D12_RESOURCE_DESC desc{};
-
 		desc.Dimension = Dimension;
 		desc.Alignment = Alignment;
 		desc.Width = Width;
@@ -365,13 +301,84 @@ struct RESOURCE_DESC
 		desc.SampleDesc = SampleDesc;
 		desc.Layout = Layout;
 		desc.Flags = Flags;
-
 		return desc;
 	}
 
-	static constexpr D3D12_RESOURCE_DESC buffer_desc(UINT64 byte_width, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) noexcept
+	static constexpr D3D12_RESOURCE_DESC buffer(UINT64 byte_width, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) noexcept
 	{
-		return custom(D3D12_RESOURCE_DIMENSION_BUFFER, 0ULL, byte_width, 1U, 1, 1, DXGI_FORMAT_UNKNOWN, { 1, 0 }, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, flags);
+		return custom(
+			D3D12_RESOURCE_DIMENSION_BUFFER,
+			0ULL, 
+			byte_width, 
+			1U,
+			1, 
+			1,
+			DXGI_FORMAT_UNKNOWN, 
+			{ 1, 0 }, 
+			D3D12_TEXTURE_LAYOUT_ROW_MAJOR, 
+			flags
+		);
+	}
+
+	static constexpr D3D12_RESOURCE_DESC texture2d(UINT64 width, UINT height, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) noexcept
+	{
+		return custom(
+			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+			0,
+			width,
+			height,
+			1,
+			1,
+			format,
+			{ 1, 0 },
+			D3D12_TEXTURE_LAYOUT_UNKNOWN,
+			flags
+		);
 	}
 };
 
+struct RESOURCE_VIEW
+{
+	static constexpr D3D12_VERTEX_BUFFER_VIEW vertex(D3D12_GPU_VIRTUAL_ADDRESS address, UINT size_in_bytes, UINT stride_in_bytes) noexcept
+	{
+		D3D12_VERTEX_BUFFER_VIEW view{};
+		view.BufferLocation = address;
+		view.SizeInBytes = size_in_bytes;
+		view.StrideInBytes = stride_in_bytes;
+		return view;
+	}
+
+	static constexpr D3D12_INDEX_BUFFER_VIEW index(D3D12_GPU_VIRTUAL_ADDRESS address, UINT size_in_bytes, DXGI_FORMAT format) noexcept
+	{
+		D3D12_INDEX_BUFFER_VIEW view{};
+		view.BufferLocation = address;
+		view.SizeInBytes = size_in_bytes;
+		view.Format = format;
+		return view;
+	}
+
+	static constexpr D3D12_DEPTH_STENCIL_VIEW_DESC textured2d_DSV(DXGI_FORMAT format, UINT mip_slice = 0U, D3D12_DSV_FLAGS flags = D3D12_DSV_FLAG_NONE) noexcept
+	{
+		D3D12_DEPTH_STENCIL_VIEW_DESC  view{};
+		view.Format = format;
+		view.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		view.Flags = flags;
+		view.Texture2D.MipSlice = mip_slice;
+		return view;
+	}
+};
+
+struct RESOURCE_BARRIER
+{
+	static constexpr D3D12_RESOURCE_BARRIER transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE, UINT sub_resource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) noexcept
+	{
+		D3D12_RESOURCE_BARRIER barrier{};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = flags;
+		barrier.Transition.pResource = resource;
+		barrier.Transition.StateBefore = before;
+		barrier.Transition.StateAfter = after;
+		barrier.Transition.Subresource = sub_resource;
+		return barrier;
+	}
+};

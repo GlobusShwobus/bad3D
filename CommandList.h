@@ -12,7 +12,7 @@ struct CommandList
 
 	inline void transition(ViewPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) const
 	{
-		D3D12_RESOURCE_BARRIER barrier = BARRIERS::transition(resource.get(), before, after);
+		D3D12_RESOURCE_BARRIER barrier = RESOURCE_BARRIER::transition(resource.get(), before, after);
 		command_list->ResourceBarrier(1, &barrier);
 	}
 

@@ -42,8 +42,8 @@ void DemoCube::load_content()
 	// create vertex buffer then copy CPU side data to it then make view handle
 	mVertexBuffer = create_commited_resource(
 		mDevice,
-		HEAP_PROPERTY::default_heap(),
-		RESOURCE_DESC::buffer_desc(mCubeMesh.vertex_buffer_size()),
+		HEAP_PROPERTY::base(),
+		RESOURCE_DESC::buffer(mCubeMesh.vertex_buffer_size()),
 		D3D12_RESOURCE_STATE_COMMON
 	);
 
@@ -54,15 +54,13 @@ void DemoCube::load_content()
 		mCubeMesh.mVertexBuffer
 	);
 
-	mVertexBufferView.BufferLocation = mVertexBuffer->GetGPUVirtualAddress();
-	mVertexBufferView.SizeInBytes = mCubeMesh.vertex_buffer_size();
-	mVertexBufferView.StrideInBytes = mCubeMesh.vertex_type_size();
+	mVertexBufferView = RESOURCE_VIEW::vertex(mVertexBuffer->GetGPUVirtualAddress(), mCubeMesh.vertex_buffer_size(), mCubeMesh.vertex_type_size());
 
 	// create index buffer then copy CPU side data to it then make handle
 	mIndexBuffer = create_commited_resource(
 		mDevice,
-		HEAP_PROPERTY::default_heap(),
-		RESOURCE_DESC::buffer_desc(mCubeMesh.index_buffer_size()),
+		HEAP_PROPERTY::base(),
+		RESOURCE_DESC::buffer(mCubeMesh.index_buffer_size()),
 		D3D12_RESOURCE_STATE_COMMON
 	);
 
@@ -73,9 +71,7 @@ void DemoCube::load_content()
 		mCubeMesh.mIndexBuffer
 	);
 
-	mIndexBufferView.BufferLocation = mIndexBuffer->GetGPUVirtualAddress();
-	mIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-	mIndexBufferView.SizeInBytes = mCubeMesh.index_buffer_size();
+	mIndexBufferView = RESOURCE_VIEW::index(mIndexBuffer->GetGPUVirtualAddress(), mCubeMesh.index_buffer_size(), DXGI_FORMAT_R16_UINT);
 
 	// create the descriptor heap for the depth stencil view
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESCRIPTOR_HEAP_DESC::DSV(1);
@@ -96,8 +92,8 @@ void DemoCube::load_content()
 
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		INPUT_ELEMENT::position_PV(),
-		INPUT_ELEMENT::color_PV()
+		INPUT_ELEMENT::position(0, DXGI_FORMAT_R32G32B32_FLOAT),
+		INPUT_ELEMENT::color(0, DXGI_FORMAT_R32G32B32_FLOAT)
 	};
 
 	// create a root signature
@@ -123,7 +119,7 @@ void DemoCube::load_content()
 			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 0,  sizeof(DirectX::XMMATRIX) / 4)
 		};
 
-		rootsigdesc.Desc_1_1 = ROOT_DESCRIPTION::custom(_countof(rootParameters11), rootParameters11, rootsigflags);
+		rootsigdesc.Desc_1_1 = ROOT_DESCRIPTION::description(_countof(rootParameters11), rootParameters11, rootsigflags);
 	}
 	else
 	{
@@ -158,13 +154,13 @@ void DemoCube::load_content()
 
 	struct PipelineStateStream
 	{
-		PSS_ROOT_SIGNATURE pRootSignature;
-		PSS_INPUT_LAYOUT InputLayout;
-		PSS_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-		PSS_VERTEX_SHADER VS;
-		PSS_PIXEL_SHADER PS;
-		PSS_DSV_FORMAT DSVFormat;
-		PSS_RTV_FORMATS RTVFormats;
+		PSS::ROOT_SIGNATURE pRootSignature;
+		PSS::INPUT_LAYOUT InputLayout;
+		PSS::PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		PSS::VERTEX_SHADER VS;
+		PSS::PIXEL_SHADER PS;
+		PSS::DSV_FORMAT DSVFormat;
+		PSS::RTV_FORMATS RTVFormats;
 	} pipelineStateStream;
 
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
@@ -396,45 +392,22 @@ void DemoCube::resize_depth_buffer(int width, int height)
 		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f,0 };
 
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
+		D3D12_HEAP_PROPERTIES heap_property = HEAP_PROPERTY::base();
+		D3D12_RESOURCE_DESC resource_desc = RESOURCE_DESC::texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
-		D3D12_RESOURCE_DESC depthDesc = {};
-		depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		depthDesc.Alignment = 0;
-		depthDesc.Width = width;
-		depthDesc.Height = height;
-		depthDesc.DepthOrArraySize = 1;
-		depthDesc.MipLevels = 0;
-		depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
-		depthDesc.SampleDesc.Count = 1;
-		depthDesc.SampleDesc.Quality = 0;
-		depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-		execute_and_test_hresult(
-			mDevice->CreateCommittedResource(
-				&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&depthDesc,
-				D3D12_RESOURCE_STATE_DEPTH_WRITE,
-				&optimizedClearValue,
-				IID_PPV_ARGS(&mDepthBuffer)
-			)
+		mDepthBuffer = create_commited_resource(
+			mDevice,
+			heap_property,
+			resource_desc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			D3D12_HEAP_FLAG_NONE,
+			&optimizedClearValue
 		);
 
 		// update the depth stencil view
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-		dsv.Format = DXGI_FORMAT_D32_FLOAT;
-		dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		dsv.Texture2D.MipSlice = 0;
-		dsv.Flags = D3D12_DSV_FLAG_NONE;
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view = RESOURCE_VIEW::textured2d_DSV(DXGI_FORMAT_D32_FLOAT);
 
-		mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv, mDSVHeap->GetCPUDescriptorHandleForHeapStart());	
+		mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv_view, mDSVHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 }
 
