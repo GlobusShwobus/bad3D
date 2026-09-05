@@ -1,4 +1,4 @@
-#include "Demo_Cube.h"
+#include "DemoCube.h"
 
 #include <algorithm>
 
@@ -83,11 +83,11 @@ void DemoCube::load_content()
 	// load the vertex shader and pixel shader
 	Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
 	execute_and_test_hresult(
-		D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob)
+		D3DReadFileToBlob(L"DemoCubeVS.cso", &vertexShaderBlob)
 	);
 	Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
 	execute_and_test_hresult(
-		D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob)
+		D3DReadFileToBlob(L"DemoCubePS.cso", &pixelShaderBlob)
 	);
 
 	// Create the vertex input layout

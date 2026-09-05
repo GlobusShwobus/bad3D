@@ -4,7 +4,8 @@
 
 #include "Application.h"
 
-#include "Demo_Cube.h"
+#include "DemoCube.h"
+#include "DemoCube2.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -108,7 +109,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	winDesc.ch = 720;
 	winDesc.hInstance = hInstance;
 
-	std::unique_ptr<DemoCube> demo1 = std::make_unique<DemoCube>();
+	std::unique_ptr<DemoCube2> demo1 = std::make_unique<DemoCube2>();
 	try {
 		auto& app = Application::instance();
 
