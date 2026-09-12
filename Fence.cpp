@@ -2,7 +2,7 @@
 #include "Utils.h"
 #include <utility>
 
-Fence::Fence(ViewPtr<ID3D12Device4> device, UINT64 initial_value, D3D12_FENCE_FLAGS flags)
+Fence::Fence(ID3D12Device4* device, UINT64 initial_value, D3D12_FENCE_FLAGS flags)
 {
 	assert(device && "device nullptr");
 
@@ -19,8 +19,26 @@ Fence::~Fence() noexcept
 {
 	if (mEventHandle)
 		::CloseHandle(mEventHandle);
-	mEventHandle = nullptr;
-	mFence.Reset();
+}
+
+Fence::Fence(Fence&& rhs) noexcept
+	:mFence(std::move(rhs.mFence)), mEventHandle(rhs.mEventHandle)
+{
+	rhs.mEventHandle = nullptr;
+}
+
+Fence& Fence::operator=(Fence&& rhs) noexcept
+{
+	if (this != &rhs)
+	{
+		mFence = std::move(rhs.mFence);
+
+		if(mEventHandle)
+			::CloseHandle(mEventHandle);
+
+		mEventHandle = std::exchange(rhs.mEventHandle, nullptr);
+	}
+	return *this;
 }
 
 UINT64 Fence::get_completed_value() const
@@ -35,18 +53,18 @@ void Fence::set_event(UINT64 value)
 	);
 }
 
-void Fence::wait_event() const
+void Fence::wait_event(DWORD milliseconds) const
 {
-	::WaitForSingleObject(mEventHandle, INFINITE);
+	::WaitForSingleObject(mEventHandle, milliseconds);
 }
 
-void Fence::wait(UINT64 value)
+void Fence::wait(UINT64 value, DWORD milliseconds)
 {
 	if (get_completed_value() >= value)
 		return;
 
 	set_event(value);
-	wait_event();
+	wait_event(milliseconds);
 }
 
 void Fence::manual_signal(UINT64 value)
@@ -54,4 +72,9 @@ void Fence::manual_signal(UINT64 value)
 	execute_and_test_hresult(
 		mFence->Signal(value)
 	);
+}
+
+ID3D12Fence* Fence::get()const noexcept
+{
+	return mFence.Get();
 }
