@@ -4,7 +4,6 @@
 
 #include "Application.h"
 
-#include "DemoCube.h"
 #include "DemoCube2.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()

@@ -29,9 +29,10 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 		D3D12_RESOURCE_STATE_GENERIC_READ
 	);
 
-	// map CPU local pointer to the GPU, (with 0 read range)
 	void* CPU_local_pointer = nullptr;
 	D3D12_RANGE read_range{ 0, 0 };
+
+	// map CPU local pointer to the GPU, (with 0 read range)
 	intermediary->Map(0, &read_range, &CPU_local_pointer);
 
 	// the CPU side pointer and resources internal pointers are mapped together, so now memcpy CPU side mem copies to the resource internal pointer

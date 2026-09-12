@@ -25,12 +25,12 @@ struct INPUT_ELEMENT
 		return desc;
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC position(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC position(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U) noexcept
 	{
 		return custom("POSITION", semantic_index, format, input_slot, aligned_byte_offset, input_class, instance_step_rate);
 	}
 
-	static constexpr D3D12_INPUT_ELEMENT_DESC color(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT) noexcept
+	static constexpr D3D12_INPUT_ELEMENT_DESC color(UINT semantic_index, DXGI_FORMAT format, UINT input_slot = 0U, UINT aligned_byte_offset = D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION input_class = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, UINT instance_step_rate = 0U) noexcept
 	{
 		return custom("COLOR", semantic_index, format, input_slot, aligned_byte_offset, input_class, instance_step_rate);
 	}
@@ -150,7 +150,7 @@ struct ROOT_PARAMETER
 
 struct ROOT_SIGNATURE_FLAGS
 {
-	static constexpr D3D12_ROOT_SIGNATURE_FLAGS ALLOW_IA_MINIMAL =
+	static constexpr D3D12_ROOT_SIGNATURE_FLAGS ALLOW_IAIL_VS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |

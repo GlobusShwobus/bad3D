@@ -121,7 +121,6 @@ void RenderWindow::toggle_fullscreen(bool fullscreen)
 
 ViewPtr<ID3D12Resource> RenderWindow::get_buffer_at(UINT index) const
 {
-	// comptr forces ref counting but pass but just the view. fatal errors are fatal erros which shouldn't happen to begin with
 	Microsoft::WRL::ComPtr<ID3D12Resource> buffer;
 	mSwapChain->GetBuffer(index, IID_PPV_ARGS(&buffer));
 	return buffer.Get();
@@ -134,7 +133,7 @@ ViewPtr<ID3D12Resource> RenderWindow::get_buffer() const
 
 D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::get_buffer_desc()const
 {
-	return mDescHeap.get_descriptor_handle_for(mCurrentBufferIndex);
+	return mDescHeap.descriptor_at(mCurrentBufferIndex);
 }
 
 RECT RenderWindow::get_client_rect() const
@@ -146,7 +145,7 @@ RECT RenderWindow::get_client_rect() const
 
 void RenderWindow::reset_description_info() const
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.get_desc_begin();
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.descriptor_begin();
 	const UINT stride = mDescHeap.stride();
 
 	for (UINT i = 0; i < back_buffer_count; i++)

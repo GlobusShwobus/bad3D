@@ -7,10 +7,6 @@
 #include "EasyDirectX.h"
 #include "EasyDirectXUtils.h"
 
-//TODO challange: this demo draws just one cube. strictly speaking it is wasteful to assign MVP matrix to GPU register b0 because the model changes per cube.
-//                instead of binding MVP to register b0, try binding view and projection matricies separately ( or without model transformation ) then apply model transformation
-//                in HLSL, for example by editing the shader to take main(vertex IN, matrix IN_model)
-
 DemoCube2::DemoCube2()
 {
 	// check of directX math library support
@@ -92,8 +88,9 @@ void DemoCube2::load_content()
 
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		INPUT_ELEMENT::position(0, DXGI_FORMAT_R32G32B32_FLOAT),
-		INPUT_ELEMENT::color(0, DXGI_FORMAT_R32G32B32_FLOAT)
+		// intentionally making a different order, should never actually write code like this but it is possible
+		INPUT_ELEMENT::color(0, DXGI_FORMAT_R32G32B32_FLOAT,0, sizeof(DirectX::XMFLOAT3)),
+		INPUT_ELEMENT::position(0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0)
 	};
 
 	// create a root signature
@@ -107,7 +104,7 @@ void DemoCube2::load_content()
 	}
 
 	// allow input layout and deny unnecessary acces to certain pipeline stages
-	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = ROOT_SIGNATURE_FLAGS::ALLOW_IA_MINIMAL;
+	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = ROOT_SIGNATURE_FLAGS::ALLOW_IAIL_VS;
 
 	// root sig desc
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
@@ -439,4 +436,21 @@ void DemoCube2::set_mesh()
 			4, 0, 3, 4, 3, 7
 	}
 	};
+
+//	mCubeMesh = Mesh<VertexPosColor>{
+//{ // pos / color
+//	{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0 base
+//	{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 1 base
+//	{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }, // 2 base
+//	{ DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3 base
+//	{ DirectX::XMFLOAT3(0.0f,  1.0f,  0.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }  // 4 apex
+//},
+//{ // index
+//	0, 3, 2,  0, 2, 1,   // base quad
+//	0, 1, 4,             // side (left/back-left)
+//	1, 2, 4,             // side (back-right)
+//	2, 3, 4,             // side (right/front-right)
+//	3, 0, 4              // side (front)
+//}
+//	};
 }
