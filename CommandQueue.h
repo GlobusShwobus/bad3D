@@ -47,8 +47,8 @@ public:
 	// execute a command list. retruns the fence value to wait for
 	UINT64 execute( CommandList list );
 
-	constexpr ViewPtr<ID3D12CommandQueue> get() const noexcept { return mCommandQueue.Get(); }
-	constexpr ViewPtr<ID3D12Fence>        get_fence() const noexcept { return mFence.get(); }
+	ID3D12CommandQueue* get_queue() const noexcept;
+	ID3D12Fence*        get_fence() const noexcept;
 
 
 	// get the command list

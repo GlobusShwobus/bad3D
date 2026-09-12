@@ -25,9 +25,9 @@ void DemoCube2::load_content()
 	// gets
 	auto& app = Application::instance();
 
-	mDevice = app.get_device();
-	mDireectCommandQueue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	mWindow = app.get_render_window();
+	mDevice = ViewPtr{ app.get_device() };
+	mDireectCommandQueue = ViewPtr{ app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT) };
+	mWindow = ViewPtr{ app.get_render_window() };
 
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
@@ -37,14 +37,14 @@ void DemoCube2::load_content()
 
 	// create vertex buffer then copy CPU side data to it then make view handle
 	mVertexBuffer = create_commited_resource(
-		mDevice,
+		mDevice.get(),
 		HEAP_PROPERTY::base(),
 		RESOURCE_DESC::buffer(mCubeMesh.vertex_buffer_size()),
 		D3D12_RESOURCE_STATE_COMMON
 	);
 
 	auto vertex_upload_resource = copy_buffer_to_resource_and_get_intermediary(
-		mDevice,
+		mDevice.get(),
 		copy_command_list.command_list.Get(),
 		mVertexBuffer.Get(),
 		mCubeMesh.mVertexBuffer
@@ -54,14 +54,14 @@ void DemoCube2::load_content()
 
 	// create index buffer then copy CPU side data to it then make handle
 	mIndexBuffer = create_commited_resource(
-		mDevice,
+		mDevice.get(),
 		HEAP_PROPERTY::base(),
 		RESOURCE_DESC::buffer(mCubeMesh.index_buffer_size()),
 		D3D12_RESOURCE_STATE_COMMON
 	);
 
 	auto index_upload_resource = copy_buffer_to_resource_and_get_intermediary(
-		mDevice,
+		mDevice.get(),
 		copy_command_list.command_list.Get(),
 		mIndexBuffer.Get(),
 		mCubeMesh.mIndexBuffer
@@ -264,7 +264,7 @@ void DemoCube2::on_render()
 {
 	auto command_context = mDireectCommandQueue->acquire_command_list();
 	ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
-	ViewPtr<ID3D12Resource> current_back_buffer = mWindow->get_buffer();
+	ID3D12Resource* current_back_buffer = mWindow->get_buffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -399,7 +399,7 @@ void DemoCube2::resize_depth_buffer(int width, int height)
 		D3D12_RESOURCE_DESC resource_desc = RESOURCE_DESC::texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 		mDepthBuffer = create_commited_resource(
-			mDevice,
+			mDevice.get(),
 			heap_property,
 			resource_desc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,

@@ -2,13 +2,12 @@
 
 #include "badDirectX.h"
 #include <wrl/client.h>
-#include "ViewPtr.h"
 
 class DescriptorHeap final
 {
 public:
 	DescriptorHeap() = default;
-	DescriptorHeap(ViewPtr<ID3D12Device4> device, UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_masks = 0);
+	DescriptorHeap(ID3D12Device4* device, UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE, UINT node_masks = 0);
 	~DescriptorHeap() = default;
 	// dont wanna think about it atm
 	DescriptorHeap(const DescriptorHeap&) = delete;

@@ -10,9 +10,10 @@ struct CommandList
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator>         command_allocator = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2>     command_list      = nullptr;
 
-	inline void transition(ViewPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) const
+	inline void transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) const
 	{
-		D3D12_RESOURCE_BARRIER barrier = RESOURCE_BARRIER::transition(resource.get(), before, after);
+		assert(resource && "nullptr");
+		D3D12_RESOURCE_BARRIER barrier = RESOURCE_BARRIER::transition(resource, before, after);
 		command_list->ResourceBarrier(1, &barrier);
 	}
 

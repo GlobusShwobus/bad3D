@@ -2,7 +2,7 @@
 #include "Utils.h"
 
 CommandQueue::CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
-	:mType(type), mFence(device, mFenceValue)
+	:mType(type), mFence(device.get(), mFenceValue)
 {
 	assert(device && "device nullptr");
 
@@ -49,7 +49,7 @@ UINT64 CommandQueue::signal()
 	UINT64 value = mFenceValue++;
 
 	execute_and_test_hresult(
-		mCommandQueue->Signal(mFence.get().get(), value)
+		mCommandQueue->Signal(mFence.get(), value)
 	);
 
 	return value;
@@ -132,4 +132,13 @@ CommandList CommandQueue::acquire_command_list()
 	);
 
 	return context;
+}
+
+ID3D12CommandQueue* CommandQueue::get_queue() const noexcept
+{
+	return mCommandQueue.Get();
+}
+ID3D12Fence* CommandQueue::get_fence() const noexcept
+{
+	return mFence.get();
 }

@@ -111,7 +111,7 @@ void Application::run()
 	}
 }
 
-Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(ViewPtr<IDXGIFactory4> factory, bool use_warp)
+Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(IDXGIFactory4* factory, bool use_warp)
 {
 	assert(factory && "factory nullptr");
 
@@ -163,11 +163,11 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(ViewPtr<IDXGIFac
 	return adapter4;
 }
 
-void Application::init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdapter4> adapter4)
+void Application::init_device(IDXGIFactory4* factory4, IDXGIAdapter4* adapter4)
 {
 	// create device
 	execute_and_test_hresult(
-		D3D12CreateDevice(adapter4.get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
+		D3D12CreateDevice(adapter4, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
 	);
 
 	// if debug mode then set some triggers for easier debugging (>easier kek)
@@ -216,7 +216,7 @@ void Application::init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdap
 
 void Application::init_command_queues()
 {
-	ViewPtr<ID3D12Device4> device_ = mDevice.Get();
+	ViewPtr<ID3D12Device4> device_ = ViewPtr{ mDevice.Get() };
 	mDirectCommandQueue  = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	mComputeCommandQueue = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	mCopyCommandQueue    = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COPY);
@@ -271,10 +271,16 @@ void Application::init_HWND(const AppWinDesc& window_desc)
 	assert(mHwnd && "window nullptr");
 }
 
-void Application::init_swap_chain(ViewPtr<IDXGIFactory4> factory4, DWORD window_style)
+void Application::init_swap_chain(IDXGIFactory4* factory4, DWORD window_style)
 {
 	// make swap chain
-	mRenderWindow = std::make_unique<RenderWindow>(mHwnd, factory4.get(), mDevice.Get(), mDirectCommandQueue->get(), window_style);
+	mRenderWindow = std::make_unique<RenderWindow>(
+		ViewPtr<ID3D12Device4>{mDevice.Get()},
+		ViewPtr<HWND__>{mHwnd},
+		mDirectCommandQueue->get_queue(),
+		factory4,
+		window_style
+	);
 
 	assert(mRenderWindow && "swap chain nullptr");
 
@@ -329,4 +335,30 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	}
 
 	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+}
+
+ID3D12Device4* Application::get_device() const noexcept 
+{
+	return mDevice.Get();
+}
+HWND Application::get_hwnd() const noexcept 
+{ 
+	return mHwnd; 
+}
+RenderWindow* Application::get_render_window() const noexcept 
+{
+	return mRenderWindow.get();
+}
+CommandQueue* Application::get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
+{
+	CommandQueue* p = nullptr;
+
+	if (type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+		p = mDirectCommandQueue.get();
+	else if (type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+		p = mComputeCommandQueue.get();
+	else if (type == D3D12_COMMAND_LIST_TYPE_COPY)
+		p = mCopyCommandQueue.get();
+
+	return p;
 }

@@ -51,34 +51,22 @@ public:
 
 	void flush();
 
-	constexpr ViewPtr<ID3D12Device4> get_device() const noexcept { return mDevice.Get(); }
-	constexpr ViewPtr<HWND__>        get_hwnd() const noexcept { return mHwnd; }
-	constexpr ViewPtr<RenderWindow>  get_render_window() const noexcept { return mRenderWindow.get(); }
-	inline ViewPtr<CommandQueue>     get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
-	{
-		ViewPtr<CommandQueue> p = nullptr;
-
-		if (type == D3D12_COMMAND_LIST_TYPE_DIRECT)
-			p = mDirectCommandQueue.get();
-		else if (type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
-			p = mComputeCommandQueue.get();
-		else if (type == D3D12_COMMAND_LIST_TYPE_COPY)
-			p = mCopyCommandQueue.get();
-
-		return p;
-	}
+	ID3D12Device4* get_device() const noexcept;
+	HWND           get_hwnd() const noexcept;
+	RenderWindow*  get_render_window() const noexcept;
+	CommandQueue*  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept;
 
 	inline void set_game(ViewPtr<IGame> game) noexcept { mGame = game; }
 	void run();
 
 protected:
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(ViewPtr<IDXGIFactory4> factory, bool use_warp);
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);
 
-	void init_device(ViewPtr<IDXGIFactory4> factory4, ViewPtr<IDXGIAdapter4> adapter4);
+	void init_device(IDXGIFactory4* factory4, IDXGIAdapter4* adapter4);
 	void init_command_queues();
 	void init_HWND(const AppWinDesc& window_desc);
-	void init_swap_chain(ViewPtr<IDXGIFactory4> factory4, DWORD window_style);
+	void init_swap_chain(IDXGIFactory4* factory4, DWORD window_style);
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

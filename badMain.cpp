@@ -6,6 +6,8 @@
 
 #include "DemoCube2.h"
 
+#include "ViewPtr.h"
+
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
 //		GRAPHICS_INIT_DESC desc = {};
@@ -108,7 +110,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	winDesc.ch = 720;
 	winDesc.hInstance = hInstance;
 
-	std::unique_ptr<DemoCube2> demo1 = std::make_unique<DemoCube2>();
+	std::unique_ptr<IGame> demo1 = std::make_unique<DemoCube2>();
 	try {
 		auto& app = Application::instance();
 
@@ -116,7 +118,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		demo1->load_content();
 
-		app.set_game(demo1.get());
+		app.set_game(ViewPtr{ demo1.get() });
 
 		app.run();
 

@@ -9,7 +9,7 @@ class ViewPtr
 public:
 	constexpr ViewPtr() noexcept = default;
 	constexpr ViewPtr(std::nullptr_t) noexcept {}
-	constexpr ViewPtr(T* ptr) noexcept
+	constexpr explicit ViewPtr(T* ptr) noexcept
 		: mPtr(ptr)
 	{
 	}
@@ -23,7 +23,7 @@ public:
 		return *this;
 	}
 
-	constexpr void view(T* ptr) noexcept
+	constexpr void set(T* ptr) noexcept
 	{
 		mPtr = ptr; 
 	}
@@ -37,10 +37,12 @@ public:
 	}
 	constexpr T& operator*() const 
 	{
-		assert(mPtr); return *mPtr;
+		assert(mPtr); 
+		return *mPtr;
 	}
 	constexpr T* operator->() const noexcept 
 	{
+		assert(mPtr);
 		return mPtr;
 	}
 

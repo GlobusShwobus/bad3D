@@ -1,7 +1,7 @@
 #include "EasyDirectXUtils.h"
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
-	ViewPtr<ID3D12Device4> device,
+	ID3D12Device4* device,
 	const D3D12_HEAP_PROPERTIES& heap_properties,
 	const D3D12_RESOURCE_DESC& resource_desc,
 	D3D12_RESOURCE_STATES initial_state,
@@ -9,6 +9,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 	const D3D12_CLEAR_VALUE* optimized_clear_value
 )
 {
+	assert(device && "nullptr");
+
 	Microsoft::WRL::ComPtr<ID3D12Resource> resource = nullptr;
 
 	device->CreateCommittedResource(
