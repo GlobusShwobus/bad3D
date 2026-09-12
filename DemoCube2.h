@@ -48,7 +48,8 @@ protected:
 	// Resize the depth buffer to match the size of the client area.
 	void resize_depth_buffer(int width, int height);
 
-	void set_mesh();
+	std::vector<VertexPosColor> cpu_vertex_buffer();
+	std::vector<WORD> cpu_index_buffer();
 private:
 	FLOAT color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 	Keyboard kb;
@@ -62,14 +63,7 @@ private:
 	Stopwatch mTimer;
 
 	// CPU side cube data
-	Mesh<VertexPosColor> mCubeMesh;
-
-	// vertex buffer for the cube
-	Microsoft::WRL::ComPtr<ID3D12Resource> mVertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW mVertexBufferView;
-	// index buffer for the cube
-	Microsoft::WRL::ComPtr<ID3D12Resource> mIndexBuffer;
-	D3D12_INDEX_BUFFER_VIEW mIndexBufferView;
+	Mesh mCubeMesh;
 
 	// depth buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;

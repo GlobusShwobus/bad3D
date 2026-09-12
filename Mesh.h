@@ -2,28 +2,57 @@
 
 #include <vector>
 #include "badWin32.h"
+#include "badDirectX.h"
+#include "EasyDirectX.h"
+#include "EasyDirectXUtils.h"
+#include <wrl/client.h>
 #include <assert.h>
+#include "Resource.h"
 
-template<typename vertex>
+
 class Mesh
 {
 public:
-	Mesh() = default;
-	Mesh(std::vector<vertex> vertecies, std::vector<WORD> indecies)
-		:mVertexBuffer(std::move(vertecies)), mIndexBuffer(std::move(indecies))
+
+	template <typename vertex>
+	Microsoft::WRL::ComPtr<ID3D12Resource> load_vertex_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const std::vector<vertex>& buffer)
 	{
-		assert(mVertexBuffer.size() > 2);
-		assert(mIndexBuffer.size() % 3 == 0);
+		assert(device && "nullptr");
+		assert(cl && "nullptr");
+
+		const SIZE_T type_size = sizeof(vertex);
+		const SIZE_T element_count = buffer.size();
+
+		auto intermediary = mVertexBuffer.load(
+			device,
+			cl,
+			buffer.data(),
+			element_count,
+			type_size
+		);
+
+		mVertexBufferView = RESOURCE_VIEW::vertex(
+			mVertexBuffer.get()->GetGPUVirtualAddress(),
+			element_count * type_size,
+			type_size
+		);
+
+		return intermediary;
 	}
 
-	constexpr std::size_t vertex_count() const noexcept       { return mVertexBuffer.size(); }
-	constexpr std::size_t vertex_type_size() const noexcept   { return sizeof(vertex); }
-	constexpr std::size_t vertex_buffer_size() const noexcept { return mVertexBuffer.size() * sizeof(vertex); }
+	Microsoft::WRL::ComPtr<ID3D12Resource> load_index_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const std::vector<WORD>& buffer);
 
-	constexpr std::size_t index_count() const noexcept        { return mIndexBuffer.size(); }
-	constexpr std::size_t index_type_size() const noexcept    { return sizeof(WORD); }
-	constexpr std::size_t index_buffer_size() const noexcept  { return mIndexBuffer.size() * sizeof(WORD); }
 
-	std::vector<vertex> mVertexBuffer;
-	std::vector<WORD> mIndexBuffer;
+	const D3D12_VERTEX_BUFFER_VIEW& vertex_view() const noexcept { return mVertexBufferView; }
+	const D3D12_INDEX_BUFFER_VIEW& index_view() const noexcept { return mIndexBufferView; }
+	
+	const SIZE_T index_count() const noexcept { return mIndexBuffer.count(); }
+
+private:
+
+	CommittedResource mVertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW mVertexBufferView = {};
+
+	CommittedResource mIndexBuffer;
+	D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
 };

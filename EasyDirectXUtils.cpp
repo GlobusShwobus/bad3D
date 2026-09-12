@@ -24,3 +24,45 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 
 	return resource;
 }
+
+Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(ID3D12Device4* device, ID3D12GraphicsCommandList2* command_list, ID3D12Resource* dest, const void* data, SIZE_T element_count, SIZE_T type_size)
+{
+	assert(device && "nullptr");
+	assert(command_list && "nullptr");
+	assert(dest && "nullptr");
+	assert(type_size > 0);
+
+	if (data == nullptr || element_count == 0)
+		return nullptr;
+
+	UINT64 byte_count = element_count * type_size;
+	auto intermediary = create_commited_resource(
+		device,
+		HEAP_PROPERTY::upload(),
+		RESOURCE_DESC::buffer(byte_count),
+		D3D12_RESOURCE_STATE_GENERIC_READ
+	);
+
+	void* CPU_local_pointer = nullptr;
+	D3D12_RANGE read_range{ 0, 0 };
+
+	// map CPU local pointer to the GPU, (with 0 read range)
+	intermediary->Map(0, &read_range, &CPU_local_pointer);
+
+	// the CPU side pointer and resources internal pointers are mapped together, so now memcpy CPU side mem copies to the resource internal pointer
+	memcpy(CPU_local_pointer, data, byte_count);
+
+	// unmap the CPU local pointer
+	intermediary->Unmap(0, nullptr);
+
+	// issue command
+	command_list->CopyBufferRegion(
+		dest,
+		0,
+		intermediary.Get(),
+		0,
+		byte_count
+	);
+
+	return intermediary;
+}

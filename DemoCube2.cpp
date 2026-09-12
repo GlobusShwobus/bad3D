@@ -32,42 +32,19 @@ void DemoCube2::load_content()
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
 
-	// assign cube values to the mesh (since demo, is hardcoded. from file is cooler)
-	set_mesh();
-
 	// create vertex buffer then copy CPU side data to it then make view handle
-	mVertexBuffer = create_commited_resource(
-		mDevice.get(),
-		HEAP_PROPERTY::base(),
-		RESOURCE_DESC::buffer(mCubeMesh.vertex_buffer_size()),
-		D3D12_RESOURCE_STATE_COMMON
-	);
-
-	auto vertex_upload_resource = copy_buffer_to_resource_and_get_intermediary(
+	auto vertex_upload_resource = mCubeMesh.load_vertex_buffer(
 		mDevice.get(),
 		copy_command_list.command_list.Get(),
-		mVertexBuffer.Get(),
-		mCubeMesh.mVertexBuffer
+		cpu_vertex_buffer()
 	);
-
-	mVertexBufferView = RESOURCE_VIEW::vertex(mVertexBuffer->GetGPUVirtualAddress(), mCubeMesh.vertex_buffer_size(), mCubeMesh.vertex_type_size());
 
 	// create index buffer then copy CPU side data to it then make handle
-	mIndexBuffer = create_commited_resource(
-		mDevice.get(),
-		HEAP_PROPERTY::base(),
-		RESOURCE_DESC::buffer(mCubeMesh.index_buffer_size()),
-		D3D12_RESOURCE_STATE_COMMON
-	);
-
-	auto index_upload_resource = copy_buffer_to_resource_and_get_intermediary(
+	auto index_upload_resource = mCubeMesh.load_index_buffer(
 		mDevice.get(),
 		copy_command_list.command_list.Get(),
-		mIndexBuffer.Get(),
-		mCubeMesh.mIndexBuffer
+		cpu_index_buffer()
 	);
-
-	mIndexBufferView = RESOURCE_VIEW::index(mIndexBuffer->GetGPUVirtualAddress(), mCubeMesh.index_buffer_size(), DXGI_FORMAT_R16_UINT);
 
 	// create the descriptor heap for the depth stencil view
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESCRIPTOR_HEAP_DESC::DSV(1);
@@ -206,8 +183,6 @@ void DemoCube2::unload_content()
 		mDireectCommandQueue = nullptr;
 		mWindow = nullptr;
 
-		mVertexBuffer.Reset();
-		mIndexBuffer.Reset();
 		mDepthBuffer.Reset();
 		mDSVHeap.Reset();
 		mRootSignature.Reset();
@@ -280,8 +255,8 @@ void DemoCube2::on_render()
 	command_list->SetGraphicsRootSignature(mRootSignature.Get());
 	// input assembler
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	command_list->IASetVertexBuffers(0, 1, &mVertexBufferView);
-	command_list->IASetIndexBuffer(&mIndexBufferView);
+	command_list->IASetVertexBuffers(0, 1, &mCubeMesh.vertex_view());
+	command_list->IASetIndexBuffer(&mCubeMesh.index_view());
 	// rasteriser state
 	command_list->RSSetViewports(1, &mViewport);
 	command_list->RSSetScissorRects(1, &mScissorRect);
@@ -414,10 +389,9 @@ void DemoCube2::resize_depth_buffer(int width, int height)
 	}
 }
 
-void DemoCube2::set_mesh()
+std::vector<DemoCube2::VertexPosColor> DemoCube2::cpu_vertex_buffer()
 {
-	mCubeMesh = Mesh<VertexPosColor>{
-	{ // pos/ color
+	return std::vector<VertexPosColor>{
 		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
 		{ DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
 		{ DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
@@ -426,17 +400,23 @@ void DemoCube2::set_mesh()
 		{ DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
 		{ DirectX::XMFLOAT3(1.0f,  1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
 		{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7		
-	},
-	{ // index
-			0, 1, 2, 0, 2, 3,
-			4, 6, 5, 4, 7, 6,
-			4, 5, 1, 4, 1, 0,
-			3, 2, 6, 3, 6, 7,
-			1, 5, 6, 1, 6, 2,
-			4, 0, 3, 4, 3, 7
-	}
 	};
+}
 
+std::vector<WORD> DemoCube2::cpu_index_buffer()
+{
+	return std::vector<WORD>{
+		0, 1, 2, 0, 2, 3,
+		4, 6, 5, 4, 7, 6,
+		4, 5, 1, 4, 1, 0,
+		3, 2, 6, 3, 6, 7,
+		1, 5, 6, 1, 6, 2,
+		4, 0, 3, 4, 3, 7
+	};
+}
+
+// PYRAMID
+// 
 //	mCubeMesh = Mesh<VertexPosColor>{
 //{ // pos / color
 //	{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0 base
@@ -453,4 +433,4 @@ void DemoCube2::set_mesh()
 //	3, 0, 4              // side (front)
 //}
 //	};
-}
+

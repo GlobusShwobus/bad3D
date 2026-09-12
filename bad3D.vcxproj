@@ -160,8 +160,10 @@ dxgi.lib
     <ClCompile Include="DescriptorHeap.cpp" />
     <ClCompile Include="EasyDirectXUtils.cpp" />
     <ClCompile Include="Fence.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
     <ClCompile Include="IWin32Window.cpp" />
+    <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -179,6 +181,7 @@ dxgi.lib
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Resource.h" />
     <ClInclude Include="ViewPtr.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />
