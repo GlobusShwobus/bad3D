@@ -1,15 +1,16 @@
 #include "RenderWindow.h"
 #include "Utils.h"
 #include "EasyDirectX.h"
+#include <utility>
 
 RenderWindow::RenderWindow(
-	ViewPtr<HWND__> hwnd,
-	ViewPtr<IDXGIFactory4> factory,
 	ViewPtr<ID3D12Device4> device,
-	ViewPtr<ID3D12CommandQueue> command_queue,
+	ViewPtr<HWND__> hwnd,
+	ID3D12CommandQueue* command_queue,
+	IDXGIFactory4* factory,
 	DWORD window_style
 )
-	:mDescHeap(device, back_buffer_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+	:mDescHeap(device.get(), back_buffer_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
 	assert(hwnd && "window nullptr");
 	assert(factory && "factory nullptr");
@@ -47,7 +48,7 @@ RenderWindow::RenderWindow(
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapchain1;
 	execute_and_test_hresult(
 		factory->CreateSwapChainForHwnd(
-			command_queue.get(),
+			command_queue,
 			hwnd.get(),
 			&swap_chain_desc,
 			nullptr,
@@ -70,7 +71,7 @@ RenderWindow::RenderWindow(
 	mHwnd = hwnd;
 
 	// set the descriptors in the descriptor heap
-	reset_description_info();
+	update_back_buffers();
 }
 
 void RenderWindow::present_to_display()
@@ -111,7 +112,7 @@ void RenderWindow::resize( UINT client_width,  UINT client_height)
 	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 	// update back buffer handles
-	reset_description_info();
+	update_back_buffers();
 }
 
 void RenderWindow::toggle_fullscreen(bool fullscreen)
@@ -119,16 +120,9 @@ void RenderWindow::toggle_fullscreen(bool fullscreen)
 	mScreenToggle.toggle_window_to(mHwnd.get(), fullscreen);
 }
 
-ViewPtr<ID3D12Resource> RenderWindow::get_buffer_at(UINT index) const
+ID3D12Resource* RenderWindow::get_buffer() const
 {
-	Microsoft::WRL::ComPtr<ID3D12Resource> buffer;
-	mSwapChain->GetBuffer(index, IID_PPV_ARGS(&buffer));
-	return buffer.Get();
-}
-
-ViewPtr<ID3D12Resource> RenderWindow::get_buffer() const
-{
-	return get_buffer_at(mCurrentBufferIndex);
+	return mBackBuffers[mCurrentBufferIndex].Get();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::get_buffer_desc()const
@@ -143,14 +137,19 @@ RECT RenderWindow::get_client_rect() const
 	return r;
 }
 
-void RenderWindow::reset_description_info() const
+void RenderWindow::update_back_buffers()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.descriptor_begin();
 	const UINT stride = mDescHeap.stride();
 
 	for (UINT i = 0; i < back_buffer_count; i++)
 	{
-		mDevice->CreateRenderTargetView(get_buffer_at(i).get(), nullptr, heapPos);
+		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
+		mSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+		mDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, heapPos);
+
+		mBackBuffers[i] = std::move(backBuffer);
 
 		heapPos.ptr += stride;
 	}

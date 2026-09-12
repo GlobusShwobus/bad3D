@@ -23,10 +23,10 @@ class RenderWindow final
 public:
 
 	RenderWindow(
-		ViewPtr<HWND__> hwnd,
-		ViewPtr<IDXGIFactory4> factory,
 		ViewPtr<ID3D12Device4> device,
-		ViewPtr<ID3D12CommandQueue> command_queue,
+		ViewPtr<HWND__> hwnd,
+		ID3D12CommandQueue* command_queue,
+		IDXGIFactory4* factory,
 		DWORD window_style = WS_OVERLAPPEDWINDOW
 	);
 
@@ -41,11 +41,11 @@ public:
 	void resize( UINT client_width, UINT client_height);
 	void toggle_fullscreen(bool fullscreen);
 
-	ViewPtr<ID3D12Resource>     get_buffer() const;
+	ID3D12Resource*             get_buffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const;
 
 	constexpr UINT              get_buffer_index()  const noexcept  { return mCurrentBufferIndex;   }
-	constexpr UINT              get_buffer_count()  const noexcept  { return back_buffer_count; }
+	constexpr UINT              get_buffer_count()  const noexcept  { return back_buffer_count;     }
 	constexpr UINT              get_buffer_width()  const noexcept  { return mBufferWidth;          }
 	constexpr UINT              get_buffer_height() const noexcept  { return mBufferHeight;         }
 
@@ -53,9 +53,7 @@ public:
 
 protected:
 
-	ViewPtr<ID3D12Resource>  get_buffer_at(UINT index) const;
-
-	void reset_description_info() const;
+	void update_back_buffers();
 
 private:
 
@@ -63,6 +61,7 @@ private:
 	ViewPtr<ID3D12Device4>                  mDevice    = nullptr;
 	ViewPtr<HWND__>                         mHwnd      = nullptr;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource>  mBackBuffers[back_buffer_count];
 
 	// buffer info
 	UINT mCurrentBufferIndex = 0;
