@@ -63,6 +63,21 @@ void DemoCube2::load_content()
 	execute_and_test_hresult(
 		D3DReadFileToBlob(L"DemoCube2PS.cso", &pixelShaderBlob)
 	);
+	// the root signature is embedded in the vertex shader itself. extract that part from the blob and create the root sig
+	Microsoft::WRL::ComPtr<ID3DBlob> root_sig_blob;
+	execute_and_test_hresult(
+		D3DGetBlobPart(
+			vertexShaderBlob->GetBufferPointer(),
+			vertexShaderBlob->GetBufferSize(),
+			D3D_BLOB_ROOT_SIGNATURE,
+			0,
+			&root_sig_blob
+		)
+	);
+
+	execute_and_test_hresult(
+		mDevice->CreateRootSignature(0, root_sig_blob->GetBufferPointer(), root_sig_blob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature))
+	);
 
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
@@ -71,50 +86,6 @@ void DemoCube2::load_content()
 		INPUT_ELEMENT::position(0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0)
 	};
 
-	// create a root signature
-	// check for root sig version, 1.1 is recommended
-	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-
-	if (FAILED(mDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-	{
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-	}
-
-	// allow input layout and deny unnecessary acces to certain pipeline stages
-	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = ROOT_SIGNATURE_FLAGS::ALLOW_IAIL_VS;
-
-	// root sig desc
-	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
-	rootsigdesc.Version = featureData.HighestVersion;
-
-	if (featureData.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1)
-	{
-		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
-		D3D12_ROOT_PARAMETER1 rootParameters11[3] = {
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 0,  matrix_32bit_value_count),
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 1,  matrix_32bit_value_count),
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 2,  matrix_32bit_value_count)
-		};
-
-		rootsigdesc.Desc_1_1 = ROOT_DESCRIPTION::description(_countof(rootParameters11), rootParameters11, rootsigflags);
-	}
-	else
-	{
-		throw std::runtime_error{ "sad times" };
-	}
-
-	// serialize
-	Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
-	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-
-	execute_and_test_hresult(
-		D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob)
-	);
-
-	execute_and_test_hresult(
-		mDevice->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature))
-	);
 
 	// pipeline state object
 	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
@@ -471,4 +442,3 @@ std::vector<WORD> DemoCube2::cpu_index_buffer()
 //	3, 0, 4              // side (front)
 //}
 //	};
-

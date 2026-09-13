@@ -19,6 +19,8 @@ cbuffer ModelMatrix : register(b2)
 
 */
 
+#include "DemoCubeRootSig.hlsli"
+
 struct ConstantBufferMatrix
 {
     matrix mMatrix;
@@ -40,6 +42,7 @@ struct VertexShaderOutput
     float4 position : SV_Position;
 };
 
+[RootSignature(ROOT_SIGNATURE)]
 VertexShaderOutput main(VertexPosColor IN)
 {
     VertexShaderOutput OUT;
