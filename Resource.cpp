@@ -21,7 +21,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> CommittedResource::load(ID3D12Device4* de
     );
 
     mCount = element_count;
-    mSride = type_size;
+    mStride = type_size;
 
     return intermediary;
 }

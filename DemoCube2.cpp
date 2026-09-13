@@ -163,6 +163,9 @@ void DemoCube2::load_content()
 
 	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
 	mFOV = 45.0f;
+	camX = 0;
+	camY = 0;
+	camZ = -10;
 
 	mSignalTracker.resize(mWindow->get_buffer_count(), 0);
 	mTimer.reset();
@@ -215,11 +218,12 @@ void DemoCube2::on_update()
 	{
 		float offsetX = (i - 2) * spacing; // centers the row: -2,-1,0,1,2 * spacing
 		DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(offsetX, 0.0f, 0.0f);
-		mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
+		//mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
+		mModelMatrix[i] = translation;
 	}
 
 	// Update the view matrix.
-	const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(0, 0, -10, 1);
+	const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(camX, camY, camZ, 1);
 	const DirectX::XMVECTOR focusPoint = DirectX::XMVectorSet(0, 0, 0, 1);
 	const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
 	mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
@@ -329,7 +333,10 @@ void DemoCube2::kb_resolve()
 	static bool fullscreen = false;
 	static bool f11_previous = false;
 
-	const bool f11_current = kb.get_keys()[VK_F11];
+
+	const bool* keys = kb.get_keys();
+
+	const bool f11_current = keys[VK_F11];
 
 	if (f11_current && !f11_previous)
 	{
@@ -338,19 +345,47 @@ void DemoCube2::kb_resolve()
 	}
 
 	f11_previous = f11_current;
+
+	if (keys['W'])
+	{
+		camY += 1;
+	}
+	if (keys['A'])
+	{
+		camX -= 1;
+	}
+	if (keys['S'])
+	{
+		camY -= 1;
+	}
+	if (keys['D'])
+	{
+		camX += 1;
+	}
+
+	if (keys['Q'])
+	{
+		camZ -= 1;
+	}
+	if (keys['E'])
+	{
+		camZ += 1;
+	}
+
+
 }
 
 void DemoCube2::mouse_resolve()
 {
-	if (mouse.get_button(MouseButtonType::Left).is_down())
+	mFOV += mouse.get_wheel_delta_normalized();
+
+	if (mFOV < 1) // !!!!!!! crashes if fov is 0
 	{
-		color[0] = 1;
-		color[1] = 0;
+		mFOV = 1;
 	}
-	else
+	else if(mFOV>180)
 	{
-		color[0] = 0;
-		color[1] = 1;
+		mFOV = 180;
 	}
 }
 

@@ -25,11 +25,11 @@ public:
 
     constexpr SIZE_T stride() const noexcept
     {
-        return mSride;
+        return mStride;
     }
 
 private:
     Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
     SIZE_T                                 mCount = 0;
-    SIZE_T                                 mSride = 0;
+    SIZE_T                                 mStride = 0;
 };

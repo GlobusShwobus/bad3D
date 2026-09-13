@@ -72,6 +72,12 @@ public:
         mWheel = 0;
         return delta;
     }
+    constexpr int get_wheel_delta_normalized() noexcept
+    {
+        int delta = get_wheel_delta();
+
+        return delta / static_cast<float>(WHEEL_DELTA);
+    }
 
     constexpr void resolve_message(UINT msg, WPARAM wParam, LPARAM lParam) noexcept
     {

@@ -80,6 +80,9 @@ private:
 	D3D12_RECT mScissorRect;
 
 	float mFOV;
+	int camX;
+	int camY;
+	int camZ;
 
 	DirectX::XMMATRIX mModelMatrix[5];
 	DirectX::XMMATRIX mViewMatrix;
