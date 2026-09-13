@@ -87,9 +87,15 @@ void RenderWindow::present_to_display()
 	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 }
 
-void RenderWindow::resize( UINT client_width,  UINT client_height)
+void RenderWindow::resize(UINT client_width, UINT client_height)
 {
-	// reset swap chains back buffers
+	// Any references to the back buffers must be released
+	// before the swap chain can be resized.
+	for (int i = 0; i < back_buffer_count; i++)
+	{
+		mBackBuffers[i].Reset();
+	}
+	 // reset swap chains back buffers
 	DXGI_SWAP_CHAIN_DESC scDesc = {};
 	execute_and_test_hresult(
 		mSwapChain->GetDesc(&scDesc)
