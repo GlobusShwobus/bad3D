@@ -126,6 +126,7 @@ void DemoCube2::load_content()
 		PSS::ROOT_SIGNATURE pRootSignature;
 		PSS::INPUT_LAYOUT InputLayout;
 		PSS::PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		PSS::RASTERIZER Rasterizer;
 		PSS::VERTEX_SHADER VS;
 		PSS::PIXEL_SHADER PS;
 		PSS::DSV_FORMAT DSVFormat;
@@ -135,6 +136,7 @@ void DemoCube2::load_content()
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
 	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateStream.Rasterizer = RASTERIZER_DESC::wireframe();
 	pipelineStateStream.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
 	pipelineStateStream.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;

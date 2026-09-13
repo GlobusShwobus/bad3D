@@ -216,8 +216,8 @@ namespace PSS
 	using PIXEL_SHADER       = PIPELINE_STATE_STREAM_OBJECT< D3D12_SHADER_BYTECODE,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS                     >;
 	using DSV_FORMAT         = PIPELINE_STATE_STREAM_OBJECT< DXGI_FORMAT,                   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT   >;
 	using RTV_FORMATS        = PIPELINE_STATE_STREAM_OBJECT< D3D12_RT_FORMAT_ARRAY,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS  >;
+	using RASTERIZER         = PIPELINE_STATE_STREAM_OBJECT< D3D12_RASTERIZER_DESC,         D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER             >;
 }
-
 
 // heap type shit (currently have not used HEAP DESC regular)
 struct DESCRIPTOR_HEAP_DESC 
@@ -380,5 +380,65 @@ struct RESOURCE_BARRIER
 		barrier.Transition.StateAfter = after;
 		barrier.Transition.Subresource = sub_resource;
 		return barrier;
+	}
+};
+
+struct RASTERIZER_DESC
+{
+	static constexpr D3D12_RASTERIZER_DESC custom(
+		D3D12_FILL_MODE                       FillMode,
+		D3D12_CULL_MODE                       CullMode,
+		BOOL                                  FrontCounterClockwise,
+		INT                                   DepthBias,
+		FLOAT                                 DepthBiasClamp,
+		FLOAT                                 SlopeScaledDepthBias,
+		BOOL                                  DepthClipEnable,
+		BOOL                                  MultisampleEnable,
+		BOOL                                  AntialiasedLineEnable,
+		UINT                                  ForcedSampleCount,
+		D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster
+	) noexcept
+	{
+		D3D12_RASTERIZER_DESC desc{};
+		desc.FillMode = FillMode;
+		desc.CullMode = CullMode;
+		desc.FrontCounterClockwise = FrontCounterClockwise;
+		desc.DepthBias = DepthBias;
+		desc.DepthBiasClamp = DepthBiasClamp;
+		desc.SlopeScaledDepthBias = SlopeScaledDepthBias;
+		desc.DepthClipEnable = DepthClipEnable;
+		desc.MultisampleEnable = MultisampleEnable;
+		desc.AntialiasedLineEnable = AntialiasedLineEnable;
+		desc.ForcedSampleCount = ForcedSampleCount;
+		desc.ConservativeRaster = ConservativeRaster;
+		return desc;
+	}
+
+	static constexpr D3D12_RASTERIZER_DESC solid_backcull(
+		INT DepthBias = 0,
+		FLOAT DepthBiasClamp = 0.0f, 
+		FLOAT SlopeScaledDepthBias = 0.0f,
+		BOOL DepthClipEnable = TRUE,
+		BOOL MultisampleEnable = FALSE,
+		BOOL AntialiasedLineEnable = FALSE,
+		UINT ForcedSampleCount = 0,
+		D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
+		) // from msdn the FillMode, CullMode and FrontCounterClockwise are already the correct defaults so this method is LARP af
+	{
+		return custom(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_BACK, FALSE, DepthBias, DepthBiasClamp, SlopeScaledDepthBias, DepthClipEnable, MultisampleEnable, AntialiasedLineEnable, ForcedSampleCount, ConservativeRaster);
+	}
+
+	static constexpr D3D12_RASTERIZER_DESC wireframe(
+		INT DepthBias = 0,
+		FLOAT DepthBiasClamp = 0.0f,
+		FLOAT SlopeScaledDepthBias = 0.0f,
+		BOOL DepthClipEnable = TRUE,
+		BOOL MultisampleEnable = FALSE,
+		BOOL AntialiasedLineEnable = FALSE,
+		UINT ForcedSampleCount = 0,
+		D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
+	)
+	{
+		return custom(D3D12_FILL_MODE_WIREFRAME, D3D12_CULL_MODE_NONE, FALSE, DepthBias, DepthBiasClamp, SlopeScaledDepthBias, DepthClipEnable, MultisampleEnable, AntialiasedLineEnable, ForcedSampleCount, ConservativeRaster);
 	}
 };
