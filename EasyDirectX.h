@@ -1,6 +1,6 @@
 #pragma once
 
-#include "badDirectX.h"
+#include <d3d12.h>
 
 struct INPUT_ELEMENT
 {	

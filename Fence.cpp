@@ -1,5 +1,6 @@
 #include "Fence.h"
 #include "Utils.h"
+#include <assert.h>
 #include <utility>
 
 Fence::Fence(ID3D12Device4* device, UINT64 initial_value, D3D12_FENCE_FLAGS flags)

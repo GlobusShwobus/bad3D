@@ -2,6 +2,7 @@
 #include "Utils.h"
 #include "EasyDirectX.h"
 #include <utility>
+#include <assert.h>
 
 DescriptorHeap::DescriptorHeap(ID3D12Device4* device, UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT node_masks)
 	:mType(type), mCount(desc_count)

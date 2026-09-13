@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EasyDirectX.h"
+#include <d3d12.h>
 #include <wrl/client.h>
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(

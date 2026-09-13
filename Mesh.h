@@ -1,15 +1,13 @@
 #pragma once
 
 #include <vector>
-#include "badWin32.h"
-#include "badDirectX.h"
+#include <d3d12.h>
+#include <wrl/client.h>
+#include "Resource.h"
+#include <assert.h>
+
 #include "EasyDirectX.h"
 #include "EasyDirectXUtils.h"
-#include <wrl/client.h>
-#include <assert.h>
-#include "Resource.h"
-
-
 class Mesh
 {
 public:

@@ -1,4 +1,6 @@
 #include "EasyDirectXUtils.h"
+#include "EasyDirectX.h"
+#include <assert.h>
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 	ID3D12Device4* device,

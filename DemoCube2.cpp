@@ -4,6 +4,7 @@
 
 #include "Utils.h"
 #include "Application.h"
+#include <d3dcompiler.h>
 #include "EasyDirectX.h"
 #include "EasyDirectXUtils.h"
 

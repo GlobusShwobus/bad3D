@@ -168,7 +168,6 @@ dxgi.lib
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
-    <ClInclude Include="badDirectX.h" />
     <ClInclude Include="badWin32.h" />
     <ClInclude Include="CommandList.h" />
     <ClInclude Include="CommandQueue.h" />

@@ -95,9 +95,6 @@
     <ClInclude Include="badWin32.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="badDirectX.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="CommandList.h">
       <Filter>Source Files</Filter>
     </ClInclude>

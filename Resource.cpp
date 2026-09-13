@@ -1,6 +1,8 @@
 #include "Resource.h"
+#include "EasyDirectX.h"
+#include "EasyDirectXUtils.h"
 
-Microsoft::WRL::ComPtr<ID3D12Resource> CommittedResource::load(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const void* data, SIZE_T element_count, SIZE_T type_size)
+Microsoft::WRL::ComPtr<ID3D12Resource> CommittedResource::load(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const void* data, UINT64 element_count, UINT64 type_size)
 {
     const SIZE_T buffer_size = element_count * type_size;
 

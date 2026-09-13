@@ -1,6 +1,5 @@
 #include "RenderWindow.h"
 #include "Utils.h"
-#include "EasyDirectX.h"
 #include <utility>
 
 RenderWindow::RenderWindow(
