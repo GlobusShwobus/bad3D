@@ -66,14 +66,18 @@ void DemoCube2::load_content()
 	// the root signature is embedded in the vertex shader itself. extract that part from the blob and create the root sig
 	Microsoft::WRL::ComPtr<ID3DBlob> root_sig_blob;
 	execute_and_test_hresult(
-		D3DGetBlobPart(
-			vertexShaderBlob->GetBufferPointer(),
-			vertexShaderBlob->GetBufferSize(),
-			D3D_BLOB_ROOT_SIGNATURE,
-			0,
-			&root_sig_blob
-		)
+		D3DReadFileToBlob(L"DemoCubeRootSig.bin", &root_sig_blob)
 	);
+
+	//execute_and_test_hresult(
+	//	D3DGetBlobPart(
+	//		vertexShaderBlob->GetBufferPointer(),
+	//		vertexShaderBlob->GetBufferSize(),
+	//		D3D_BLOB_ROOT_SIGNATURE,
+	//		0,
+	//		&root_sig_blob
+	//	)
+	//);
 
 	execute_and_test_hresult(
 		mDevice->CreateRootSignature(0, root_sig_blob->GetBufferPointer(), root_sig_blob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature))
