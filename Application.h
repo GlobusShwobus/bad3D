@@ -12,6 +12,8 @@
 #include "RenderWindow.h"
 #include "ViewPtr.h"
 #include "IGame.h"
+#include "Events.h"
+
 
 struct AppWinDesc
 {
@@ -56,6 +58,7 @@ public:
 	HWND           get_hwnd() const noexcept;
 	RenderWindow*  get_render_window() const noexcept;
 	CommandQueue*  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept;
+	const Events& get_events() const noexcept { return mEvents; }
 
 	inline void set_game(ViewPtr<IGame> game) noexcept { mGame = game; }
 	void run();
@@ -89,6 +92,8 @@ protected:
 
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	}
+
+	void update_other_events(double delta);
 private:
 
 	Microsoft::WRL::ComPtr<ID3D12Device4> mDevice = nullptr;
@@ -99,6 +104,8 @@ private:
 
 	HWND mHwnd = nullptr;
 	std::unique_ptr<RenderWindow>       mRenderWindow = nullptr;
+
+	Events mEvents{};
 
 	ViewPtr<IGame> mGame;
 

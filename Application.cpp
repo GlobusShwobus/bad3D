@@ -1,7 +1,7 @@
 #include "Application.h"
 #include "Utils.h"
 #include <assert.h>
-
+#include "Stopwatch.h"
 Application::~Application()
 {
 	assert(!dx12_initalised && "Application::shutdown() was not called before exit");
@@ -40,7 +40,6 @@ void Application::initialise(AppWinDesc window_desc)
 
 	// show
 	::ShowWindow(mHwnd, SW_SHOW);
-
 	dx12_initalised = true;
 }
 
@@ -87,9 +86,11 @@ void Application::run()
 	assert(dx12_initalised && "Application must be initalised before run()");
 
 	bool running = true;
-
+	Stopwatch clock;
 	while (running)
 	{
+		update_other_events(clock.dt_float());
+
 		MSG msg = {};
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
@@ -301,34 +302,56 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	case WM_SIZE:
 
-		if (wParam != SIZE_MINIMIZED && mGame)
+		if (wParam != SIZE_MINIMIZED)
 		{
-			mGame->on_resize();
+			mEvents.SetWindowResizeEvent(LOWORD(lParam), HIWORD(lParam));
 		}
 		break;
 
 	case WM_SYSKEYDOWN:
 	case WM_KEYDOWN:
+		mEvents.SetKeyBoard(wParam, true);
+		break;
+
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-
-		if(mGame)
-			mGame->on_key_event(uMsg, wParam, lParam);
+		mEvents.SetKeyBoard(wParam, false);
 		break;
 
 	case WM_LBUTTONDOWN:
+		mEvents.SetMouseButton(MouseButtonType::Left, true);
+		break;
 	case WM_LBUTTONUP:
+		mEvents.SetMouseButton(MouseButtonType::Left, false);
+		break;
 	case WM_RBUTTONDOWN:
+		mEvents.SetMouseButton(MouseButtonType::Right, true);
+		break;
 	case WM_RBUTTONUP:
+		mEvents.SetMouseButton(MouseButtonType::Right, false);
+		break;
 	case WM_MBUTTONDOWN:
+		mEvents.SetMouseButton(MouseButtonType::Middle, true);
+		break;
 	case WM_MBUTTONUP:
-	case WM_XBUTTONDOWN:
-	case WM_XBUTTONUP:
+		mEvents.SetMouseButton(MouseButtonType::Middle, false);
+		break;
+	//case WM_XBUTTONDOWN:
+	//case WM_XBUTTONUP:
 	case WM_MOUSEWHEEL:
+		mEvents.SetMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam), WHEEL_DELTA);
+		break;
 	case WM_MOUSEMOVE:
-
-		if(mGame)
-			mGame->on_mouse_event(uMsg, wParam, lParam);
+		{
+			int nx = ((int)(short)LOWORD(lParam));
+			int ny = ((int)(short)HIWORD(lParam));
+			int cx = mEvents.mMouse.pos_x;
+			int cy = mEvents.mMouse.pos_y;
+			
+			if (nx != cx || ny != cy) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
+				mEvents.ResetMouseHover();
+			mEvents.SetMousePosition(nx, ny);
+		}
 		break;
 
 	default:
@@ -336,6 +359,13 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	}
 
 	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+}
+
+void Application::update_other_events(double delta)
+{
+	mEvents.SetTimeEvent(delta);
+	mEvents.UpdateMouseHover(delta);
+	mEvents.ResetMouseWheel();
 }
 
 ID3D12Device4* Application::get_device() const noexcept 
