@@ -68,12 +68,17 @@ RenderWindow::RenderWindow(
 	mBufferHeight = height;
 	mDevice = device;
 	mHwnd = hwnd;
+	
+	for (int i = 0; i < back_buffer_count; i++)
+	{
+		mBackBufferCompletionTrackers[i] = 0;
+	}
 
 	// set the descriptors in the descriptor heap
 	update_back_buffers();
 }
 
-void RenderWindow::present_to_display()
+UINT64 RenderWindow::present_to_display(UINT64 signal)
 {
 	// determine sync interval and flags
 	UINT syncInterval = mIsVSync ? 1 : 0;
@@ -83,17 +88,24 @@ void RenderWindow::present_to_display()
 		mSwapChain->Present(syncInterval, presentFlags)
 	);
 
-	// reset the current back buffer index
+	// reset trackers
+	mBackBufferCompletionTrackers[mCurrentBufferIndex] = signal;
 	mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+
+	return mBackBufferCompletionTrackers[mCurrentBufferIndex];
 }
 
-void RenderWindow::resize(UINT client_width, UINT client_height)
+void RenderWindow::resize(CommandQueue& queue, UINT client_width, UINT client_height)
 {
+	// flush first
+	queue.flush_execution();
+
 	// Any references to the back buffers must be released
 	// before the swap chain can be resized.
 	for (int i = 0; i < back_buffer_count; i++)
 	{
 		mBackBuffers[i].Reset();
+		mBackBufferCompletionTrackers[i] = mBackBufferCompletionTrackers[mCurrentBufferIndex];
 	}
 	 // reset swap chains back buffers
 	DXGI_SWAP_CHAIN_DESC scDesc = {};
@@ -133,13 +145,6 @@ ID3D12Resource* RenderWindow::get_buffer() const
 D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::get_buffer_desc()const
 {
 	return mDescHeap.descriptor_at(mCurrentBufferIndex);
-}
-
-RECT RenderWindow::get_client_rect() const
-{
-	RECT r;
-	::GetClientRect(mHwnd.get(), &r);
-	return r;
 }
 
 void RenderWindow::update_back_buffers()
