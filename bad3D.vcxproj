@@ -174,8 +174,10 @@ dxgi.lib
     <ClInclude Include="DemoCube2.h" />
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="EasyDirectXUtils.h" />
+    <ClInclude Include="Events.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="EasyDirectX.h" />
+    <ClInclude Include="KeyTypes.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="IGame.h" />
     <ClInclude Include="IWin32Window.h" />
@@ -184,8 +186,6 @@ dxgi.lib
     <ClInclude Include="ViewPtr.h" />
     <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="Utils.h" />
-    <ClInclude Include="Keyboard.h" />
-    <ClInclude Include="Mouse.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DemoCube2VS.hlsl">

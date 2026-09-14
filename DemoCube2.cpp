@@ -131,13 +131,11 @@ void DemoCube2::load_content()
 	//other
 	// 
 	// scissor rect is responsible for culling any pixels that are not within the dimensions of the RT
-	RECT client_rect = mWindow->get_client_rect();
-	const UINT client_width = static_cast<UINT>(rect_width(client_rect));
-	const UINT client_height = static_cast<UINT>(rect_height(client_rect));
+
 	mScissorRect = D3D12_RECT{ 0,0,LONG_MAX, LONG_MAX };
 
 	// viewport rect is responsible for saying where to write to but it should not be outside the RT
-	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(client_width), static_cast<float>(client_height), 0.0f, 1.0f };
+	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(mWindow->get_buffer_width()), static_cast<float>(mWindow->get_buffer_height()), 0.0f, 1.0f };
 
 	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
 	mFOV = 45.0f;
@@ -145,13 +143,10 @@ void DemoCube2::load_content()
 	camY = 0;
 	camZ = -10;
 
-	mSignalTracker.resize(mWindow->get_buffer_count(), 0);
-	mTimer.reset();
-
 	mContentLoaded = true;
 
 	// resize/ create the depth buffer
-	resize_depth_buffer(client_width, client_height);
+	resize_depth_buffer(mWindow->get_buffer_width(), mWindow->get_buffer_height());
 }
 
 void DemoCube2::unload_content()
@@ -175,18 +170,16 @@ void DemoCube2::unload_content()
 
 void DemoCube2::on_update()
 {
-	const float dt = mTimer.dt_float();
+	auto& app = Application::instance();
 
 	mouse_resolve();
 	kb_resolve();
-	mouse.update_mouse_buttons(dt);
 
-	// this demo specific:
-	static double totalTime = 0;
-	totalTime += dt;
+	const auto& events = app.get_events();
+	on_resize(events.WindowSize().width, events.WindowSize().height);
 
 	// update the model matrix
-	float angle = static_cast<float>(totalTime * 90.0);
+	float angle = static_cast<float>(events.Time().total * 90.0);
 	const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
 	DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
 
@@ -207,9 +200,8 @@ void DemoCube2::on_update()
 	mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
 	// update the proj matrix
-	RECT client_rect = mWindow->get_client_rect();
-	UINT client_width = static_cast<UINT>(rect_width(client_rect));
-	UINT client_height = static_cast<UINT>(rect_height(client_rect));
+	UINT client_width = mWindow->get_buffer_width();
+	UINT client_height = mWindow->get_buffer_height();
 
 	client_height = std::max(1u, client_height);
 	float aspectRatio = client_width / static_cast<float>(client_height);
@@ -261,58 +253,40 @@ void DemoCube2::on_render()
 
 	const UINT64 current_index = mWindow->get_buffer_index();
 	const UINT64 signal_val = mDireectCommandQueue->execute(command_context);
-	mSignalTracker[current_index] = signal_val;
 
-	mWindow->present_to_display();
+	UINT64 next_buffer_signal = mWindow->present_to_display(signal_val);
 
-	const UINT64 some_new_buffer_index = mWindow->get_buffer_index();
-
-	mDireectCommandQueue->wait_CPU(mSignalTracker[some_new_buffer_index]);
+	mDireectCommandQueue->wait_CPU(next_buffer_signal);
 }
 
-void DemoCube2::on_resize()
+void DemoCube2::on_resize(int w, int h)
 {
-	RECT client_rect = mWindow->get_client_rect();
+	w = std::max(1, w);
+	h = std::max(1, h);
 
 	const UINT buffer_width = mWindow->get_buffer_width();
 	const UINT buffer_height = mWindow->get_buffer_height();
-	const UINT client_width = static_cast<UINT>(rect_width(client_rect));
-	const UINT client_height = static_cast<UINT>(rect_height(client_rect));
 
-	if (buffer_width != client_width || buffer_height != client_height)
+	if (buffer_width != w || buffer_height != h)
 	{
-		mDireectCommandQueue->flush_execution();
-
-		const UINT current_val = mSignalTracker[mWindow->get_buffer_index()];
-
-		for (auto& fence_val : mSignalTracker)
-			fence_val = current_val;
-
-		mWindow->resize(client_width, client_height);
+		mWindow->resize(*mDireectCommandQueue, w, h);
 
 		// this demo specific:
-		mViewport = D3D12_VIEWPORT{ 0.0f,0.0f, static_cast<float>(client_width), static_cast<float>(client_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-		resize_depth_buffer(client_width, client_height);
+		mViewport = D3D12_VIEWPORT{ 0.0f,0.0f, static_cast<float>(w), static_cast<float>(h), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
+		resize_depth_buffer(w, h);
 	}
-}
-
-void DemoCube2::on_key_event(UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	kb.resolve_message(uMsg, wParam, lParam);
-}
-
-void DemoCube2::on_mouse_event(UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	mouse.resolve_message(uMsg, wParam, lParam);
 }
 
 void DemoCube2::kb_resolve()
 {
+	auto& app = Application::instance();
+	const auto& events = app.get_events();
+
 	static bool fullscreen = false;
 	static bool f11_previous = false;
 
 
-	const bool* keys = kb.get_keys();
+	const bool* keys = events.Keyboard().keys;
 
 	const bool f11_current = keys[VK_F11];
 
@@ -355,7 +329,9 @@ void DemoCube2::kb_resolve()
 
 void DemoCube2::mouse_resolve()
 {
-	mFOV += mouse.get_wheel_delta_normalized();
+	auto& app = Application::instance();
+	const auto& events = app.get_events();
+	mFOV += events.Mouse().wheel_delta_normalized;
 
 	if (mFOV < 1) // !!!!!!! crashes if fov is 0
 	{

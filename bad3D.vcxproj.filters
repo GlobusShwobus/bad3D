@@ -59,12 +59,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Keyboard.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mouse.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Stopwatch.h">
       <Filter>memes</Filter>
     </ClInclude>
@@ -114,6 +108,12 @@
       <Filter>demos</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Events.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyTypes.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

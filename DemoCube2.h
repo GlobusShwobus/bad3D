@@ -10,8 +10,7 @@
 
 
 #include "IGame.h"
-#include "Keyboard.h"
-#include "Mouse.h"
+
 #include "Stopwatch.h"
 #include "CommandQueue.h"
 #include "RenderWindow.h"
@@ -37,10 +36,7 @@ public:
 
 	void on_update() override;
 	void on_render() override;
-	void on_resize() override;
-
-	void on_key_event(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-	void on_mouse_event(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+	void on_resize(int w, int h) override;
 
 protected:
 
@@ -55,15 +51,10 @@ protected:
 	std::vector<WORD> cpu_index_buffer();
 private:
 	FLOAT color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-	Keyboard kb;
-	Mouse mouse;
 
-	ViewPtr<ID3D12Device4>    mDevice;
-	ViewPtr<CommandQueue> mDireectCommandQueue;
-	ViewPtr<RenderWindow> mWindow;
-
-	std::vector<UINT64> mSignalTracker;
-	Stopwatch mTimer;
+	ViewPtr<ID3D12Device4> mDevice;
+	ViewPtr<CommandQueue>  mDireectCommandQueue;
+	ViewPtr<RenderWindow>  mWindow;
 
 	// CPU side cube data
 	Mesh mCubeMesh;
