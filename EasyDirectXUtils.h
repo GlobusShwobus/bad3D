@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include <dxgi1_6.h>
 #include <wrl/client.h>
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
@@ -13,3 +14,5 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 );
 
 Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(ID3D12Device4* device, ID3D12GraphicsCommandList2* command_list, ID3D12Resource* dest, const void* data, SIZE_T element_count, SIZE_T type_size);
+
+Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);

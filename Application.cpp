@@ -2,14 +2,15 @@
 #include "Utils.h"
 #include <assert.h>
 #include "Stopwatch.h"
+#include "EasyDirectXUtils.h"
 Application::~Application()
 {
-	assert(!dx12_initalised && "Application::shutdown() was not called before exit");
+	assert(!mInitialised && "Application::shutdown() was not called before exit");
 }
 
 void Application::initialise(AppWinDesc window_desc)
 {
-	if (dx12_initalised)
+	if (mInitialised)
 		return;
 
 	// create DXGI factory
@@ -33,143 +34,9 @@ void Application::initialise(AppWinDesc window_desc)
 	assert(adapter4 && "adapter nullptr");
 
 	// init stuff
-	init_device(factory4.Get(), adapter4.Get());
-	init_command_queues();
-	init_HWND(window_desc);
-	init_swap_chain(factory4.Get(), window_desc.window_style);
-
-	// show
-	::ShowWindow(mHwnd, SW_SHOW);
-	dx12_initalised = true;
-}
-
-void Application::shutdown()
-{
-	assert(dx12_initalised && "Application must be initalized before shutdown()");
-
-	// first flush the GPU
-	flush();
-
-	// game no longer needs graphics resources
-	mGame = nullptr;
-
-	// destroy the swap cahin before HWND and before GPU command queues (in case the swap chain would reference command queues in the future)
-	mRenderWindow.reset();
-
-	// destroy the command queues
-	mDirectCommandQueue.reset();
-	mComputeCommandQueue.reset();
-	mCopyCommandQueue.reset();
-
-	// destroy HWND
-	if (mHwnd)
-	{
-		::DestroyWindow(mHwnd);
-		mHwnd = nullptr;
-	}
-
-	// destroy device and DXGI
-	mDevice.Reset();
-
-	dx12_initalised = false;
-}
-
-void Application::flush()
-{
-	mDirectCommandQueue->flush_execution();
-	mComputeCommandQueue->flush_execution();
-	mCopyCommandQueue->flush_execution();
-}
-
-void Application::run()
-{
-	assert(dx12_initalised && "Application must be initalised before run()");
-
-	bool running = true;
-	Stopwatch clock;
-	while (running)
-	{
-		update_other_events(clock.dt_float());
-
-		MSG msg = {};
-		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-			{
-				running = false;
-				break;
-			}
-
-			DispatchMessage(&msg);
-		}
-
-		if (!running) // WM_DESTROY may have fired inside DispatchMessage in which case ignore further code
-			break;
-
-		if (mGame) {
-			mGame->on_update();
-			mGame->on_render();
-		}
-	}
-}
-
-Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::find_adapter(IDXGIFactory4* factory, bool use_warp)
-{
-	assert(factory && "factory nullptr");
-
-	HRESULT hr = E_FAIL;
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4;
-	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
-	{
-		hr = factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4));
-	}
-	else         // if not using WARP, need to look for an adapter
-	{
-		// first, if looking for adapter manually, it is not possible to enumerate with Adapter4 since EnumAdapters and EnumAdapters1 take specific types.
-		// secondly, need to find adapter with a good amount of memory...
-		LUID best_luid = {};
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
-		SIZE_T largest_memory_pool = 0;
-
-		for (UINT adapterIndex = 0; ; ++adapterIndex)
-		{
-			// if reached end of the line
-			if (factory->EnumAdapters1(adapterIndex, &adapter1) == DXGI_ERROR_NOT_FOUND)
-				break;
-
-			DXGI_ADAPTER_DESC1 desc1;
-			adapter1->GetDesc1(&desc1);
-
-			// ignore software adapters
-			if ((desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
-			{
-				// call create device to check if it succeeds but don't instantiate the type, by passing nullptr to output
-				if (SUCCEEDED(D3D12CreateDevice(adapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
-				{
-					// if create device runs successfully then store the dedicated mem size and LUID and later actually enumerate the adapter by LUID
-					if (desc1.DedicatedVideoMemory > largest_memory_pool)
-					{
-						largest_memory_pool = desc1.DedicatedVideoMemory;
-						best_luid = desc1.AdapterLuid;
-					}
-				}
-			}
-
-			adapter1.Reset();
-		}
-
-		// enumerate adapter by the best LUID
-		hr = factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4));
-	}
-
-	return adapter4;
-}
-
-void Application::init_device(IDXGIFactory4* factory4, IDXGIAdapter4* adapter4)
-{
 	// create device
 	execute_and_test_hresult(
-		D3D12CreateDevice(adapter4, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
+		D3D12CreateDevice(adapter4.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
 	);
 
 	// if debug mode then set some triggers for easier debugging (>easier kek)
@@ -214,19 +81,11 @@ void Application::init_device(IDXGIFactory4* factory4, IDXGIAdapter4* adapter4)
 		);
 	}
 #endif
-}
 
-void Application::init_command_queues()
-{
 	ViewPtr<ID3D12Device4> device_ = ViewPtr{ mDevice.Get() };
-	mDirectCommandQueue  = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mDirectCommandQueue = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	mComputeCommandQueue = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	mCopyCommandQueue    = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COPY);
-}
-
-void Application::init_HWND(const AppWinDesc& window_desc)
-{
-	assert(window_desc.cw > 0 && window_desc.ch > 0);
+	mCopyCommandQueue = std::make_unique<CommandQueue>(device_, D3D12_COMMAND_LIST_TYPE_COPY);
 
 	WNDCLASSEX register_desc = {};
 	register_desc.cbSize = sizeof(WNDCLASSEX);
@@ -271,17 +130,14 @@ void Application::init_HWND(const AppWinDesc& window_desc)
 	);
 
 	assert(mHwnd && "window nullptr");
-}
 
-void Application::init_swap_chain(IDXGIFactory4* factory4, DWORD window_style)
-{
 	// make swap chain
 	mRenderWindow = std::make_unique<RenderWindow>(
 		ViewPtr<ID3D12Device4>{mDevice.Get()},
 		ViewPtr<HWND__>{mHwnd},
 		mDirectCommandQueue->get_queue(),
-		factory4,
-		window_style
+		factory4.Get(),
+		window_desc.window_style
 	);
 
 	assert(mRenderWindow && "swap chain nullptr");
@@ -290,6 +146,78 @@ void Application::init_swap_chain(IDXGIFactory4* factory4, DWORD window_style)
 	execute_and_test_hresult(
 		factory4->MakeWindowAssociation(mHwnd, DXGI_MWA_NO_ALT_ENTER)
 	);
+
+	// show
+	::ShowWindow(mHwnd, SW_SHOW);
+	mInitialised = true;
+}
+
+void Application::shutdown()
+{
+	if (mRunning)
+		throw std::runtime_error("The user must call exit_loop() before shutdown");
+
+	if (!mInitialised)
+		return;
+
+	// first flush the GPU
+	flush();
+
+	// game no longer needs graphics resources
+	mGame = nullptr;
+
+	// destroy the swap cahin before HWND and before GPU command queues (in case the swap chain would reference command queues in the future)
+	mRenderWindow.reset();
+
+	// destroy the command queues
+	mDirectCommandQueue.reset();
+	mComputeCommandQueue.reset();
+	mCopyCommandQueue.reset();
+
+	// destroy HWND
+	if (mHwnd)
+	{
+		::DestroyWindow(mHwnd);
+		mHwnd = nullptr;
+	}
+
+	// destroy device and DXGI
+	mDevice.Reset();
+
+	mInitialised = false;
+}
+
+void Application::flush()
+{
+	assert(mInitialised && "Not initalised");
+
+	mDirectCommandQueue->flush_execution();
+	mComputeCommandQueue->flush_execution();
+	mCopyCommandQueue->flush_execution();
+}
+
+void Application::run()
+{
+	// if initalized and on the first call to run
+	if (mInitialised && !mRunning)
+		mRunning = true;
+
+	Stopwatch clock;
+	while (mRunning)
+	{
+		update_other_events(clock.dt_float());
+
+		MSG msg = {};
+		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+		{
+			DispatchMessage(&msg);
+		}
+
+		if (mGame) {
+			mGame->on_update();
+			mGame->on_render();
+		}
+	}
 }
 
 LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -298,59 +226,60 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		mState.System().SetQuitEvent();
 		break;
 
 	case WM_SIZE:
 
 		if (wParam != SIZE_MINIMIZED)
 		{
-			mEvents.SetWindowResizeEvent(LOWORD(lParam), HIWORD(lParam));
+			mState.System().SetResizeEvent(LOWORD(lParam), HIWORD(lParam));
 		}
 		break;
 
 	case WM_SYSKEYDOWN:
 	case WM_KEYDOWN:
-		mEvents.SetKeyBoard(wParam, true);
+		mState.Keyboard().SetDown(wParam);
 		break;
 
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-		mEvents.SetKeyBoard(wParam, false);
+		mState.Keyboard().SetUp(wParam);
 		break;
 
 	case WM_LBUTTONDOWN:
-		mEvents.SetMouseButton(MouseButtonType::Left, true);
+		mState.Mouse().SetButtonDown(MouseButtonType::Left);
 		break;
 	case WM_LBUTTONUP:
-		mEvents.SetMouseButton(MouseButtonType::Left, false);
+		mState.Mouse().SetButtonUp(MouseButtonType::Left);
 		break;
 	case WM_RBUTTONDOWN:
-		mEvents.SetMouseButton(MouseButtonType::Right, true);
+		mState.Mouse().SetButtonDown(MouseButtonType::Right);
 		break;
 	case WM_RBUTTONUP:
-		mEvents.SetMouseButton(MouseButtonType::Right, false);
+		mState.Mouse().SetButtonUp(MouseButtonType::Right);
 		break;
 	case WM_MBUTTONDOWN:
-		mEvents.SetMouseButton(MouseButtonType::Middle, true);
+		mState.Mouse().SetButtonDown(MouseButtonType::Middle);
 		break;
 	case WM_MBUTTONUP:
-		mEvents.SetMouseButton(MouseButtonType::Middle, false);
+		mState.Mouse().SetButtonUp(MouseButtonType::Middle);
 		break;
 	//case WM_XBUTTONDOWN:
 	//case WM_XBUTTONUP:
 	case WM_MOUSEWHEEL:
-		mEvents.SetMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam), WHEEL_DELTA);
+		mState.Mouse().SetWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam), WHEEL_DELTA);
 		break;
 	case WM_MOUSEMOVE:
 		{
 			int nx = ((int)(short)LOWORD(lParam));
 			int ny = ((int)(short)HIWORD(lParam));
-			int cx = mEvents.mMouse.pos_x;
-			int cy = mEvents.mMouse.pos_y;
+			int cx = mState.Mouse().PosX();
+			int cy = mState.Mouse().PosY();
 			
 			if (nx != cx || ny != cy) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
-				mEvents.ResetMouseHover();
-			mEvents.SetMousePosition(nx, ny);
+				mState.Mouse().ResetHoverDuration();
+			mState.Mouse().SetPosition(nx,ny);
 		}
 		break;
 
@@ -363,9 +292,10 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 void Application::update_other_events(double delta)
 {
-	mEvents.SetTimeEvent(delta);
-	mEvents.UpdateMouseHover(delta);
-	mEvents.ResetMouseWheel();
+	mState.System().UpdateAge(delta);
+	mState.System().ResetResizeEvent();
+	mState.Mouse().UpdateHoverDuration(delta);
+	mState.Mouse().ResetWheelDelta();
 }
 
 ID3D12Device4* Application::get_device() const noexcept 

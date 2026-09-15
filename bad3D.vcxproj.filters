@@ -110,7 +110,7 @@
     <ClInclude Include="Resource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Events.h">
+    <ClInclude Include="ApplicationStateManager.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="KeyTypes.h">

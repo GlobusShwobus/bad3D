@@ -174,7 +174,7 @@ dxgi.lib
     <ClInclude Include="DemoCube2.h" />
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="EasyDirectXUtils.h" />
-    <ClInclude Include="Events.h" />
+    <ClInclude Include="ApplicationStateManager.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="EasyDirectX.h" />
     <ClInclude Include="KeyTypes.h" />

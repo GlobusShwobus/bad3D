@@ -68,3 +68,55 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 
 	return intermediary;
 }
+
+Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp)
+{
+	assert(factory && "factory nullptr");
+
+	HRESULT hr = E_FAIL;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4;
+	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
+	{
+		hr = factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4));
+	}
+	else         // if not using WARP, need to look for an adapter
+	{
+		// first, if looking for adapter manually, it is not possible to enumerate with Adapter4 since EnumAdapters and EnumAdapters1 take specific types.
+		// secondly, need to find adapter with a good amount of memory...
+		LUID best_luid = {};
+		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
+		SIZE_T largest_memory_pool = 0;
+
+		for (UINT adapterIndex = 0; ; ++adapterIndex)
+		{
+			// if reached end of the line
+			if (factory->EnumAdapters1(adapterIndex, &adapter1) == DXGI_ERROR_NOT_FOUND)
+				break;
+
+			DXGI_ADAPTER_DESC1 desc1;
+			adapter1->GetDesc1(&desc1);
+
+			// ignore software adapters
+			if ((desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
+			{
+				// call create device to check if it succeeds but don't instantiate the type, by passing nullptr to output
+				if (SUCCEEDED(D3D12CreateDevice(adapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
+				{
+					// if create device runs successfully then store the dedicated mem size and LUID and later actually enumerate the adapter by LUID
+					if (desc1.DedicatedVideoMemory > largest_memory_pool)
+					{
+						largest_memory_pool = desc1.DedicatedVideoMemory;
+						best_luid = desc1.AdapterLuid;
+					}
+				}
+			}
+
+			adapter1.Reset();
+		}
+
+		// enumerate adapter by the best LUID
+		hr = factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4));
+	}
+
+	return adapter4;
+}

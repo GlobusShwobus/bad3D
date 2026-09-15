@@ -18,7 +18,8 @@ DemoCube2::DemoCube2()
 }
 DemoCube2::~DemoCube2()
 {
-	unload_content();
+	// careful because on_update() in this demo unloads itself which is the better behavior than on destructor
+	// unload_content();
 }
 
 void DemoCube2::load_content()
@@ -143,120 +144,140 @@ void DemoCube2::load_content()
 	camY = 0;
 	camZ = -10;
 
-	mContentLoaded = true;
-
 	// resize/ create the depth buffer
 	resize_depth_buffer(mWindow->get_buffer_width(), mWindow->get_buffer_height());
+
+	mRunning = true;
 }
 
 void DemoCube2::unload_content()
 {
-	if (mContentLoaded) {
-		auto& app = Application::instance();
-		app.flush();
+	auto& app = Application::instance();
+	app.flush();
 
-		mDevice = nullptr;
-		mDireectCommandQueue = nullptr;
-		mWindow = nullptr;
+	mDevice = nullptr;
+	mDireectCommandQueue = nullptr;
+	mWindow = nullptr;
 
-		mDepthBuffer.Reset();
-		mDSVHeap.Reset();
-		mRootSignature.Reset();
-		mPipelineState.Reset();
+	mDepthBuffer.Reset();
+	mDSVHeap.Reset();
+	mRootSignature.Reset();
+	mPipelineState.Reset();
 
-		mContentLoaded = false;
-	}
+	// optionally can call shutdown here too
+	// app.shutdown();
 }
 
 void DemoCube2::on_update()
 {
 	auto& app = Application::instance();
+	const auto& events = app.get_state_manager();
 
-	mouse_resolve();
-	kb_resolve();
-
-	const auto& events = app.get_events();
-	on_resize(events.WindowSize().width, events.WindowSize().height);
-
-	// update the model matrix
-	float angle = static_cast<float>(events.Time().total * 90.0);
-	const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
-	DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
-
-	// simple spread along X so the 5 cubes don't overlap
-	constexpr float spacing = 3.0f;
-	for (int i = 0; i < 5; ++i)
+	if (events.System().SystemQuitEvent())
 	{
-		float offsetX = (i - 2) * spacing; // centers the row: -2,-1,0,1,2 * spacing
-		DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(offsetX, 0.0f, 0.0f);
-		//mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
-		mModelMatrix[i] = translation;
+		mRunning = false;
+		app.exit_loop();
 	}
+	
+	if (mRunning)
+	{
+		mouse_resolve();
+		kb_resolve();
 
-	// Update the view matrix.
-	const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(camX, camY, camZ, 1);
-	const DirectX::XMVECTOR focusPoint = DirectX::XMVectorSet(0, 0, 0, 1);
-	const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
-	mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+		// check if resize
+		if (events.System().WindowResizeEvent())
+		{
+			on_resize(events.System().WindowResizeWidth(), events.System().WindowResizeHeight());
+		}
 
-	// update the proj matrix
-	UINT client_width = mWindow->get_buffer_width();
-	UINT client_height = mWindow->get_buffer_height();
 
-	client_height = std::max(1u, client_height);
-	float aspectRatio = client_width / static_cast<float>(client_height);
+		// update the model matrix
+		float angle = static_cast<float>(events.System().Age() * 90.0);
+		const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
+		DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
 
-	mProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(mFOV), aspectRatio, 0.1f, 100.0f);
+		// simple spread along X so the 5 cubes don't overlap
+		constexpr float spacing = 3.0f;
+		for (int i = 0; i < 5; ++i)
+		{
+			float offsetX = (i - 2) * spacing; // centers the row: -2,-1,0,1,2 * spacing
+			DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(offsetX, 0.0f, 0.0f);
+			//mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
+			mModelMatrix[i] = translation;
+		}
+
+		// Update the view matrix.
+		const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(camX, camY, camZ, 1);
+		const DirectX::XMVECTOR focusPoint = DirectX::XMVectorSet(0, 0, 0, 1);
+		const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
+		mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+
+		// update the proj matrix
+		UINT client_width = mWindow->get_buffer_width();
+		UINT client_height = mWindow->get_buffer_height();
+
+		client_height = std::max(1u, client_height);
+		float aspectRatio = client_width / static_cast<float>(client_height);
+
+		mProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(mFOV), aspectRatio, 0.1f, 100.0f);
+	}
+	else
+	{
+		unload_content();
+	}
 }
 
 void DemoCube2::on_render()
 {
-	auto command_context = mDireectCommandQueue->acquire_command_list();
-	ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
-	ID3D12Resource* current_back_buffer = mWindow->get_buffer();
-	D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
-
-	command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	// any rendering logic goes here until another transition barrier
-
-	command_context.clear_RTV(buffer_desc, color);
-	command_context.clear_DSV(dsv_desc, 1.0f);
-
-	// pre stuff, in this case vertex and pixel shaders stuff
-	command_list->SetPipelineState(mPipelineState.Get());
-	command_list->SetGraphicsRootSignature(mRootSignature.Get());
-	// input assembler
-	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	command_list->IASetVertexBuffers(0, 1, &mCubeMesh.vertex_view());
-	command_list->IASetIndexBuffer(&mCubeMesh.index_view());
-	// rasteriser state
-	command_list->RSSetViewports(1, &mViewport);
-	command_list->RSSetScissorRects(1, &mScissorRect);
-	// output merger state
-	command_list->OMSetRenderTargets(1, &buffer_desc, FALSE, &dsv_desc);
-
-	// root constants
-	const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
-	command_list->SetGraphicsRoot32BitConstants(0, matrix_32bit_value_count, &mViewMatrix, 0);
-	command_list->SetGraphicsRoot32BitConstants(1, matrix_32bit_value_count, &mProjectionMatrix, 0);
-
-	for (int i = 0; i < 5; ++i)
+	if (mRunning)
 	{
-		command_list->SetGraphicsRoot32BitConstants(2, matrix_32bit_value_count, &mModelMatrix[i], 0);
-		command_list->DrawIndexedInstanced(mCubeMesh.index_count(), 1, 0, 0, 0);
+		auto command_context = mDireectCommandQueue->acquire_command_list();
+		ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
+		ID3D12Resource* current_back_buffer = mWindow->get_buffer();
+		D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
+
+		command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		// any rendering logic goes here until another transition barrier
+
+		command_context.clear_RTV(buffer_desc, color);
+		command_context.clear_DSV(dsv_desc, 1.0f);
+
+		// pre stuff, in this case vertex and pixel shaders stuff
+		command_list->SetPipelineState(mPipelineState.Get());
+		command_list->SetGraphicsRootSignature(mRootSignature.Get());
+		// input assembler
+		command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		command_list->IASetVertexBuffers(0, 1, &mCubeMesh.vertex_view());
+		command_list->IASetIndexBuffer(&mCubeMesh.index_view());
+		// rasteriser state
+		command_list->RSSetViewports(1, &mViewport);
+		command_list->RSSetScissorRects(1, &mScissorRect);
+		// output merger state
+		command_list->OMSetRenderTargets(1, &buffer_desc, FALSE, &dsv_desc);
+
+		// root constants
+		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
+		command_list->SetGraphicsRoot32BitConstants(0, matrix_32bit_value_count, &mViewMatrix, 0);
+		command_list->SetGraphicsRoot32BitConstants(1, matrix_32bit_value_count, &mProjectionMatrix, 0);
+
+		for (int i = 0; i < 5; ++i)
+		{
+			command_list->SetGraphicsRoot32BitConstants(2, matrix_32bit_value_count, &mModelMatrix[i], 0);
+			command_list->DrawIndexedInstanced(mCubeMesh.index_count(), 1, 0, 0, 0);
+		}
+
+		// present
+		command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+		const UINT64 current_index = mWindow->get_buffer_index();
+		const UINT64 signal_val = mDireectCommandQueue->execute(command_context);
+
+		UINT64 next_buffer_signal = mWindow->present_to_display(signal_val);
+
+		mDireectCommandQueue->wait_CPU(next_buffer_signal);
 	}
-
-	// present
-	command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-	const UINT64 current_index = mWindow->get_buffer_index();
-	const UINT64 signal_val = mDireectCommandQueue->execute(command_context);
-
-	UINT64 next_buffer_signal = mWindow->present_to_display(signal_val);
-
-	mDireectCommandQueue->wait_CPU(next_buffer_signal);
 }
 
 void DemoCube2::on_resize(int w, int h)
@@ -280,13 +301,13 @@ void DemoCube2::on_resize(int w, int h)
 void DemoCube2::kb_resolve()
 {
 	auto& app = Application::instance();
-	const auto& events = app.get_events();
+	const auto& events = app.get_state_manager();
 
 	static bool fullscreen = false;
 	static bool f11_previous = false;
 
 
-	const bool* keys = events.Keyboard().keys;
+	const bool* keys = events.Keyboard().GetKeys();
 
 	const bool f11_current = keys[VK_F11];
 
@@ -323,15 +344,13 @@ void DemoCube2::kb_resolve()
 	{
 		camZ += 1;
 	}
-
-
 }
 
 void DemoCube2::mouse_resolve()
 {
 	auto& app = Application::instance();
-	const auto& events = app.get_events();
-	mFOV += events.Mouse().wheel_delta_normalized;
+	const auto& events = app.get_state_manager();
+	mFOV += events.Mouse().WheelDeltaNormalized();
 
 	if (mFOV < 1) // !!!!!!! crashes if fov is 0
 	{
@@ -346,36 +365,33 @@ void DemoCube2::mouse_resolve()
 
 void DemoCube2::resize_depth_buffer(int width, int height)
 {
-	if (mContentLoaded)
-	{
-		Application::instance().flush();
+	Application::instance().flush();
 
-		width = std::max(1, width);
-		height = std::max(1, height);
+	width = std::max(1, width);
+	height = std::max(1, height);
 
-		// resize screen dependent resources
-		// create depth buffer
-		D3D12_CLEAR_VALUE optimizedClearValue = {};
-		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-		optimizedClearValue.DepthStencil = { 1.0f,0 };
+	// resize screen dependent resources
+	// create depth buffer
+	D3D12_CLEAR_VALUE optimizedClearValue = {};
+	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	optimizedClearValue.DepthStencil = { 1.0f,0 };
 
-		D3D12_HEAP_PROPERTIES heap_property = HEAP_PROPERTY::base();
-		D3D12_RESOURCE_DESC resource_desc = RESOURCE_DESC::texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+	D3D12_HEAP_PROPERTIES heap_property = HEAP_PROPERTY::base();
+	D3D12_RESOURCE_DESC resource_desc = RESOURCE_DESC::texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
-		mDepthBuffer = create_commited_resource(
-			mDevice.get(),
-			heap_property,
-			resource_desc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE,
-			D3D12_HEAP_FLAG_NONE,
-			&optimizedClearValue
-		);
+	mDepthBuffer = create_commited_resource(
+		mDevice.get(),
+		heap_property,
+		resource_desc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		D3D12_HEAP_FLAG_NONE,
+		&optimizedClearValue
+	);
 
-		// update the depth stencil view
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view = RESOURCE_VIEW::textured2d_DSV(DXGI_FORMAT_D32_FLOAT);
+	// update the depth stencil view
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view = RESOURCE_VIEW::textured2d_DSV(DXGI_FORMAT_D32_FLOAT);
 
-		mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv_view, mDSVHeap->GetCPUDescriptorHandleForHeapStart());
-	}
+	mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv_view, mDSVHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 std::vector<DemoCube2::VertexPosColor> DemoCube2::cpu_vertex_buffer()

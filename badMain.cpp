@@ -197,7 +197,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		app.run();
 
-		demo1->unload_content();
 		app.shutdown();
 	}
 	catch (const std::exception& e)

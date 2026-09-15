@@ -12,7 +12,7 @@
 #include "RenderWindow.h"
 #include "ViewPtr.h"
 #include "IGame.h"
-#include "Events.h"
+#include "ApplicationStateManager.h"
 
 
 struct AppWinDesc
@@ -58,19 +58,14 @@ public:
 	HWND           get_hwnd() const noexcept;
 	RenderWindow*  get_render_window() const noexcept;
 	CommandQueue*  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept;
-	const Events& get_events() const noexcept { return mEvents; }
+	const AppState& get_state_manager() const noexcept { return mState; }
 
 	inline void set_game(ViewPtr<IGame> game) noexcept { mGame = game; }
+	inline void exit_loop() noexcept { mRunning = false; }
+
 	void run();
 
 protected:
-
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);
-
-	void init_device(IDXGIFactory4* factory4, IDXGIAdapter4* adapter4);
-	void init_command_queues();
-	void init_HWND(const AppWinDesc& window_desc);
-	void init_swap_chain(IDXGIFactory4* factory4, DWORD window_style);
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -105,9 +100,10 @@ private:
 	HWND mHwnd = nullptr;
 	std::unique_ptr<RenderWindow>       mRenderWindow = nullptr;
 
-	Events mEvents{};
+	AppState mState{};
 
 	ViewPtr<IGame> mGame;
 
-	bool dx12_initalised = false;
+	bool mInitialised = false;
+	bool mRunning = false;
 };
