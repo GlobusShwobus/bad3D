@@ -5,6 +5,7 @@
 #include <wrl/client.h>
 #include "Resource.h"
 #include <assert.h>
+#include <utility>
 
 #include "EasyDirectX.h"
 #include "EasyDirectXUtils.h"
@@ -20,18 +21,29 @@ public:
 
 		const SIZE_T type_size = sizeof(vertex);
 		const SIZE_T element_count = buffer.size();
+		const UINT64 byte_size = element_count * type_size;
 
-		auto intermediary = mVertexBuffer.load(
+
+		auto resource = Resource::create_commited(
+			device,
+			HEAP_PROPERTY::base(),
+			RESOURCE_DESC::buffer(byte_size),
+			D3D12_RESOURCE_STATE_COMMON
+		);
+
+		mVertexBuffer = std::move(VertexBuffer{std::move(resource), element_count, type_size});
+
+		auto intermediary = copy_buffer_to_resource_and_get_intermediary(
 			device,
 			cl,
+			mVertexBuffer.get(),
 			buffer.data(),
-			element_count,
-			type_size
+			byte_size
 		);
 
 		mVertexBufferView = RESOURCE_VIEW::vertex(
 			mVertexBuffer.get()->GetGPUVirtualAddress(),
-			element_count * type_size,
+			byte_size,
 			type_size
 		);
 
@@ -48,9 +60,9 @@ public:
 
 private:
 
-	CommittedResource mVertexBuffer;
+	VertexBuffer mVertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW mVertexBufferView = {};
 
-	CommittedResource mIndexBuffer;
+	IndexBuffer mIndexBuffer;
 	D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
 };
