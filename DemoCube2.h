@@ -16,7 +16,7 @@
 #include "RenderWindow.h"
 
 #include "Mesh.h"
-
+#include "Resource.h"
 
 class DemoCube2 :public IGame
 {
@@ -47,8 +47,23 @@ protected:
 	// Resize the depth buffer to match the size of the client area.
 	void resize_depth_buffer(int width, int height);
 
-	std::vector<VertexPosColor> cpu_vertex_buffer();
-	std::vector<WORD> cpu_index_buffer();
+	std::vector<VertexPosColor> pyramid_vertex();
+	std::vector<WORD> pyramid_index();
+
+	std::vector<VertexPosColor> cube_vertex();
+	std::vector<WORD> cube_index();
+
+	std::vector<VertexPosColor> tetrahedron_vertex();
+	std::vector<WORD> tetrahedron_index();
+
+	std::vector<VertexPosColor> octahedron_vertex();
+	std::vector<WORD> octahedron_index();
+
+	std::vector<VertexPosColor> prism_vertex();
+	std::vector<WORD> prism_index();
+
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> prepare_buffers(ID3D12Device4* device, ID3D12GraphicsCommandList2* list);
+
 private:
 	FLOAT color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
@@ -57,7 +72,9 @@ private:
 	ViewPtr<RenderWindow>  mWindow;
 
 	// CPU side cube data
-	Mesh mCubeMesh;
+	VertexBuffer mVertexBuffer;
+	IndexBuffer mIndexBuffer;
+	Mesh mMeshViews[5];
 
 	// depth buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;

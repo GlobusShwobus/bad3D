@@ -7,6 +7,7 @@
 #include <d3dcompiler.h>
 #include "EasyDirectX.h"
 #include "EasyDirectXUtils.h"
+#include <array>
 
 DemoCube2::DemoCube2()
 {
@@ -34,19 +35,8 @@ void DemoCube2::load_content()
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
 
-	// create vertex buffer then copy CPU side data to it then make view handle
-	auto vertex_upload_resource = mCubeMesh.load_vertex_buffer(
-		mDevice.get(),
-		copy_command_list.command_list.Get(),
-		cpu_vertex_buffer()
-	);
-
-	// create index buffer then copy CPU side data to it then make handle
-	auto index_upload_resource = mCubeMesh.load_index_buffer(
-		mDevice.get(),
-		copy_command_list.command_list.Get(),
-		cpu_index_buffer()
-	);
+	// prepare mesh
+	auto uploads = prepare_buffers(mDevice.get(), copy_command_list.command_list.Get());
 
 	// create the descriptor heap for the depth stencil view
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESCRIPTOR_HEAP_DESC::DSV(1);
@@ -112,7 +102,7 @@ void DemoCube2::load_content()
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
 	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	pipelineStateStream.Rasterizer = RASTERIZER_DESC::wireframe();
+	pipelineStateStream.Rasterizer = RASTERIZER_DESC::solid_backcull();
 	pipelineStateStream.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
 	pipelineStateStream.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -202,8 +192,7 @@ void DemoCube2::on_update()
 		{
 			float offsetX = (i - 2) * spacing; // centers the row: -2,-1,0,1,2 * spacing
 			DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(offsetX, 0.0f, 0.0f);
-			//mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
-			mModelMatrix[i] = translation;
+			mModelMatrix[i] = DirectX::XMMatrixMultiply(rotation, translation);
 		}
 
 		// Update the view matrix.
@@ -244,28 +233,31 @@ void DemoCube2::on_render()
 		command_context.clear_RTV(buffer_desc, color);
 		command_context.clear_DSV(dsv_desc, 1.0f);
 
+		// THIS STUFF IS SET ONCE
 		// pre stuff, in this case vertex and pixel shaders stuff
 		command_list->SetPipelineState(mPipelineState.Get());
 		command_list->SetGraphicsRootSignature(mRootSignature.Get());
 		// input assembler
 		command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		command_list->IASetVertexBuffers(0, 1, &mCubeMesh.vertex_view());
-		command_list->IASetIndexBuffer(&mCubeMesh.index_view());
 		// rasteriser state
 		command_list->RSSetViewports(1, &mViewport);
 		command_list->RSSetScissorRects(1, &mScissorRect);
 		// output merger state
 		command_list->OMSetRenderTargets(1, &buffer_desc, FALSE, &dsv_desc);
-
 		// root constants
 		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
 		command_list->SetGraphicsRoot32BitConstants(0, matrix_32bit_value_count, &mViewMatrix, 0);
 		command_list->SetGraphicsRoot32BitConstants(1, matrix_32bit_value_count, &mProjectionMatrix, 0);
 
+		// THIS STUFF IS PER OBJECT
 		for (int i = 0; i < 5; ++i)
 		{
+			auto& mesh = mMeshViews[i];
+
+			command_list->IASetVertexBuffers(0, 1, &mesh.get_vertex_view());
+			command_list->IASetIndexBuffer(&mesh.get_index_view());
 			command_list->SetGraphicsRoot32BitConstants(2, matrix_32bit_value_count, &mModelMatrix[i], 0);
-			command_list->DrawIndexedInstanced(mCubeMesh.index_count(), 1, 0, 0, 0);
+			command_list->DrawIndexedInstanced(mesh.get_index_count(), 1, 0, 0, 0);
 		}
 
 		// present
@@ -394,7 +386,29 @@ void DemoCube2::resize_depth_buffer(int width, int height)
 	mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv_view, mDSVHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
-std::vector<DemoCube2::VertexPosColor> DemoCube2::cpu_vertex_buffer()
+std::vector<DemoCube2::VertexPosColor> DemoCube2::pyramid_vertex()
+{
+	return std::vector<VertexPosColor>{
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0 base
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 1 base
+		{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }, // 2 base
+		{ DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3 base
+		{ DirectX::XMFLOAT3(0.0f,  1.0f,  0.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }  // 4 apex	
+	};
+}
+
+std::vector<WORD> DemoCube2::pyramid_index()
+{
+	return std::vector<WORD>{
+		0, 3, 2, 0, 2, 1,
+			0, 1, 4,
+			1, 2, 4,
+			2, 3, 4,
+			3, 0, 4
+	};
+}
+
+std::vector<DemoCube2::VertexPosColor> DemoCube2::cube_vertex()
 {
 	return std::vector<VertexPosColor>{
 		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
@@ -408,7 +422,7 @@ std::vector<DemoCube2::VertexPosColor> DemoCube2::cpu_vertex_buffer()
 	};
 }
 
-std::vector<WORD> DemoCube2::cpu_index_buffer()
+std::vector<WORD> DemoCube2::cube_index()
 {
 	return std::vector<WORD>{
 		0, 1, 2, 0, 2, 3,
@@ -420,21 +434,173 @@ std::vector<WORD> DemoCube2::cpu_index_buffer()
 	};
 }
 
-// PYRAMID
-// 
-//	mCubeMesh = Mesh<VertexPosColor>{
-//{ // pos / color
-//	{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0 base
-//	{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 1 base
-//	{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }, // 2 base
-//	{ DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3 base
-//	{ DirectX::XMFLOAT3(0.0f,  1.0f,  0.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) }  // 4 apex
-//},
-//{ // index
-//	0, 3, 2,  0, 2, 1,   // base quad
-//	0, 1, 4,             // side (left/back-left)
-//	1, 2, 4,             // side (back-right)
-//	2, 3, 4,             // side (right/front-right)
-//	3, 0, 4              // side (front)
-//}
-//	};
+std::vector<DemoCube2::VertexPosColor> DemoCube2::tetrahedron_vertex()
+{
+	return std::vector<VertexPosColor>{
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
+		{ DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),  DirectX::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 1
+		{ DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),  DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }, // 2
+		{ DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 1.0f) }  // 3
+	};
+}
+
+std::vector<WORD> DemoCube2::tetrahedron_index()
+{
+	return std::vector<WORD>{
+		0, 1, 2,
+			0, 2, 3,
+			0, 3, 1,
+			1, 3, 2
+	};
+}
+
+std::vector<DemoCube2::VertexPosColor> DemoCube2::octahedron_vertex()
+{
+	return std::vector<VertexPosColor>{
+		{ DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f), DirectX::XMFLOAT3(0.5f, 1.0f, 0.5f) }, // 0 top
+		{ DirectX::XMFLOAT3(1.0f,  0.0f,  0.0f), DirectX::XMFLOAT3(1.0f, 0.5f, 0.5f) }, // 1 +x
+		{ DirectX::XMFLOAT3(0.0f,  0.0f,  1.0f), DirectX::XMFLOAT3(0.5f, 0.5f, 1.0f) }, // 2 +z
+		{ DirectX::XMFLOAT3(-1.0f, 0.0f,  0.0f), DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f) }, // 3 -x
+		{ DirectX::XMFLOAT3(0.0f,  0.0f, -1.0f), DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f) }, // 4 -z
+		{ DirectX::XMFLOAT3(0.0f, -1.0f,  0.0f), DirectX::XMFLOAT3(0.5f, 0.0f, 0.5f) }  // 5 bottom
+	};
+}
+
+std::vector<WORD> DemoCube2::octahedron_index()
+{
+	return std::vector<WORD>{
+		0, 1, 2,
+			0, 2, 3,
+			0, 3, 4,
+			0, 4, 1,
+			5, 2, 1,
+			5, 3, 2,
+			5, 4, 3,
+			5, 1, 4
+	};
+}
+
+std::vector<DemoCube2::VertexPosColor> DemoCube2::prism_vertex()
+{
+	return std::vector<VertexPosColor>{
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0 front-left
+		{ DirectX::XMFLOAT3(1.0f,  -1.0f, -1.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 1 front-right
+		{ DirectX::XMFLOAT3(0.0f,   1.0f, -1.0f), DirectX::XMFLOAT3(0.5f, 1.0f, 0.0f) }, // 2 front-top
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 3 back-left
+		{ DirectX::XMFLOAT3(1.0f,  -1.0f,  1.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f) }, // 4 back-right
+		{ DirectX::XMFLOAT3(0.0f,   1.0f,  1.0f), DirectX::XMFLOAT3(0.5f, 1.0f, 1.0f) }  // 5 back-top
+	};
+}
+
+std::vector<WORD> DemoCube2::prism_index()
+{
+	return std::vector<WORD>{
+		0, 2, 1, 
+			3, 4, 5, 
+			0, 1, 4,
+			0, 4, 3,
+			1, 2, 5,
+			1, 5, 4,
+			2, 0, 3,
+			2, 3, 5
+	};
+}
+
+std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(ID3D12Device4* device, ID3D12GraphicsCommandList2* list)
+{
+	// setup variables
+	const UINT PER_VERTEX_SIZE = sizeof(VertexPosColor);
+	const UINT PER_INDEX_SIZE = sizeof(WORD);
+	const DXGI_FORMAT INDEX_BUFFER_FORMAT = DXGI_FORMAT_R16_UINT;
+
+	struct ShapeData
+	{
+		std::vector<VertexPosColor> vertices;
+		std::vector<WORD> indices;
+	};
+
+	std::array<ShapeData, 5> shapes = {
+		ShapeData{ pyramid_vertex(),     pyramid_index() },
+		ShapeData{ cube_vertex(),        cube_index() },
+		ShapeData{ tetrahedron_vertex(), tetrahedron_index() },
+		ShapeData{ octahedron_vertex(),  octahedron_index() },
+		ShapeData{ prism_vertex(),       prism_index() },
+	};
+
+	// calculate the total size in bytes for all shapes per vertex and per index buffers
+	UINT vertex_bytes = 0;
+	UINT index_bytes = 0;
+	for (const auto& shape : shapes)
+	{
+		vertex_bytes += (static_cast<UINT>(shape.vertices.size()) * PER_VERTEX_SIZE);
+		index_bytes += (static_cast<UINT>(shape.indices.size()) * PER_INDEX_SIZE);
+	}
+
+	// create vertex buffer
+	Resource vertex_resource = Resource::create_commited(
+		device,
+		HEAP_PROPERTY::base(),
+		RESOURCE_DESC::buffer(vertex_bytes),
+		D3D12_RESOURCE_STATE_COMMON
+	);
+	mVertexBuffer = std::move(VertexBuffer{ std::move(vertex_resource), PER_VERTEX_SIZE });
+
+	// create index buffer
+	Resource index_resource = Resource::create_commited(
+		device,
+		HEAP_PROPERTY::base(),
+		RESOURCE_DESC::buffer(index_bytes),
+		D3D12_RESOURCE_STATE_COMMON
+	);
+	mIndexBuffer = std::move(IndexBuffer{ std::move(index_resource), DXGI_FORMAT_R16_UINT });
+
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> intermediaries;
+	
+	// after creating resources with the exact size required to store all shapes 2 more steps are required
+	// 1) make a sub view of a specific shape. a range in other words
+	// 2) upload the data to the GPU side
+	// to achieve both tracking of bytes is required
+	UINT64 vertex_buffer_offset = 0;
+	UINT64 index_buffer_offset = 0;
+	for (int i=0;i<shapes.size();i++)
+	{
+		auto& vertex_buffer = shapes[i].vertices;
+		auto& index_buffer = shapes[i].indices;
+		auto& mesh = mMeshViews[i];
+
+		const UINT64 vertex_bytes = vertex_buffer.size() * PER_VERTEX_SIZE;
+		const UINT64 index_bytes = index_buffer.size() * PER_INDEX_SIZE;
+
+		mesh = Mesh{ViewPtr<VertexBuffer>(&mVertexBuffer), ViewPtr<IndexBuffer>(&mIndexBuffer)};
+
+		mesh.set_vertex_view(vertex_buffer_offset, vertex_bytes);
+		mesh.set_index_view(index_buffer_offset, index_bytes, index_buffer.size());
+
+		intermediaries.emplace_back(
+			copy_buffer_to_resource_and_get_intermediary(
+				device,
+				list,
+				mVertexBuffer.get(),
+				vertex_buffer_offset,
+				vertex_buffer.data(),
+				vertex_bytes
+			)
+		);
+
+		intermediaries.emplace_back(
+			copy_buffer_to_resource_and_get_intermediary(
+				device,
+				list,
+				mIndexBuffer.get(),
+				index_buffer_offset,
+				index_buffer.data(),
+				index_bytes
+			)
+		);
+
+		vertex_buffer_offset += vertex_bytes;
+		index_buffer_offset += index_bytes;
+	}
+
+	return intermediaries;
+}

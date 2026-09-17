@@ -1,68 +1,45 @@
 #pragma once
 
-#include <vector>
 #include <d3d12.h>
 #include <wrl/client.h>
-#include "Resource.h"
-#include <assert.h>
-#include <utility>
 
-#include "EasyDirectX.h"
-#include "EasyDirectXUtils.h"
+#include "ViewPtr.h"
+#include "Resource.h"
+
 class Mesh
 {
 public:
 
-	template <typename vertex>
-	Microsoft::WRL::ComPtr<ID3D12Resource> load_vertex_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const std::vector<vertex>& buffer)
+	Mesh() = default;
+	Mesh(ViewPtr<VertexBuffer> vertex_buffer, ViewPtr<IndexBuffer> index_buffer)
+		:mVertexBuffer(vertex_buffer), mIndexBuffer(index_buffer)
 	{
-		assert(device && "nullptr");
-		assert(cl && "nullptr");
-
-		const SIZE_T type_size = sizeof(vertex);
-		const SIZE_T element_count = buffer.size();
-		const UINT64 byte_size = element_count * type_size;
-
-
-		auto resource = Resource::create_commited(
-			device,
-			HEAP_PROPERTY::base(),
-			RESOURCE_DESC::buffer(byte_size),
-			D3D12_RESOURCE_STATE_COMMON
-		);
-
-		mVertexBuffer = std::move(VertexBuffer{std::move(resource), element_count, type_size});
-
-		auto intermediary = copy_buffer_to_resource_and_get_intermediary(
-			device,
-			cl,
-			mVertexBuffer.get(),
-			buffer.data(),
-			byte_size
-		);
-
-		mVertexBufferView = RESOURCE_VIEW::vertex(
-			mVertexBuffer.get()->GetGPUVirtualAddress(),
-			byte_size,
-			type_size
-		);
-
-		return intermediary;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> load_index_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const std::vector<WORD>& buffer);
+	void set_vertex_view(UINT byte_position, UINT byte_count)
+	{
+		mVertexView = mVertexBuffer->create_subview(byte_position, byte_count);
+	}
 
+	void set_index_view(UINT byte_position, UINT byte_count, UINT element_count)
+	{
+		mIndexView = mIndexBuffer->create_subview(byte_position, byte_count);
+		mIndexCount = element_count;
+	}
 
-	const D3D12_VERTEX_BUFFER_VIEW& vertex_view() const noexcept { return mVertexBufferView; }
-	const D3D12_INDEX_BUFFER_VIEW& index_view() const noexcept { return mIndexBufferView; }
-	
-	const SIZE_T index_count() const noexcept { return mIndexBuffer.count(); }
+	const D3D12_VERTEX_BUFFER_VIEW& get_vertex_view() const noexcept { return mVertexView; }
+	const D3D12_INDEX_BUFFER_VIEW& get_index_view() const noexcept { return mIndexView; }
+	UINT get_index_count() const noexcept { return mIndexCount; }
+
+	VertexBuffer* vertex_buffer() noexcept { return mVertexBuffer.get(); }
+	IndexBuffer* index_buffer() noexcept { return mIndexBuffer.get(); }
 
 private:
 
-	VertexBuffer mVertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW mVertexBufferView = {};
+	ViewPtr<VertexBuffer> mVertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW mVertexView;
 
-	IndexBuffer mIndexBuffer;
-	D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
+	ViewPtr<IndexBuffer> mIndexBuffer;
+	D3D12_INDEX_BUFFER_VIEW mIndexView;
+	UINT mIndexCount;
 };
