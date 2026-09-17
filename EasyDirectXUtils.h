@@ -30,7 +30,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 	ID3D12Resource* dest,
 	UINT64 dest_offset, 
 	const void* data,
-	SIZE_T byte_size
+	UINT64 byte_size
 );
 
 Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);

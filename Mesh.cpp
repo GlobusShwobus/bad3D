@@ -1,36 +1,25 @@
 #include "Mesh.h"
 
-//	#include <assert.h>
-//	#include <utility>
-//	#include "EasyDirectXUtils.h"
-//	Mesh::Mesh(VertexBuffer vertex_buffer, IndexBuffer index_buffer)
-//		:mVertexBuffer(std::move(vertex_buffer)), mIndexBuffer(std::move(index_buffer))
-//	{
-//	}
-//	
-//	Microsoft::WRL::ComPtr<ID3D12Resource> Mesh::upload_to_index_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, const std::vector<WORD>& buffer)
-//	{
-//		if (buffer.empty())
-//			return nullptr;
-//		else
-//			return upload_to_buffer(device, cl, mIndexBuffer.get(), buffer.data(), buffer.size(), sizeof(WORD));
-//	}
-//	
-//	Microsoft::WRL::ComPtr<ID3D12Resource> Mesh::upload_to_buffer(ID3D12Device4* device, ID3D12GraphicsCommandList2* cl, ID3D12Resource* dest, const void* data, UINT64 element_count, UINT type_size)
-//	{
-//		assert(device && "nullptr");
-//		assert(cl && "nullptr");
-//	
-//		const UINT64 byte_size = element_count * type_size;
-//	
-//		auto intermediary = copy_buffer_to_resource_and_get_intermediary(
-//			device,
-//			cl,
-//			dest,
-//			data,
-//			byte_size
-//		);
-//	
-//		return intermediary;
-//	}
-//	
+#include <assert.h>
+
+Mesh::Mesh(ViewPtr<VertexBuffer> vertex_buffer, ViewPtr<IndexBuffer> index_buffer)
+	:Mesh(vertex_buffer, 0, vertex_buffer->size_in_bytes(), index_buffer, 0, index_buffer->size_in_bytes())
+{
+}
+
+Mesh::Mesh(
+	ViewPtr<VertexBuffer> vertex_buffer,
+	UINT64 vertex_byte_position,
+	UINT vertex_byte_count,
+	ViewPtr<IndexBuffer> index_buffer,
+	UINT64 index_byte_position,
+	UINT index_byte_count
+)
+	:mVertexBuffer(vertex_buffer), mIndexBuffer(index_buffer)
+{
+	assert(mVertexBuffer && mVertexBuffer.get() && "nullptr");
+	assert(mIndexBuffer && mIndexBuffer.get() && "nullptr");
+
+	mVertexView = mVertexBuffer->create_subview(vertex_byte_position, vertex_byte_count);
+	mIndexView = mIndexBuffer->create_subview(index_byte_position, index_byte_count);
+}

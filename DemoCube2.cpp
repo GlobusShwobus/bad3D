@@ -537,22 +537,10 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 	}
 
 	// create vertex buffer
-	Resource vertex_resource = Resource::create_commited(
-		device,
-		HEAP_PROPERTY::base(),
-		RESOURCE_DESC::buffer(vertex_bytes),
-		D3D12_RESOURCE_STATE_COMMON
-	);
-	mVertexBuffer = std::move(VertexBuffer{ std::move(vertex_resource), PER_VERTEX_SIZE });
+	mVertexBuffer = VertexBuffer{device, vertex_bytes, PER_VERTEX_SIZE };
 
 	// create index buffer
-	Resource index_resource = Resource::create_commited(
-		device,
-		HEAP_PROPERTY::base(),
-		RESOURCE_DESC::buffer(index_bytes),
-		D3D12_RESOURCE_STATE_COMMON
-	);
-	mIndexBuffer = std::move(IndexBuffer{ std::move(index_resource), DXGI_FORMAT_R16_UINT });
+	mIndexBuffer = IndexBuffer{ device, index_bytes, DXGI_FORMAT_R16_UINT };
 
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> intermediaries;
 	
@@ -568,13 +556,17 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 		auto& index_buffer = shapes[i].indices;
 		auto& mesh = mMeshViews[i];
 
-		const UINT64 vertex_bytes = vertex_buffer.size() * PER_VERTEX_SIZE;
-		const UINT64 index_bytes = index_buffer.size() * PER_INDEX_SIZE;
+		const UINT vertex_bytes = static_cast<UINT>(vertex_buffer.size()) * PER_VERTEX_SIZE; // cast because d3d12 itself isnt consistent
+		const UINT index_bytes = static_cast<UINT>(index_buffer.size()) * PER_INDEX_SIZE;
 
-		mesh = Mesh{ViewPtr<VertexBuffer>(&mVertexBuffer), ViewPtr<IndexBuffer>(&mIndexBuffer)};
-
-		mesh.set_vertex_view(vertex_buffer_offset, vertex_bytes);
-		mesh.set_index_view(index_buffer_offset, index_bytes, index_buffer.size());
+		mesh = Mesh{
+			ViewPtr<VertexBuffer>(&mVertexBuffer),
+			vertex_buffer_offset,
+			vertex_bytes,
+			ViewPtr<IndexBuffer>(&mIndexBuffer), 
+			index_buffer_offset, 
+			index_bytes 
+		};
 
 		intermediaries.emplace_back(
 			copy_buffer_to_resource_and_get_intermediary(

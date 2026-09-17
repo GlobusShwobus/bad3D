@@ -5,11 +5,10 @@
 #include <assert.h>
 #include <utility>
 
-Resource Resource::create_commited(ID3D12Device4* device, const D3D12_HEAP_PROPERTIES& heap_properties, const D3D12_RESOURCE_DESC& resource_desc, D3D12_RESOURCE_STATES initial_state, D3D12_HEAP_FLAGS flags, const D3D12_CLEAR_VALUE* optimized_clear_value)
+Resource::Resource(ID3D12Device4* device, const D3D12_HEAP_PROPERTIES& heap_properties, const D3D12_RESOURCE_DESC& resource_desc, D3D12_RESOURCE_STATES initial_state, D3D12_HEAP_FLAGS flags, const D3D12_CLEAR_VALUE* optimized_clear_value)
+    :mState(initial_state)
 {
     assert(device && "nullptr");
-
-    Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
     execute_and_test_hresult(
         device->CreateCommittedResource(
@@ -18,11 +17,14 @@ Resource Resource::create_commited(ID3D12Device4* device, const D3D12_HEAP_PROPE
             &resource_desc,
             initial_state,
             optimized_clear_value,
-            IID_PPV_ARGS(&resource)
+            IID_PPV_ARGS(&mResource)
         )
     );
+}
 
-    return Resource(std::move(resource), resource_desc, initial_state);
+D3D12_RESOURCE_DESC Resource::desc() const
+{
+    return mResource->GetDesc();
 }
 
 D3D12_RESOURCE_STATES Resource::exchange_state(D3D12_RESOURCE_STATES after) noexcept
@@ -44,31 +46,64 @@ void Resource::transition_state(ID3D12GraphicsCommandList2* list, D3D12_RESOURCE
     mState = after;
 }
 
-Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_RESOURCE_DESC& desc, D3D12_RESOURCE_STATES state) noexcept
-    : mResource(std::move(resource)), mDesc(desc), mState(state)
+VertexBuffer::VertexBuffer(ID3D12Device4* device, UINT64 byte_size, UINT element_type_size)
 {
-}
-
-VertexBuffer::VertexBuffer(Resource resource, UINT element_type_size) noexcept
-    : mResource(std::move(resource))
-{
-    assert(mResource.desc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && "invalid buffer");
+    mResource = Resource{
+            device,
+            HEAP_PROPERTY::base(),
+            RESOURCE_DESC::buffer(byte_size),
+            D3D12_RESOURCE_STATE_COMMON
+    };
 
     mView = D3D12_VERTEX_BUFFER_VIEW{
         mResource.get()->GetGPUVirtualAddress(),
-        static_cast<UINT>(mResource.desc().Width),
-        static_cast<UINT>(element_type_size)
+        static_cast<UINT>(byte_size), // why the fuck does id3d12 need UINT64 for desc but UINT for size???
+        element_type_size
     };
 }
 
-IndexBuffer::IndexBuffer(Resource resource, DXGI_FORMAT format) noexcept
-    : mResource(std::move(resource))
+D3D12_VERTEX_BUFFER_VIEW VertexBuffer::create_subview(UINT64 byte_position, UINT byte_count) const noexcept
+{
+    D3D12_VERTEX_BUFFER_VIEW subview = {};
+
+    if ((byte_position + byte_count) <= mView.SizeInBytes)
+    {
+        subview.BufferLocation = mView.BufferLocation + byte_position;
+        subview.SizeInBytes = byte_count;
+        subview.StrideInBytes = mView.StrideInBytes;
+    }
+
+    return subview;
+}
+
+IndexBuffer::IndexBuffer(ID3D12Device4* device, UINT64 byte_size, DXGI_FORMAT format) noexcept
 {
     assert(format == DXGI_FORMAT_R16_UINT || format == DXGI_FORMAT_R32_UINT && "invalid format");
-    assert(mResource.desc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && "invalid buffer");
+
+    mResource = Resource{
+        device,
+        HEAP_PROPERTY::base(),
+        RESOURCE_DESC::buffer(byte_size),
+        D3D12_RESOURCE_STATE_COMMON
+    };
+
     mView = D3D12_INDEX_BUFFER_VIEW{
          mResource.get()->GetGPUVirtualAddress(),
-         static_cast<UINT>(mResource.desc().Width),
+         static_cast<UINT>(byte_size),
          format
     };
+}
+
+D3D12_INDEX_BUFFER_VIEW IndexBuffer::create_subview(UINT64 byte_position, UINT byte_count) const noexcept
+{
+    D3D12_INDEX_BUFFER_VIEW subview = {};
+
+    if ((byte_position + byte_count) <= mView.SizeInBytes)
+    {
+        subview.BufferLocation = mView.BufferLocation + byte_position;
+        subview.SizeInBytes = byte_count;
+        subview.Format = mView.Format;
+    }
+
+    return subview;
 }

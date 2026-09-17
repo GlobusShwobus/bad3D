@@ -46,7 +46,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(ID3D12Device4* dev
 	return resource;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(ID3D12Device4* device, ID3D12GraphicsCommandList2* command_list, ID3D12Resource* dest, UINT64 dest_offset, const void* data, SIZE_T byte_size)
+Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(ID3D12Device4* device, ID3D12GraphicsCommandList2* command_list, ID3D12Resource* dest, UINT64 dest_offset, const void* data, UINT64 byte_size)
 {
 	assert(device && "nullptr");
 	assert(command_list && "nullptr");

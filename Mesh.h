@@ -11,35 +11,30 @@ class Mesh
 public:
 
 	Mesh() = default;
-	Mesh(ViewPtr<VertexBuffer> vertex_buffer, ViewPtr<IndexBuffer> index_buffer)
-		:mVertexBuffer(vertex_buffer), mIndexBuffer(index_buffer)
-	{
-	}
-
-	void set_vertex_view(UINT byte_position, UINT byte_count)
-	{
-		mVertexView = mVertexBuffer->create_subview(byte_position, byte_count);
-	}
-
-	void set_index_view(UINT byte_position, UINT byte_count, UINT element_count)
-	{
-		mIndexView = mIndexBuffer->create_subview(byte_position, byte_count);
-		mIndexCount = element_count;
-	}
+	Mesh(ViewPtr<VertexBuffer> vertex_buffer, ViewPtr<IndexBuffer> index_buffer);
+	Mesh(
+		ViewPtr<VertexBuffer> vertex_buffer,
+		UINT64 vertex_byte_position,
+		UINT vertex_byte_count,
+		ViewPtr<IndexBuffer> index_buffer,
+		UINT64 index_byte_position,
+		UINT index_byte_count
+	);
 
 	const D3D12_VERTEX_BUFFER_VIEW& get_vertex_view() const noexcept { return mVertexView; }
 	const D3D12_INDEX_BUFFER_VIEW& get_index_view() const noexcept { return mIndexView; }
-	UINT get_index_count() const noexcept { return mIndexCount; }
+	UINT get_index_count() const noexcept {
+		return mIndexView.SizeInBytes / IndexBuffer::index_stride_from_format(mIndexView.Format);
+	}
 
 	VertexBuffer* vertex_buffer() noexcept { return mVertexBuffer.get(); }
 	IndexBuffer* index_buffer() noexcept { return mIndexBuffer.get(); }
 
 private:
 
-	ViewPtr<VertexBuffer> mVertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW mVertexView;
+	ViewPtr<VertexBuffer> mVertexBuffer = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW mVertexView = {};
 
-	ViewPtr<IndexBuffer> mIndexBuffer;
-	D3D12_INDEX_BUFFER_VIEW mIndexView;
-	UINT mIndexCount;
+	ViewPtr<IndexBuffer> mIndexBuffer = nullptr;
+	D3D12_INDEX_BUFFER_VIEW mIndexView = {};
 };
