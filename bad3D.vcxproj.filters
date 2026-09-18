@@ -24,12 +24,6 @@
     <ClCompile Include="badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="IWin32Window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RenderWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,13 +51,13 @@
     <ClCompile Include="Resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="badWin32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Stopwatch.h">
       <Filter>memes</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="ViewPtr.h">
       <Filter>Source Files</Filter>
@@ -75,9 +69,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandQueue.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IWin32Window.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Application.h">
@@ -110,10 +101,10 @@
     <ClInclude Include="Resource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationStateManager.h">
+    <ClInclude Include="KeyTypes.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="KeyTypes.h">
+    <ClInclude Include="AppState.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

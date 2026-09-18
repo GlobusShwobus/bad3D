@@ -1,6 +1,6 @@
-#include "IWin32Window.h"
+#include "badWin32.h"
 
-HWND IWin32Window::create_window(LPCWSTR name, int x, int y, int window_width, int window_height, DWORD window_style ) noexcept
+HWND IWin32Window::create_window(LPCWSTR name, int x, int y, int window_width, int window_height, DWORD window_style) noexcept
 {
     WNDCLASSEX register_info = get_class_register_info();
     register_info.lpfnWndProc = IWin32Window::wnd_proc;

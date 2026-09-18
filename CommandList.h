@@ -5,7 +5,7 @@
 #include "EasyDirectX.h"
 #include <assert.h>
 
-// DONT LIKE IT!!!! pairing allocator and list is fine, but idk what to do about the methods. maybe the guides storing allocator via internal data is the right way
+// meme class for now
 
 struct CommandList
 {

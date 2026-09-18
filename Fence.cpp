@@ -1,5 +1,5 @@
 #include "Fence.h"
-#include "Utils.h"
+#include "EasyDirectXUtils.h"
 #include <assert.h>
 #include <utility>
 

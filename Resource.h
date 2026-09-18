@@ -71,7 +71,6 @@ public:
         return mView.SizeInBytes / index_stride_from_format(mView.Format);
     }
 
-
     const D3D12_INDEX_BUFFER_VIEW& view() const noexcept { return mView; }
     D3D12_INDEX_BUFFER_VIEW create_subview(UINT64 byte_position, UINT byte_count) const noexcept;
 

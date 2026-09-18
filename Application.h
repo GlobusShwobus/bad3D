@@ -2,7 +2,6 @@
 
 #include "badWin32.h"
 #include <d3d12.h>
-#include <dxgi1_6.h>
 #include <wrl/client.h>
 
 #include <memory>
@@ -12,8 +11,7 @@
 #include "RenderWindow.h"
 #include "ViewPtr.h"
 #include "IGame.h"
-#include "ApplicationStateManager.h"
-
+#include "AppState.h"
 
 struct AppWinDesc
 {
@@ -100,7 +98,7 @@ private:
 	HWND mHwnd = nullptr;
 	std::unique_ptr<RenderWindow>       mRenderWindow = nullptr;
 
-	AppState mState{};
+	AppState mState;
 
 	ViewPtr<IGame> mGame;
 

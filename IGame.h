@@ -1,5 +1,4 @@
 #pragma once
-#include "badWin32.h"
 
 class IGame
 {

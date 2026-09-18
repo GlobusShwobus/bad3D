@@ -7,8 +7,8 @@
 #include "DemoCube2.h"
 
 #include "ViewPtr.h"
-#include "Utils.h"
 #include <fstream>
+#include "EasyDirectXUtils.h"
 
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()

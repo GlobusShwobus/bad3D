@@ -1,6 +1,9 @@
 #include "RenderWindow.h"
-#include "Utils.h"
+
+#include <assert.h>
 #include <utility>
+
+#include "EasyDirectXUtils.h"
 
 RenderWindow::RenderWindow(
 	ViewPtr<ID3D12Device4> device,
@@ -27,8 +30,8 @@ RenderWindow::RenderWindow(
 	// query the true size of the client window then create the description for the swap chain
 	RECT client_rect;
 	::GetClientRect(hwnd.get(), &client_rect);
-	const UINT width = static_cast<UINT>(client_rect.right - client_rect.left);
-	const UINT height = static_cast<UINT>(client_rect.bottom - client_rect.top);
+	const UINT width = static_cast<UINT>(rect_width(client_rect));
+	const UINT height = static_cast<UINT>(rect_height(client_rect));
 
 	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
 	swap_chain_desc.Width                 = width;

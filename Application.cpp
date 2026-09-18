@@ -1,8 +1,9 @@
 #include "Application.h"
-#include "Utils.h"
+#include <dxgi1_6.h>
+#include "EasyDirectXUtils.h"
 #include <assert.h>
 #include "Stopwatch.h"
-#include "EasyDirectXUtils.h"
+#include "KeyTypes.h"
 Application::~Application()
 {
 	assert(!mInitialised && "Application::shutdown() was not called before exit");

@@ -1,5 +1,8 @@
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -34,3 +37,12 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 );
 
 Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);
+
+void throw_error_code_translation(DWORD error_code);
+void execute_and_test_hresult(HRESULT hr);
+void execute_and_test_BOOL(BOOL b);
+
+template <typename TypeRect>
+constexpr auto rect_width(const TypeRect& rect) noexcept { return rect.right - rect.left; }
+template <typename TypeRect>
+constexpr auto rect_height(const TypeRect& rect) noexcept { return rect.bottom - rect.top; }

@@ -155,6 +155,7 @@ dxgi.lib
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="badMain.cpp" />
+    <ClCompile Include="badWin32.cpp" />
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="DemoCube2.cpp" />
     <ClCompile Include="DescriptorHeap.cpp" />
@@ -162,9 +163,7 @@ dxgi.lib
     <ClCompile Include="Fence.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="RenderWindow.cpp" />
-    <ClCompile Include="IWin32Window.cpp" />
     <ClCompile Include="Resource.cpp" />
-    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
@@ -174,18 +173,16 @@ dxgi.lib
     <ClInclude Include="DemoCube2.h" />
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="EasyDirectXUtils.h" />
-    <ClInclude Include="ApplicationStateManager.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="EasyDirectX.h" />
     <ClInclude Include="KeyTypes.h" />
     <ClInclude Include="RenderWindow.h" />
     <ClInclude Include="IGame.h" />
-    <ClInclude Include="IWin32Window.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="AppState.h" />
     <ClInclude Include="ViewPtr.h" />
     <ClInclude Include="Stopwatch.h" />
-    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="DemoCube2VS.hlsl">

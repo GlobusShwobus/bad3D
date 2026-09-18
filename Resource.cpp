@@ -1,25 +1,25 @@
 #include "Resource.h"
-#include "EasyDirectX.h"
-#include "Utils.h"
 
 #include <assert.h>
-#include <utility>
+
+#include "EasyDirectX.h"
+#include "EasyDirectXUtils.h"
 
 Resource::Resource(ID3D12Device4* device, const D3D12_HEAP_PROPERTIES& heap_properties, const D3D12_RESOURCE_DESC& resource_desc, D3D12_RESOURCE_STATES initial_state, D3D12_HEAP_FLAGS flags, const D3D12_CLEAR_VALUE* optimized_clear_value)
     :mState(initial_state)
 {
     assert(device && "nullptr");
 
-    execute_and_test_hresult(
-        device->CreateCommittedResource(
-            &heap_properties,
-            flags,
-            &resource_desc,
-            initial_state,
-            optimized_clear_value,
-            IID_PPV_ARGS(&mResource)
-        )
+    mResource = create_commited_resource(
+        device,
+        heap_properties,
+        resource_desc,
+        initial_state,
+        flags,
+        optimized_clear_value
     );
+
+    assert(mResource && "nullptr");
 }
 
 D3D12_RESOURCE_DESC Resource::desc() const
@@ -76,7 +76,7 @@ D3D12_VERTEX_BUFFER_VIEW VertexBuffer::create_subview(UINT64 byte_position, UINT
     return subview;
 }
 
-IndexBuffer::IndexBuffer(ID3D12Device4* device, UINT64 byte_size, DXGI_FORMAT format) noexcept
+IndexBuffer::IndexBuffer(ID3D12Device4* device, UINT64 byte_size, DXGI_FORMAT format)
 {
     assert(format == DXGI_FORMAT_R16_UINT || format == DXGI_FORMAT_R32_UINT && "invalid format");
 
