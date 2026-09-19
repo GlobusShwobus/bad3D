@@ -10,24 +10,8 @@
 #include "App/IGame.h"
 #include "App/AppState.h"
 #include "D3D12/CommandQueue.h"
-#include "D3D12/RenderWindow.h"
+#include "D3D12/SwapChain.h"
 #include "Tools/ViewPtr.h"
-
-struct AppWinDesc
-{
-	std::wstring window_name;
-	DWORD window_style = 0;
-	HINSTANCE hInstance = nullptr;
-
-	HICON hIcon = nullptr;
-	HICON hIconSm = nullptr;
-	HCURSOR hCursor = nullptr;
-
-	int x = 0;
-	int y = 0;
-	int cw = 0;
-	int ch = 0;
-};
 
 class Application final
 {
@@ -47,14 +31,24 @@ public:
 		return sInstance;
 	}
 
-	void    initialise(AppWinDesc window_desc);
+	void initialise(
+		std::wstring window_name,
+		HINSTANCE hInstance,
+		UINT x,
+		UINT y,
+		UINT width,
+		UINT height,
+		HICON hIcon = nullptr,
+		HICON hIconSm = nullptr,
+		HCURSOR hCursor = nullptr
+	);
 	void    shutdown();
 
 	void flush();
 
 	ID3D12Device4* get_device() const noexcept;
 	HWND           get_hwnd() const noexcept;
-	RenderWindow*  get_render_window() const noexcept;
+	SwapChain*     get_swap_chain() const noexcept;
 	CommandQueue*  get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept;
 	const AppState& get_state_manager() const noexcept { return mState; }
 
@@ -96,7 +90,7 @@ private:
 	std::unique_ptr<CommandQueue>   mCopyCommandQueue = nullptr;
 
 	HWND mHwnd = nullptr;
-	std::unique_ptr<RenderWindow>       mRenderWindow = nullptr;
+	std::unique_ptr<SwapChain>       mSwapChain = nullptr;
 
 	AppState mState;
 

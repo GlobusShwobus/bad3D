@@ -24,7 +24,7 @@
     <ClCompile Include="src\badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\RenderWindow.cpp">
+    <ClCompile Include="src\D3D12\SwapChain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\Fence.cpp">
@@ -77,7 +77,7 @@
     <ClInclude Include="src\App\Application.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\RenderWindow.h">
+    <ClInclude Include="src\D3D12\SwapChain.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\badWin32.h">

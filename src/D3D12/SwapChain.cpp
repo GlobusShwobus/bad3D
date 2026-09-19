@@ -1,11 +1,11 @@
-#include "D3D12/RenderWindow.h"
+#include "D3D12/SwapChain.h"
 
 #include <assert.h>
 #include <utility>
 
 #include "D3D12/EasyDirectXUtils.h"
 
-RenderWindow::RenderWindow(
+SwapChain::SwapChain(
 	ViewPtr<ID3D12Device4> device,
 	ViewPtr<HWND__> hwnd,
 	ID3D12CommandQueue* command_queue,
@@ -76,7 +76,7 @@ RenderWindow::RenderWindow(
 	update_back_buffers();
 }
 
-UINT64 RenderWindow::present_to_display(UINT64 signal)
+UINT64 SwapChain::present_to_display(UINT64 signal)
 {
 	// determine sync interval and flags
 	UINT syncInterval = mIsVSync ? 1 : 0;
@@ -93,7 +93,7 @@ UINT64 RenderWindow::present_to_display(UINT64 signal)
 	return mBackBufferCompletionTrackers[mCurrentBufferIndex];
 }
 
-void RenderWindow::resize(CommandQueue& queue, UINT client_width, UINT client_height)
+void SwapChain::resize(CommandQueue& queue, UINT client_width, UINT client_height)
 {
 	// flush first
 	queue.flush_execution();
@@ -130,22 +130,22 @@ void RenderWindow::resize(CommandQueue& queue, UINT client_width, UINT client_he
 	update_back_buffers();
 }
 
-void RenderWindow::toggle_fullscreen(bool fullscreen)
+void SwapChain::toggle_fullscreen(bool fullscreen)
 {
 	mScreenToggle.toggle_window_to(mHwnd.get(), fullscreen);
 }
 
-ID3D12Resource* RenderWindow::get_buffer() const
+ID3D12Resource* SwapChain::get_buffer() const
 {
 	return mBackBuffers[mCurrentBufferIndex].Get();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE RenderWindow::get_buffer_desc()const
+D3D12_CPU_DESCRIPTOR_HANDLE SwapChain::get_buffer_desc()const
 {
 	return mDescHeap.descriptor_at(mCurrentBufferIndex);
 }
 
-void RenderWindow::update_back_buffers()
+void SwapChain::update_back_buffers()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.descriptor_begin();
 	const UINT stride = mDescHeap.stride();
@@ -163,7 +163,7 @@ void RenderWindow::update_back_buffers()
 	}
 }
 
-void RenderWindow::ScreenToggle::toggle_window_to( HWND hwnd, bool mode )
+void SwapChain::ScreenToggle::toggle_window_to( HWND hwnd, bool mode )
 {
 	if (is_fullscreen == mode)
 		return;

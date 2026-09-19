@@ -9,7 +9,7 @@
 #include "D3D12/DescriptorHeap.h"
 #include "D3D12/CommandQueue.h"
 
-class RenderWindow final
+class SwapChain final
 {
 	static constexpr UINT back_buffer_count = 3;
 
@@ -24,7 +24,7 @@ class RenderWindow final
 
 public:
 
-	RenderWindow(
+	SwapChain(
 		ViewPtr<ID3D12Device4> device,
 		ViewPtr<HWND__> hwnd,
 		ID3D12CommandQueue* command_queue,
@@ -32,12 +32,10 @@ public:
 		DWORD window_style = WS_OVERLAPPEDWINDOW
 	);
 
-	RenderWindow(const RenderWindow&) = delete;
-	RenderWindow& operator=(const RenderWindow&) = delete;
-	RenderWindow(RenderWindow&&) = delete;
-	RenderWindow& operator=(RenderWindow&&) = delete;
-
-	virtual ~RenderWindow() = default;
+	SwapChain(const SwapChain&) = delete;
+	SwapChain& operator=(const SwapChain&) = delete;
+	SwapChain(SwapChain&&) = delete;
+	SwapChain& operator=(SwapChain&&) = delete;
 
 	UINT64 present_to_display(UINT64 signal);
 	void resize(CommandQueue& queue, UINT client_width, UINT client_height);

@@ -172,20 +172,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	UINT x, y;
 	find_centered_pos(1280, 720, x,y);
 
-	AppWinDesc winDesc;
-	winDesc.window_name = L"Demo";
-	winDesc.window_style = WS_OVERLAPPEDWINDOW;
-	winDesc.x = x;
-	winDesc.y = y;
-	winDesc.cw = 1280;
-	winDesc.ch = 720;
-	winDesc.hInstance = hInstance;
-
 	std::unique_ptr<IGame> demo1 = std::make_unique<DemoCube2>();
 	try {
 		auto& app = Application::instance();
 
-		app.initialise(winDesc);
+		app.initialise(
+			L"Demo", hInstance, x, y, 1280, 720
+		);
 
 		//write_my_root_sig_to_file1(app.get_device());
 

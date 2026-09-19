@@ -29,7 +29,7 @@ void DemoCube2::load_content()
 
 	mDevice = ViewPtr{ app.get_device() };
 	mDireectCommandQueue = ViewPtr{ app.get_command_queue(D3D12_COMMAND_LIST_TYPE_DIRECT) };
-	mWindow = ViewPtr{ app.get_render_window() };
+	mSwapChain = ViewPtr{ app.get_swap_chain() };
 
 	auto copy_command_queue = app.get_command_queue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto copy_command_list = copy_command_queue->acquire_command_list();
@@ -125,7 +125,7 @@ void DemoCube2::load_content()
 	mScissorRect = D3D12_RECT{ 0,0,LONG_MAX, LONG_MAX };
 
 	// viewport rect is responsible for saying where to write to but it should not be outside the RT
-	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(mWindow->get_buffer_width()), static_cast<float>(mWindow->get_buffer_height()), 0.0f, 1.0f };
+	mViewport = D3D12_VIEWPORT{ 0.0f, 0.0f, static_cast<float>(mSwapChain->get_buffer_width()), static_cast<float>(mSwapChain->get_buffer_height()), 0.0f, 1.0f };
 
 	// represents the vertical vield of view of the camera (it looks like a cone but not really, it kind of scales shit instead)
 	mFOV = 45.0f;
@@ -134,7 +134,7 @@ void DemoCube2::load_content()
 	camZ = -10;
 
 	// resize/ create the depth buffer
-	resize_depth_buffer(mWindow->get_buffer_width(), mWindow->get_buffer_height());
+	resize_depth_buffer(mSwapChain->get_buffer_width(), mSwapChain->get_buffer_height());
 
 	mRunning = true;
 }
@@ -146,7 +146,7 @@ void DemoCube2::unload_content()
 
 	mDevice = nullptr;
 	mDireectCommandQueue = nullptr;
-	mWindow = nullptr;
+	mSwapChain = nullptr;
 
 	mDepthBuffer.Reset();
 	mDSVHeap.Reset();
@@ -201,8 +201,8 @@ void DemoCube2::on_update()
 		mViewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
 		// update the proj matrix
-		UINT client_width = mWindow->get_buffer_width();
-		UINT client_height = mWindow->get_buffer_height();
+		UINT client_width = mSwapChain->get_buffer_width();
+		UINT client_height = mSwapChain->get_buffer_height();
 
 		client_height = std::max(1u, client_height);
 		float aspectRatio = client_width / static_cast<float>(client_height);
@@ -221,8 +221,8 @@ void DemoCube2::on_render()
 	{
 		auto command_context = mDireectCommandQueue->acquire_command_list();
 		ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
-		ID3D12Resource* current_back_buffer = mWindow->get_buffer();
-		D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mWindow->get_buffer_desc();
+		ID3D12Resource* current_back_buffer = mSwapChain->get_buffer();
+		D3D12_CPU_DESCRIPTOR_HANDLE buffer_desc = mSwapChain->get_buffer_desc();
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 
 		command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -262,10 +262,10 @@ void DemoCube2::on_render()
 		// present
 		command_context.transition(current_back_buffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-		const UINT64 current_index = mWindow->get_buffer_index();
+		const UINT64 current_index = mSwapChain->get_buffer_index();
 		const UINT64 signal_val = mDireectCommandQueue->execute(command_context);
 
-		UINT64 next_buffer_signal = mWindow->present_to_display(signal_val);
+		UINT64 next_buffer_signal = mSwapChain->present_to_display(signal_val);
 
 		mDireectCommandQueue->wait_CPU(next_buffer_signal);
 	}
@@ -276,12 +276,12 @@ void DemoCube2::on_resize(int w, int h)
 	w = std::max(1, w);
 	h = std::max(1, h);
 
-	const UINT buffer_width = mWindow->get_buffer_width();
-	const UINT buffer_height = mWindow->get_buffer_height();
+	const UINT buffer_width = mSwapChain->get_buffer_width();
+	const UINT buffer_height = mSwapChain->get_buffer_height();
 
 	if (buffer_width != w || buffer_height != h)
 	{
-		mWindow->resize(*mDireectCommandQueue, w, h);
+		mSwapChain->resize(*mDireectCommandQueue, w, h);
 
 		// this demo specific:
 		mViewport = D3D12_VIEWPORT{ 0.0f,0.0f, static_cast<float>(w), static_cast<float>(h), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
@@ -305,7 +305,7 @@ void DemoCube2::kb_resolve()
 	if (f11_current && !f11_previous)
 	{
 		fullscreen = !fullscreen;
-		mWindow->toggle_fullscreen(fullscreen);
+		mSwapChain->toggle_fullscreen(fullscreen);
 	}
 
 	f11_previous = f11_current;

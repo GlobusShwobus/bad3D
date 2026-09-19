@@ -13,7 +13,7 @@
 
 #include "Tools/Stopwatch.h"
 #include "D3D12/CommandQueue.h"
-#include "D3D12/RenderWindow.h"
+#include "D3D12/SwapChain.h"
 
 #include "Model/Mesh.h"
 #include "D3D12/Resource.h"
@@ -69,7 +69,7 @@ private:
 
 	ViewPtr<ID3D12Device4> mDevice;
 	ViewPtr<CommandQueue>  mDireectCommandQueue;
-	ViewPtr<RenderWindow>  mWindow;
+	ViewPtr<SwapChain>     mSwapChain;
 
 	// CPU side cube data
 	VertexBuffer mVertexBuffer;

@@ -11,7 +11,17 @@ Application::~Application()
 	assert(!mInitialised && "Application::shutdown() was not called before exit");
 }
 
-void Application::initialise(AppWinDesc window_desc)
+void Application::initialise(
+	std::wstring window_name,
+	HINSTANCE hInstance,
+	UINT x,
+	UINT y,
+	UINT width,
+	UINT height,
+	HICON hIcon,
+	HICON hIconSm,
+	HCURSOR hCursor
+)
 {
 	if (mInitialised)
 		return;
@@ -94,11 +104,11 @@ void Application::initialise(AppWinDesc window_desc)
 	register_desc.cbSize = sizeof(WNDCLASSEX);
 	register_desc.lpszClassName = L"DX12RenderWindow";
 	register_desc.lpfnWndProc = Application::wnd_proc;
-	register_desc.hInstance = window_desc.hInstance;
+	register_desc.hInstance = hInstance;
 	register_desc.style = CS_HREDRAW | CS_VREDRAW;
-	register_desc.hIcon = window_desc.hIcon;
-	register_desc.hIconSm = window_desc.hIconSm;
-	register_desc.hCursor = window_desc.hCursor;
+	register_desc.hIcon = hIcon;
+	register_desc.hIconSm = hIconSm;
+	register_desc.hCursor = hCursor;
 	register_desc.hbrBackground = nullptr;
 	register_desc.lpszMenuName = nullptr;
 	register_desc.cbClsExtra = 0;
@@ -108,9 +118,9 @@ void Application::initialise(AppWinDesc window_desc)
 	assert(atom > 0);
 
 	// adjust client size to window size and create the window
-	RECT window_rect{ static_cast<LONG>(window_desc.x), static_cast<LONG>(window_desc.y),
-					   static_cast<LONG>(window_desc.x + window_desc.cw), static_cast<LONG>(window_desc.y + window_desc.ch) };
-	::AdjustWindowRect(&window_rect, window_desc.window_style, FALSE);
+	RECT window_rect{ static_cast<LONG>(x), static_cast<LONG>(y),
+					   static_cast<LONG>(x + width), static_cast<LONG>(y + height) };
+	::AdjustWindowRect(&window_rect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	const int win_x = static_cast<int>(std::max<LONG>(window_rect.left, 0));
 	const int win_y = static_cast<int>(std::max<LONG>(window_rect.top, 0));
@@ -120,8 +130,8 @@ void Application::initialise(AppWinDesc window_desc)
 	mHwnd = CreateWindowExW(
 		NULL,
 		register_desc.lpszClassName,
-		window_desc.window_name.c_str(),
-		window_desc.window_style,
+		window_name.c_str(),
+		WS_OVERLAPPEDWINDOW,
 		win_x,
 		win_y,
 		win_w,
@@ -135,15 +145,15 @@ void Application::initialise(AppWinDesc window_desc)
 	assert(mHwnd && "window nullptr");
 
 	// make swap chain
-	mRenderWindow = std::make_unique<RenderWindow>(
+	mSwapChain = std::make_unique<SwapChain>(
 		ViewPtr<ID3D12Device4>{mDevice.Get()},
 		ViewPtr<HWND__>{mHwnd},
 		mDirectCommandQueue->get_queue(),
 		factory4.Get(),
-		window_desc.window_style
+		WS_OVERLAPPEDWINDOW
 	);
 
-	assert(mRenderWindow && "swap chain nullptr");
+	assert(mSwapChain && "swap chain nullptr");
 
 	// disable alt + enter because fullscreen / windowed transitions are manual
 	execute_and_test_hresult(
@@ -170,7 +180,7 @@ void Application::shutdown()
 	mGame = nullptr;
 
 	// destroy the swap cahin before HWND and before GPU command queues (in case the swap chain would reference command queues in the future)
-	mRenderWindow.reset();
+	mSwapChain.reset();
 
 	// destroy the command queues
 	mDirectCommandQueue.reset();
@@ -309,9 +319,9 @@ HWND Application::get_hwnd() const noexcept
 { 
 	return mHwnd; 
 }
-RenderWindow* Application::get_render_window() const noexcept 
+SwapChain* Application::get_swap_chain() const noexcept 
 {
-	return mRenderWindow.get();
+	return mSwapChain.get();
 }
 CommandQueue* Application::get_command_queue(D3D12_COMMAND_LIST_TYPE type) const noexcept
 {
