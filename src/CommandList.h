@@ -1,9 +1,13 @@
 #pragma once
 
+#include <assert.h>
+
 #include <d3d12.h>
 #include <wrl/client.h>
-#include "EasyDirectX.h"
-#include <assert.h>
+
+
+#include "D3D12/EasyDirectX.h"
+
 
 // meme class for now
 

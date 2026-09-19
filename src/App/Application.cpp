@@ -1,9 +1,11 @@
 #include "Application.h"
-#include <dxgi1_6.h>
-#include "EasyDirectXUtils.h"
+
 #include <assert.h>
-#include "Stopwatch.h"
-#include "KeyTypes.h"
+#include <dxgi1_6.h>
+
+#include "D3D12/EasyDirectXUtils.h"
+#include "Tools/Stopwatch.h"
+
 Application::~Application()
 {
 	assert(!mInitialised && "Application::shutdown() was not called before exit");
@@ -206,7 +208,7 @@ void Application::run()
 	Stopwatch clock;
 	while (mRunning)
 	{
-		update_other_events(clock.dt_float());
+		update_other_events(clock.delta());
 
 		MSG msg = {};
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))

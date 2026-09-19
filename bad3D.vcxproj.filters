@@ -21,98 +21,104 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="badMain.cpp">
+    <ClCompile Include="src\badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RenderWindow.cpp">
+    <ClCompile Include="src\D3D12\RenderWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Fence.cpp">
+    <ClCompile Include="src\D3D12\Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp">
+    <ClCompile Include="src\App\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CommandQueue.cpp">
+    <ClCompile Include="src\D3D12\CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DescriptorHeap.cpp">
+    <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DemoCube2.cpp">
+    <ClCompile Include="src\Demo\DemoCube2.cpp">
       <Filter>demos</Filter>
     </ClCompile>
-    <ClCompile Include="EasyDirectXUtils.cpp">
+    <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
+    <ClCompile Include="src\Model\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Resource.cpp">
+    <ClCompile Include="src\D3D12\Resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="badWin32.cpp">
+    <ClCompile Include="src\App\badWin32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\ModelBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Stopwatch.h">
+    <ClInclude Include="src\Tools\Stopwatch.h">
       <Filter>memes</Filter>
     </ClInclude>
-    <ClInclude Include="ViewPtr.h">
+    <ClInclude Include="src\Tools\ViewPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="IGame.h">
+    <ClInclude Include="src\App\IGame.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Fence.h">
+    <ClInclude Include="src\D3D12\Fence.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommandQueue.h">
+    <ClInclude Include="src\D3D12\CommandQueue.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Application.h">
+    <ClInclude Include="src\App\Application.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderWindow.h">
+    <ClInclude Include="src\D3D12\RenderWindow.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="badWin32.h">
+    <ClInclude Include="src\App\badWin32.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommandList.h">
+    <ClInclude Include="src\CommandList.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="EasyDirectX.h">
+    <ClInclude Include="src\D3D12\EasyDirectX.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DescriptorHeap.h">
+    <ClInclude Include="src\D3D12\DescriptorHeap.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
+    <ClInclude Include="src\Model\Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="EasyDirectXUtils.h">
+    <ClInclude Include="src\D3D12\EasyDirectXUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DemoCube2.h">
+    <ClInclude Include="src\Demo\DemoCube2.h">
       <Filter>demos</Filter>
     </ClInclude>
-    <ClInclude Include="Resource.h">
+    <ClInclude Include="src\D3D12\Resource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="KeyTypes.h">
+    <ClInclude Include="src\App\AppState.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="AppState.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Tools\Random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\ModelBuffer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="DemoCube2VS.hlsl">
+    <FxCompile Include="hlsl\DemoCube2VS.hlsl">
       <Filter>Header Files</Filter>
     </FxCompile>
-    <FxCompile Include="DemoCube2PS.hlsl">
+    <FxCompile Include="hlsl\DemoCube2PS.hlsl">
       <Filter>Header Files</Filter>
     </FxCompile>
   </ItemGroup>

@@ -70,14 +70,31 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ShowIncludes>false</ShowIncludes>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,8 +112,9 @@ dxgi.lib
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ShowIncludes>false</ShowIncludes>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -117,7 +135,7 @@ dxgi.lib
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
@@ -141,7 +159,7 @@ dxgi.lib
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
@@ -153,39 +171,41 @@ dxgi.lib
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp" />
-    <ClCompile Include="badMain.cpp" />
-    <ClCompile Include="badWin32.cpp" />
-    <ClCompile Include="CommandQueue.cpp" />
-    <ClCompile Include="DemoCube2.cpp" />
-    <ClCompile Include="DescriptorHeap.cpp" />
-    <ClCompile Include="EasyDirectXUtils.cpp" />
-    <ClCompile Include="Fence.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="RenderWindow.cpp" />
-    <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="src\App\Application.cpp" />
+    <ClCompile Include="src\badMain.cpp" />
+    <ClCompile Include="src\App\badWin32.cpp" />
+    <ClCompile Include="src\D3D12\CommandQueue.cpp" />
+    <ClCompile Include="src\Demo\DemoCube2.cpp" />
+    <ClCompile Include="src\D3D12\DescriptorHeap.cpp" />
+    <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp" />
+    <ClCompile Include="src\D3D12\Fence.cpp" />
+    <ClCompile Include="src\Model\ModelBuffer.cpp" />
+    <ClCompile Include="src\Model\Mesh.cpp" />
+    <ClCompile Include="src\D3D12\RenderWindow.cpp" />
+    <ClCompile Include="src\D3D12\Resource.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h" />
-    <ClInclude Include="badWin32.h" />
-    <ClInclude Include="CommandList.h" />
-    <ClInclude Include="CommandQueue.h" />
-    <ClInclude Include="DemoCube2.h" />
-    <ClInclude Include="DescriptorHeap.h" />
-    <ClInclude Include="EasyDirectXUtils.h" />
-    <ClInclude Include="Fence.h" />
-    <ClInclude Include="EasyDirectX.h" />
-    <ClInclude Include="KeyTypes.h" />
-    <ClInclude Include="RenderWindow.h" />
-    <ClInclude Include="IGame.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Resource.h" />
-    <ClInclude Include="AppState.h" />
-    <ClInclude Include="ViewPtr.h" />
-    <ClInclude Include="Stopwatch.h" />
+    <ClInclude Include="src\App\Application.h" />
+    <ClInclude Include="src\App\badWin32.h" />
+    <ClInclude Include="src\CommandList.h" />
+    <ClInclude Include="src\D3D12\CommandQueue.h" />
+    <ClInclude Include="src\Demo\DemoCube2.h" />
+    <ClInclude Include="src\D3D12\DescriptorHeap.h" />
+    <ClInclude Include="src\D3D12\EasyDirectXUtils.h" />
+    <ClInclude Include="src\D3D12\Fence.h" />
+    <ClInclude Include="src\D3D12\EasyDirectX.h" />
+    <ClInclude Include="src\D3D12\RenderWindow.h" />
+    <ClInclude Include="src\App\IGame.h" />
+    <ClInclude Include="src\Model\ModelBuffer.h" />
+    <ClInclude Include="src\Model\Mesh.h" />
+    <ClInclude Include="src\D3D12\Resource.h" />
+    <ClInclude Include="src\App\AppState.h" />
+    <ClInclude Include="src\Tools\Random.h" />
+    <ClInclude Include="src\Tools\ViewPtr.h" />
+    <ClInclude Include="src\Tools\Stopwatch.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="DemoCube2VS.hlsl">
+    <FxCompile Include="hlsl\DemoCube2VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
@@ -195,7 +215,7 @@ dxgi.lib
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
     </FxCompile>
-    <FxCompile Include="DemoCube2PS.hlsl">
+    <FxCompile Include="hlsl\DemoCube2PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>

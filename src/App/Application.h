@@ -1,17 +1,17 @@
 #pragma once
 
-#include "badWin32.h"
-#include <d3d12.h>
-#include <wrl/client.h>
-
 #include <memory>
 #include <string>
 
-#include "CommandQueue.h"
-#include "RenderWindow.h"
-#include "ViewPtr.h"
-#include "IGame.h"
-#include "AppState.h"
+#include <d3d12.h>
+#include <wrl/client.h>
+
+#include "App/badWin32.h"
+#include "App/IGame.h"
+#include "App/AppState.h"
+#include "D3D12/CommandQueue.h"
+#include "D3D12/RenderWindow.h"
+#include "Tools/ViewPtr.h"
 
 struct AppWinDesc
 {

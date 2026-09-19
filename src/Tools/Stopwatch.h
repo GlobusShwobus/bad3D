@@ -1,8 +1,10 @@
 #pragma once
-#include <chrono>
-#include <concepts>
 
-/// <summary> Basic wrapper around std::chrono only doing time measurements. </summary>
+#include <concepts>
+#include <chrono>
+
+// This class gives only delta times from the last time a method was called.
+
 class Stopwatch final
 {
 	using Valuesec = std::chrono::duration<double>;
@@ -11,48 +13,39 @@ class Stopwatch final
 	using Nanosec  = std::chrono::nanoseconds;
 
 public:
-	/// <summary> Intializes time measurements. Internally calls std::chrono::steady_clock::now() </summary>
 	explicit Stopwatch()noexcept
 		:time_point(std::chrono::steady_clock::now())
 	{
 	}
 
-	/// <returns> Difference between now and then in double </returns>
-	inline double dt_float() noexcept
+	inline double delta() noexcept
 	{
 		return std::chrono::duration_cast<Valuesec>(elapsed()).count();
 	}
 
-	/// <returns> Difference between now and then in size_t milliseconds </returns>
-	inline std::size_t dt_millisec() noexcept
+	inline std::size_t millisec() noexcept
 	{
 		return std::chrono::duration_cast<Millisec>(elapsed()).count();
 	}
 
-	/// <returns> Difference between now and then in size_t microseconds </returns>
-	inline std::size_t dt_microsec() noexcept
+	inline std::size_t microsec() noexcept
 	{
 		return std::chrono::duration_cast<Microsec>(elapsed()).count();
 	}
 
-	/// <returns> Difference between now and then in size_t nanoseconds </returns>
-	inline std::size_t dt_nanosec() noexcept
+	inline std::size_t nanosec() noexcept
 	{
 		return std::chrono::duration_cast<Nanosec>(elapsed()).count();
 	}
 
-	/// <summary> Sets the stopwatch to std::chrono::steady_clock::now() </summary>
 	inline void reset()noexcept
 	{
 		time_point = std::chrono::steady_clock::now();
 	}
 
 protected:
-	/// <summary>
-	/// Measures the difference between now and the last time this function was called.
-	/// </summary>
-	/// <returns> std::steady_clock::duration difference between now and then</returns>
-	std::chrono::steady_clock::duration elapsed()noexcept
+
+	inline std::chrono::steady_clock::duration elapsed() noexcept
 	{
 		const auto old = time_point;
 		time_point = std::chrono::steady_clock::now();
@@ -81,12 +74,12 @@ auto time_my_func(Func&& func, Args&&... args)
 	if constexpr (std::is_void_v<std::invoke_result_t<Func, Args...>>)
 	{
 		std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
-		return timer.dt_float();
+		return timer.delta();
 	}
 	else
 	{
 		auto result = std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
 
-		return std::pair{ timer.dt_float(), std::move(result) };
+		return std::pair{ timer.delta(), std::move(result) };
 	}
 }

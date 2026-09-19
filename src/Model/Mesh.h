@@ -3,8 +3,8 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include "ViewPtr.h"
-#include "Resource.h"
+#include "Tools/ViewPtr.h"
+#include "Model/ModelBuffer.h"
 
 class Mesh
 {

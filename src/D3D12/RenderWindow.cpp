@@ -1,9 +1,9 @@
-#include "RenderWindow.h"
+#include "D3D12/RenderWindow.h"
 
 #include <assert.h>
 #include <utility>
 
-#include "EasyDirectXUtils.h"
+#include "D3D12/EasyDirectXUtils.h"
 
 RenderWindow::RenderWindow(
 	ViewPtr<ID3D12Device4> device,

@@ -1,6 +1,12 @@
 #pragma once
 
-#include "KeyTypes.h"
+enum class MouseButtonType : unsigned int
+{
+    Left,
+    Right,
+    Middle,
+    Count
+};
 
 class SystemState
 {

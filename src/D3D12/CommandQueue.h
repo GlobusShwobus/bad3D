@@ -1,12 +1,14 @@
 #pragma once
 
+#include <queue>
+
 #include <d3d12.h>
 #include <wrl/client.h>
-#include "CommandList.h"
-#include "Fence.h"
 
-#include "ViewPtr.h"
-#include <queue>
+#include "D3D12/Fence.h"
+#include "Tools/ViewPtr.h"
+
+#include "CommandList.h"
 
 class CommandQueue final
 {

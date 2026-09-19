@@ -1,6 +1,6 @@
 #pragma once
 
-#include "badWin32.h"
+#include "App/badWin32.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -9,14 +9,14 @@
 #include <vector>
 
 
-#include "IGame.h"
+#include "App/IGame.h"
 
-#include "Stopwatch.h"
-#include "CommandQueue.h"
-#include "RenderWindow.h"
+#include "Tools/Stopwatch.h"
+#include "D3D12/CommandQueue.h"
+#include "D3D12/RenderWindow.h"
 
-#include "Mesh.h"
-#include "Resource.h"
+#include "Model/Mesh.h"
+#include "D3D12/Resource.h"
 
 class DemoCube2 :public IGame
 {

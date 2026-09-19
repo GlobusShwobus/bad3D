@@ -1,7 +1,9 @@
-#include "Fence.h"
-#include "EasyDirectXUtils.h"
+#include "D3D12/Fence.h"
+
 #include <assert.h>
 #include <utility>
+
+#include "D3D12/EasyDirectXUtils.h"
 
 Fence::Fence(ID3D12Device4* device, UINT64 initial_value, D3D12_FENCE_FLAGS flags)
 {

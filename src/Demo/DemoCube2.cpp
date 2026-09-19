@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-#include "Application.h"
+#include "App/Application.h"
 #include <d3dcompiler.h>
-#include "EasyDirectX.h"
-#include "EasyDirectXUtils.h"
+#include "D3D12/EasyDirectX.h"
+#include "D3D12/EasyDirectXUtils.h"
 #include <array>
 
 DemoCube2::DemoCube2()

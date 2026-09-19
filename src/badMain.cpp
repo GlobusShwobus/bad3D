@@ -1,15 +1,13 @@
 #include <sstream>
-
-#include "Stopwatch.h"
-
-#include "Application.h"
-
-#include "DemoCube2.h"
-
-#include "ViewPtr.h"
 #include <fstream>
-#include "EasyDirectXUtils.h"
 
+#include "Tools/Stopwatch.h"
+#include "Tools/ViewPtr.h"
+
+#include "App/Application.h"
+#include "D3D12/EasyDirectXUtils.h"
+
+#include "Demo/DemoCube2.h"
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{
@@ -84,11 +82,14 @@ void write_my_root_sig_to_file1(ID3D12Device4* device)
 	Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
-	execute_and_test_hresult(
-		D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob)
-	);
+	HRESULT hr = D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob);
+	if (FAILED(hr) && errorBlob)
+	{
+		OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+	}
+	execute_and_test_hresult(hr);
 
-
+	int x = 5;
 	std::ofstream file("DemoCubeRootSig.bin", std::ios::binary);
 	if (!file)
 	{
@@ -106,9 +107,6 @@ void write_my_root_sig_to_file1(ID3D12Device4* device)
 			"Failed to write root signature file"
 		};
 	}
-	//execute_and_test_hresult(
-	//	device->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature))
-	//);
 }
 
 void find_centered_pos(UINT client_width, UINT client_height, UINT& xOut, UINT& yOut)

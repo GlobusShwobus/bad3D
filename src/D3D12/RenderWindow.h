@@ -1,15 +1,13 @@
 #pragma once
 
-#include "badWin32.h"
-
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
-#include "DescriptorHeap.h"
-#include "ViewPtr.h"
-
-#include "CommandQueue.h"
+#include "App/badWin32.h"
+#include "Tools/ViewPtr.h"
+#include "D3D12/DescriptorHeap.h"
+#include "D3D12/CommandQueue.h"
 
 class RenderWindow final
 {

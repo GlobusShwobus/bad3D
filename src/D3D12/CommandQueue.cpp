@@ -1,6 +1,9 @@
-#include "CommandQueue.h"
-#include "EasyDirectXUtils.h"
+#include "D3D12/CommandQueue.h"
+
 #include <assert.h>
+
+#include "D3D12/EasyDirectXUtils.h"
+
 CommandQueue::CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
 	:mType(type), mFence(device.get(), mFenceValue)
 {
