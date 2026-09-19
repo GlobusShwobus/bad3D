@@ -162,7 +162,7 @@ void DemoCube2::on_update()
 	auto& app = Application::instance();
 	const auto& events = app.get_state_manager();
 
-	if (events.System().SystemQuitEvent())
+	if (events.system().is_system_quit())
 	{
 		mRunning = false;
 		app.exit_loop();
@@ -174,14 +174,14 @@ void DemoCube2::on_update()
 		kb_resolve();
 
 		// check if resize
-		if (events.System().WindowResizeEvent())
+		if (events.window().is_resized())
 		{
-			on_resize(events.System().WindowResizeWidth(), events.System().WindowResizeHeight());
+			on_resize(events.window().width(), events.window().height());
 		}
 
 
 		// update the model matrix
-		float angle = static_cast<float>(events.System().Age() * 90.0);
+		float angle = static_cast<float>(events.clock().age() * 90.0);
 		const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
 		DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
 
@@ -298,7 +298,7 @@ void DemoCube2::kb_resolve()
 	static bool f11_previous = false;
 
 
-	const bool* keys = events.Keyboard().GetKeys();
+	const bool* keys = events.keyboard().keys();
 
 	const bool f11_current = keys[VK_F11];
 
@@ -341,7 +341,7 @@ void DemoCube2::mouse_resolve()
 {
 	auto& app = Application::instance();
 	const auto& events = app.get_state_manager();
-	mFOV += events.Mouse().WheelDeltaNormalized();
+	mFOV += events.mouse().wheel().normalized();
 
 	if (mFOV < 1) // !!!!!!! crashes if fov is 0
 	{

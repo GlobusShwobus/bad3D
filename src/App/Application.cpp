@@ -239,60 +239,60 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		mState.System().SetQuitEvent();
+		mState.system().exit();
 		break;
 
 	case WM_SIZE:
 
 		if (wParam != SIZE_MINIMIZED)
 		{
-			mState.System().SetResizeEvent(LOWORD(lParam), HIWORD(lParam));
+			mState.window().resize(LOWORD(lParam), HIWORD(lParam));
 		}
 		break;
 
 	case WM_SYSKEYDOWN:
 	case WM_KEYDOWN:
-		mState.Keyboard().SetDown(wParam);
+		mState.keyboard().set_down(wParam);
 		break;
 
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-		mState.Keyboard().SetUp(wParam);
+		mState.keyboard().set_up(wParam);
 		break;
 
 	case WM_LBUTTONDOWN:
-		mState.Mouse().SetButtonDown(MouseButtonType::Left);
+		mState.mouse().button().set_down(MouseButtonType::Left);
 		break;
 	case WM_LBUTTONUP:
-		mState.Mouse().SetButtonUp(MouseButtonType::Left);
+		mState.mouse().button().set_up(MouseButtonType::Left);
 		break;
 	case WM_RBUTTONDOWN:
-		mState.Mouse().SetButtonDown(MouseButtonType::Right);
+		mState.mouse().button().set_down(MouseButtonType::Right);
 		break;
 	case WM_RBUTTONUP:
-		mState.Mouse().SetButtonUp(MouseButtonType::Right);
+		mState.mouse().button().set_up(MouseButtonType::Right);
 		break;
 	case WM_MBUTTONDOWN:
-		mState.Mouse().SetButtonDown(MouseButtonType::Middle);
+		mState.mouse().button().set_down(MouseButtonType::Middle);
 		break;
 	case WM_MBUTTONUP:
-		mState.Mouse().SetButtonUp(MouseButtonType::Middle);
+		mState.mouse().button().set_up(MouseButtonType::Middle);
 		break;
 	//case WM_XBUTTONDOWN:
 	//case WM_XBUTTONUP:
 	case WM_MOUSEWHEEL:
-		mState.Mouse().SetWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam), WHEEL_DELTA);
+		mState.mouse().wheel().set(GET_WHEEL_DELTA_WPARAM(wParam), WHEEL_DELTA);
 		break;
 	case WM_MOUSEMOVE:
 		{
 			int nx = ((int)(short)LOWORD(lParam));
 			int ny = ((int)(short)HIWORD(lParam));
-			int cx = mState.Mouse().PosX();
-			int cy = mState.Mouse().PosY();
+			int cx = mState.mouse().position().x();
+			int cy = mState.mouse().position().y();
 			
 			if (nx != cx || ny != cy) // because windows can generate WM_MOUSEMOVE even when mouse seems stationary
-				mState.Mouse().ResetHoverDuration();
-			mState.Mouse().SetPosition(nx,ny);
+				mState.mouse().hover().reset();
+			mState.mouse().position().set(nx,ny);
 		}
 		break;
 
@@ -305,10 +305,10 @@ LRESULT Application::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 void Application::update_other_events(double delta)
 {
-	mState.System().UpdateAge(delta);
-	mState.System().ResetResizeEvent();
-	mState.Mouse().UpdateHoverDuration(delta);
-	mState.Mouse().ResetWheelDelta();
+	mState.clock().update(delta);
+	mState.window().reset();
+	mState.mouse().hover().update(delta);
+	mState.mouse().wheel().reset();
 }
 
 ID3D12Device4* Application::get_device() const noexcept 

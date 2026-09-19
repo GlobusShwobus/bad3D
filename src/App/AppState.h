@@ -8,91 +8,155 @@ enum class MouseButtonType : unsigned int
     Count
 };
 
-class SystemState
+class ClockState
 {
 public:
-    // getters, viewed globally
-    constexpr double DeltaTime() const noexcept { return mDeltaAge; }
-    constexpr double Age() const noexcept { return mTotalAge; }
-    constexpr bool WindowResizeEvent() const noexcept { return mWindowResizeEvent; }
-    constexpr int  WindowResizeWidth() const noexcept { return mResizeWidth; }
-    constexpr int  WindowResizeHeight() const noexcept { return mResizeHeight; }
-    constexpr bool SystemQuitEvent() const noexcept { return mQuitEvent; }
+    constexpr double delta() const noexcept { return mDeltaAge; }
+    constexpr double age() const noexcept { return mTotalAge; }
 
-    // setters, only seen in app
-    constexpr void UpdateAge(double delta) noexcept { mTotalAge += delta; mDeltaAge = delta; }
-    constexpr void SetResizeEvent(int w, int h) noexcept { mWindowResizeEvent = true; mResizeWidth = w; mResizeHeight = h; }
-    constexpr void ResetResizeEvent() noexcept { mWindowResizeEvent = false; }
-    constexpr bool SetQuitEvent() noexcept { return mQuitEvent = true; }
+    constexpr void update(double delta) noexcept { mTotalAge += delta; mDeltaAge = delta; }
 
 private:
     double mDeltaAge = 0.0;
     double mTotalAge = 0.0;
+};
 
-    bool mWindowResizeEvent = false;
-    int mResizeWidth = 0;
-    int mResizeHeight = 0;
+class WindowState
+{
+public:
+    constexpr bool is_resized() const noexcept { return mEvent; }
+    constexpr int  width() const noexcept { return mWidth; }
+    constexpr int  height() const noexcept { return mHeight; }
 
-    bool mQuitEvent = false;
+    constexpr void resize(int w, int h) noexcept { mEvent = true; mWidth = w; mHeight = h; }
+    constexpr void reset() noexcept { mEvent = false; }
+
+private:
+    int mWidth = 0;
+    int mHeight = 0;
+    bool mEvent = false;
+};
+
+class SystemState
+{
+public:
+    // getters, viewed globally
+    constexpr bool is_system_quit() const noexcept { return mSysQuit; }
+
+    // setters, only seen in app
+    constexpr bool exit() noexcept { return mSysQuit = true; }
+
+private:
+    bool mSysQuit = false;
 };
 
 class KeyboardState
 {
 public:
     // getters, viewed globally
-    const bool* GetKeys() const noexcept { return mKeys; }
-    const bool IsKeyPressed(unsigned char key) const { return mKeys[key]; }
+    const bool* keys() const noexcept { return mKeys; }
+    const bool is_key_pressed(unsigned char key) const { return mKeys[key]; }
 
     // setters, only seen in app
-    constexpr void SetUp(unsigned long long param) noexcept { mKeys[param] = false; }
-    constexpr void SetDown(unsigned long long param) noexcept { mKeys[param] = true; }
+    constexpr void set_up(unsigned long long param) noexcept { mKeys[param] = false; }
+    constexpr void set_down(unsigned long long param) noexcept { mKeys[param] = true; }
 
 private:
     bool mKeys[256] = { false };
 };
 
-class MouseState
+class MousePos
 {
 public:
-    // getters
-    constexpr int PosX() const noexcept { return mPosX; }
-    constexpr int PosY() const noexcept { return mPosY; }
-    constexpr bool ButtonState(MouseButtonType button) const noexcept { return mButtons[(unsigned long long)(button)]; }
-    constexpr double HoverDuration() const noexcept { return mHoverDuration; }
-    constexpr int WheelDeltaUnits() const noexcept { return mWheelDelta; }
-    constexpr float WheelDeltaNormalized() const noexcept { return mWheelDeltaNormalized; }
+    constexpr int x() const noexcept { return mPosX; }
+    constexpr int y() const noexcept { return mPosY; }
 
-    // setters
-    constexpr void SetPosition(int x, int y) noexcept { mPosX = x; mPosY = y; }
-    constexpr void SetButtonUp(MouseButtonType button) noexcept { mButtons[(unsigned long long)(button)] = false; }
-    constexpr void SetButtonDown(MouseButtonType button) noexcept { mButtons[(unsigned long long)(button)] = true; }
-    constexpr void UpdateHoverDuration(double delta) noexcept { mHoverDuration += delta; }
-    constexpr void ResetHoverDuration() noexcept { mHoverDuration = 0.0f; }
-    constexpr void SetWheelDelta(int delta, int unit_delta_value) noexcept { mWheelDelta = delta; mWheelDeltaNormalized = delta / static_cast<float>(unit_delta_value); }
-    constexpr void ResetWheelDelta() noexcept { mWheelDelta = 0; mWheelDeltaNormalized = 0; }
+    constexpr void set(int x, int y) noexcept { mPosX = x; mPosY = y; }
 private:
     int mPosX = 0;
     int mPosY = 0;
-    bool mButtons[(unsigned long long)(MouseButtonType::Count)] = { false };
+};
+
+class MouseHover
+{
+public:
+    constexpr double duration() const noexcept { return mHoverDuration; }
+
+    constexpr void update(double delta) noexcept { mHoverDuration += delta; }
+    constexpr void reset() noexcept { mHoverDuration = 0.0f; }
+
+private:
     double mHoverDuration = 0.0;
+};
+
+class MouseWheel
+{
+public:
+    constexpr int units() const noexcept { return mWheelDelta; }
+    constexpr float normalized() const noexcept { return mWheelDeltaNormalized; }
+
+    constexpr void set(int delta, int unit_delta_value) noexcept { mWheelDelta = delta; mWheelDeltaNormalized = delta / static_cast<float>(unit_delta_value); }
+    constexpr void reset() noexcept { mWheelDelta = 0; mWheelDeltaNormalized = 0; }
+private:
+
     int mWheelDelta = 0;
     float mWheelDeltaNormalized = 0.0f;
+};
+
+class MouseButton
+{
+public:
+
+    constexpr bool is_down(MouseButtonType button) const noexcept { return mButtons[(unsigned long long)(button)] == true; }
+
+    constexpr void set_up(MouseButtonType button) noexcept { mButtons[(unsigned long long)(button)] = false; }
+    constexpr void set_down(MouseButtonType button) noexcept { mButtons[(unsigned long long)(button)] = true; }
+
+private:
+    bool mButtons[(unsigned long long)(MouseButtonType::Count)] = { false };
+};
+
+class MouseState
+{
+public:
+    constexpr const MousePos& position() const noexcept { return mPos; }
+    constexpr const MouseHover& hover() const noexcept { return mHover; }
+    constexpr const MouseWheel& wheel() const noexcept { return mWheel; }
+    constexpr const MouseButton& button() const noexcept { return mButton; }
+
+    constexpr MousePos& position() noexcept { return mPos; }
+    constexpr MouseHover& hover() noexcept { return mHover; }
+    constexpr MouseWheel& wheel() noexcept { return mWheel; }
+    constexpr MouseButton& button() noexcept { return mButton; }
+
+private:
+    MousePos mPos;
+    MouseHover mHover;
+    MouseWheel mWheel;
+    MouseButton mButton;
 };
 
 class AppState
 {
 public:
 
-    constexpr const SystemState& System() const noexcept { return mSysEvents; }
-    constexpr const KeyboardState& Keyboard() const noexcept { return mKeyEvents; }
-    constexpr const MouseState& Mouse() const noexcept { return mMouse; }
+    constexpr const ClockState& clock() const noexcept { return mClock; }
+    constexpr const WindowState& window() const noexcept { return mWindow; }
+    constexpr const SystemState& system() const noexcept { return mSystem; }
+    constexpr const KeyboardState& keyboard() const noexcept { return mKeys; }
+    constexpr const MouseState& mouse() const noexcept { return mMouse; }
 
-    constexpr SystemState& System() noexcept { return mSysEvents; }
-    constexpr KeyboardState& Keyboard() noexcept { return mKeyEvents; }
-    constexpr MouseState& Mouse() noexcept { return mMouse; }
+    constexpr ClockState& clock() noexcept { return mClock; }
+    constexpr WindowState& window() noexcept { return mWindow; }
+    constexpr SystemState& system() noexcept { return mSystem; }
+    constexpr KeyboardState& keyboard() noexcept { return mKeys; }
+    constexpr MouseState& mouse() noexcept { return mMouse; }
 
 private:
-    SystemState mSysEvents;
-    KeyboardState mKeyEvents;
+
+    ClockState mClock;
+    WindowState mWindow;
+    SystemState mSystem;
+    KeyboardState mKeys;
     MouseState mMouse;
 };
