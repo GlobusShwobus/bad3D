@@ -12,7 +12,7 @@ RenderWindow::RenderWindow(
 	IDXGIFactory4* factory,
 	DWORD window_style
 )
-	:mDescHeap(device.get(), back_buffer_count, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+	:mDescHeap( device.get(), easy::descriptor_heap_RTV(back_buffer_count) )
 {
 	assert(hwnd && "window nullptr");
 	assert(factory && "factory nullptr");
@@ -20,12 +20,7 @@ RenderWindow::RenderWindow(
 	assert(command_queue && "command_queue nullptr");
 
 	// check if tearing is supported
-	BOOL allow_tearing = FALSE;
-	Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
-	if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(&factory5))))
-		if (FAILED(factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allow_tearing, sizeof(allow_tearing))))
-			allow_tearing = FALSE;
-	mIsTearingSupported = allow_tearing == TRUE;
+	mIsTearingSupported = check_feature_support(factory, DXGI_FEATURE_PRESENT_ALLOW_TEARING);
 
 	// query the true size of the client window then create the description for the swap chain
 	RECT client_rect;
@@ -33,7 +28,7 @@ RenderWindow::RenderWindow(
 	const UINT width = static_cast<UINT>(rect_width(client_rect));
 	const UINT height = static_cast<UINT>(rect_height(client_rect));
 
-	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc{};
 	swap_chain_desc.Width                 = width;
 	swap_chain_desc.Height                = height;
 	swap_chain_desc.Format                = DXGI_FORMAT_R8G8B8A8_UNORM;

@@ -2,21 +2,18 @@
 
 #include <assert.h>
 
-#include "D3D12/EasyDirectX.h"
 #include "D3D12/EasyDirectXUtils.h"
 
-DescriptorHeap::DescriptorHeap(ID3D12Device4* device, UINT desc_count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, UINT node_masks)
-	:mType(type), mCount(desc_count)
+DescriptorHeap::DescriptorHeap(ID3D12Device4* device, const D3D12_DESCRIPTOR_HEAP_DESC& desc)
+	:mType(desc.Type), mCount(desc.NumDescriptors)
 {
 	assert(device && "device nullptr");
 	
-	D3D12_DESCRIPTOR_HEAP_DESC desc = DESCRIPTOR_HEAP_DESC::custom(type, desc_count, flags, node_masks);
-
 	execute_and_test_hresult(
 		device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mHeap))
 	);
 
-	mStride = device->GetDescriptorHandleIncrementSize(type);
+	mStride = device->GetDescriptorHandleIncrementSize(mType);
 	mBegin = mHeap->GetCPUDescriptorHandleForHeapStart();
 }
 

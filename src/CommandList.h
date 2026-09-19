@@ -19,7 +19,7 @@ struct CommandList
 	inline void transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) const
 	{
 		assert(resource && "nullptr");
-		D3D12_RESOURCE_BARRIER barrier = RESOURCE_BARRIER::transition(resource, before, after);
+		D3D12_RESOURCE_BARRIER barrier = easy::resource_barrier_transition(resource, before, after);
 		command_list->ResourceBarrier(1, &barrier);
 	}
 

@@ -62,8 +62,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 
 	auto intermediary = create_commited_resource(
 		device,
-		HEAP_PROPERTY::upload(),
-		RESOURCE_DESC::buffer(byte_size),
+		easy::heap_property_upload(),
+		easy::resource_desc_buffer(byte_size),
 		D3D12_RESOURCE_STATE_GENERIC_READ
 	);
 
@@ -141,6 +141,17 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool 
 	}
 
 	return adapter4;
+}
+
+bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature)
+{
+	bool allow_tearing = false;
+	Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
+	if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(&factory5))))
+		if (SUCCEEDED(factory5->CheckFeatureSupport(feature, &allow_tearing, sizeof(allow_tearing))))
+			allow_tearing = true;
+
+	return allow_tearing;
 }
 
 void throw_error_code_translation(DWORD error_code)

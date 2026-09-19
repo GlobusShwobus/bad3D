@@ -8,8 +8,8 @@ VertexBuffer::VertexBuffer(ID3D12Device4* device, UINT64 byte_size, UINT element
 {
     mResource = Resource{
             device,
-            HEAP_PROPERTY::base(),
-            RESOURCE_DESC::buffer(byte_size),
+            easy::heap_property_default(),
+            easy::resource_desc_buffer(byte_size),
             D3D12_RESOURCE_STATE_COMMON
     };
 
@@ -40,8 +40,8 @@ IndexBuffer::IndexBuffer(ID3D12Device4* device, UINT64 byte_size, DXGI_FORMAT fo
 
     mResource = Resource{
         device,
-        HEAP_PROPERTY::base(),
-        RESOURCE_DESC::buffer(byte_size),
+        easy::heap_property_default(),
+        easy::resource_desc_buffer(byte_size),
         D3D12_RESOURCE_STATE_COMMON
     };
 

@@ -39,7 +39,7 @@ void Resource::transition_state(ID3D12GraphicsCommandList2* list, D3D12_RESOURCE
     if (mState == after)
         return;
 
-    auto barrier = RESOURCE_BARRIER::transition(mResource.Get(), mState , after, flags, sub_resource);
+    auto barrier = easy::resource_barrier_transition(mResource.Get(), mState , after, flags, sub_resource);
 
     list->ResourceBarrier(1, &barrier);
 

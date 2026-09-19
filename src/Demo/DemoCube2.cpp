@@ -38,7 +38,7 @@ void DemoCube2::load_content()
 	auto uploads = prepare_buffers(mDevice.get(), copy_command_list.command_list.Get());
 
 	// create the descriptor heap for the depth stencil view
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = DESCRIPTOR_HEAP_DESC::DSV(1);
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = easy::descriptor_heap_DSV(1);
 
 	execute_and_test_hresult(
 		mDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDSVHeap))
@@ -76,8 +76,8 @@ void DemoCube2::load_content()
 	// Create the vertex input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		// intentionally making a different order, should never actually write code like this but it is possible
-		INPUT_ELEMENT::color(0, DXGI_FORMAT_R32G32B32_FLOAT,0, sizeof(DirectX::XMFLOAT3)),
-		INPUT_ELEMENT::position(0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0)
+		easy::input_element_color(0, DXGI_FORMAT_R32G32B32_FLOAT,0, sizeof(DirectX::XMFLOAT3)),
+		easy::input_element_position(0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0)
 	};
 
 
@@ -88,20 +88,20 @@ void DemoCube2::load_content()
 
 	struct PipelineStateStream
 	{
-		PSS::ROOT_SIGNATURE pRootSignature;
-		PSS::INPUT_LAYOUT InputLayout;
-		PSS::PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-		PSS::RASTERIZER Rasterizer;
-		PSS::VERTEX_SHADER VS;
-		PSS::PIXEL_SHADER PS;
-		PSS::DSV_FORMAT DSVFormat;
-		PSS::RTV_FORMATS RTVFormats;
+		easy::Pipeline_ROOT_SIGNATURE pRootSignature;
+		easy::Pipeline_INPUT_LAYOUT InputLayout;
+		easy::Pipeline_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		easy::Pipeline_RASTERIZER Rasterizer;
+		easy::Pipeline_VERTEX_SHADER VS;
+		easy::Pipeline_PIXEL_SHADER PS;
+		easy::Pipeline_DSV_FORMAT DSVFormat;
+		easy::Pipeline_RTV_FORMATS RTVFormats;
 	} pipelineStateStream;
 
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
 	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	pipelineStateStream.Rasterizer = RASTERIZER_DESC::solid_backcull();
+	pipelineStateStream.Rasterizer = easy::rasterizer_solid_backcull();
 	pipelineStateStream.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
 	pipelineStateStream.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -367,8 +367,8 @@ void DemoCube2::resize_depth_buffer(int width, int height)
 	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 	optimizedClearValue.DepthStencil = { 1.0f,0 };
 
-	D3D12_HEAP_PROPERTIES heap_property = HEAP_PROPERTY::base();
-	D3D12_RESOURCE_DESC resource_desc = RESOURCE_DESC::texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+	D3D12_HEAP_PROPERTIES heap_property = easy::heap_property_default();
+	D3D12_RESOURCE_DESC resource_desc = easy::resource_desc_texture2d(width, height, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 	mDepthBuffer = create_commited_resource(
 		mDevice.get(),
@@ -380,7 +380,7 @@ void DemoCube2::resize_depth_buffer(int width, int height)
 	);
 
 	// update the depth stencil view
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view = RESOURCE_VIEW::textured2d_DSV(DXGI_FORMAT_D32_FLOAT);
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view = easy::resource_view_textured2d_DSV(DXGI_FORMAT_D32_FLOAT, 0);
 
 	mDevice->CreateDepthStencilView(mDepthBuffer.Get(), &dsv_view, mDSVHeap->GetCPUDescriptorHandleForHeapStart());
 }

@@ -66,12 +66,12 @@ void write_my_root_sig_to_file1(ID3D12Device4* device)
 	{
 		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
 		D3D12_ROOT_PARAMETER1 rootParameters11[3] = {
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 0,  matrix_32bit_value_count),
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 1,  matrix_32bit_value_count),
-			ROOT_PARAMETER::constant(D3D12_SHADER_VISIBILITY_VERTEX, 2,  matrix_32bit_value_count)
+			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 0,  matrix_32bit_value_count),
+			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 1,  matrix_32bit_value_count),
+			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 2,  matrix_32bit_value_count)
 		};
 
-		rootsigdesc.Desc_1_1 = ROOT_DESCRIPTION::description(_countof(rootParameters11), rootParameters11, rootsigflags);
+		rootsigdesc.Desc_1_1 = D3D12_ROOT_SIGNATURE_DESC1{ _countof(rootParameters11), rootParameters11 , 0, nullptr, rootsigflags };
 	}
 	else
 	{
