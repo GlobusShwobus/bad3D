@@ -24,15 +24,18 @@ class CommandQueue final
 
 public:
 
+	CommandQueue() = default;
+
 	CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type);
 	
 	CommandQueue(const CommandQueue&) = delete;
 	CommandQueue& operator=(const CommandQueue&) = delete;
-	CommandQueue(CommandQueue&&) = delete;
-	CommandQueue& operator=(CommandQueue&&) = delete;
+
+	CommandQueue(CommandQueue&&) = default;
+	CommandQueue& operator=(CommandQueue&&) = default;
 
 	// the destructor is not responsible for making sure if there is anything in execution in the background. the application must manually stall
-	virtual ~CommandQueue() = default;
+	~CommandQueue() = default;
 
 	// signals my fence
 	UINT64 signal();
@@ -63,7 +66,7 @@ protected:
 
 private:
 
-	const D3D12_COMMAND_LIST_TYPE              mType;
+	D3D12_COMMAND_LIST_TYPE                    mType;
 	ViewPtr<ID3D12Device4>                     mDevice       = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue = nullptr;
 	
