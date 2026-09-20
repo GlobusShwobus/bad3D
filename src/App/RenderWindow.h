@@ -2,6 +2,10 @@
 
 #include <string>
 
+#include <d3d12.h>
+#include <dxgi1_6.h>
+#include <wrl/client.h>
+
 #include "App/AppState.h"
 #include "App/GraphicsDevice.h"
 #include "D3D12/DescriptorHeap.h"
@@ -45,6 +49,13 @@ public:
 
 	RenderWindow(RenderWindow&&) = delete;
 	RenderWindow& operator=(RenderWindow&&) = delete;
+
+	~RenderWindow()
+	{
+		mQueue.flush_execution();
+		if (mHwnd)
+			::DestroyWindow(mHwnd);
+	}
 
 	void set_clear_color(float r, float g, float b, float a);
 

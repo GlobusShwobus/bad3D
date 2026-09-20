@@ -18,7 +18,7 @@ bool Events::pump_events()
         DispatchMessage(&msg);
     }
 
-    return mState.system().is_system_quit();
+    return !mState.system().is_system_quit();
 }
 
 void Events::reset_logical_events(double delta)
