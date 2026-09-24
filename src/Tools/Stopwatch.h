@@ -53,7 +53,7 @@ protected:
 	}
 
 private:
-	std::chrono::steady_clock::time_point time_point;;
+	std::chrono::steady_clock::time_point time_point;
 };
 
 /**

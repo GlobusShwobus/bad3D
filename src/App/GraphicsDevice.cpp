@@ -2,31 +2,20 @@
 
 #include <dxgi1_6.h>
 
+#include <stdexcept>
+
 #include "D3D12/EasyDirectXUtils.h"
 
-GraphicsDevice::GraphicsDevice()
+GraphicsDevice::GraphicsDevice() :GraphicsDevice(false) {}
+
+GraphicsDevice::GraphicsDevice(bool use_warp_adapter)
 {
 	// create DXGI factory
-	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4;
-	UINT create_factory_flags = 0;
-
-#if defined(_DEBUG)
-	create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	execute_and_test_hresult(
-		CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory4))
-	);
-
-	assert(factory4 && "factory nullptr");
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4 = create_debug_factory();
 
 	// create adapter
-	static const bool using_WARP = false;
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(factory4.Get(), using_WARP);
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(factory4.Get(), use_warp_adapter);
 
-	assert(adapter4 && "adapter nullptr");
-
-	// init stuff
 	// create device
 	execute_and_test_hresult(
 		D3D12CreateDevice(adapter4.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))
@@ -76,18 +65,17 @@ GraphicsDevice::GraphicsDevice()
 #endif
 
 	ViewPtr<ID3D12Device4> device_ = ViewPtr{ mDevice.Get() };
-	mDirect = CommandQueue{ device_, D3D12_COMMAND_LIST_TYPE_DIRECT };
-	mCompute = CommandQueue{ device_, D3D12_COMMAND_LIST_TYPE_COMPUTE };
-	mCopy = CommandQueue{ device_, D3D12_COMMAND_LIST_TYPE_COPY };
+	mDirect = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_DIRECT );
+	mCompute = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_COMPUTE );
+	mCopy = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_COPY );
 
-	mInitialised = true;
+	if (!mDirect || !mCompute || !mCopy)
+		throw std::runtime_error("failed to create command queue(s)");
 }
 
 void GraphicsDevice::flush_all()
 {
-	if (mInitialised) {
-		mDirect.flush_execution();
-		mCompute.flush_execution();
-		mCopy.flush_execution();
-	}
+	mDirect->flush();
+	mCompute->flush();
+	mCopy->flush();
 }

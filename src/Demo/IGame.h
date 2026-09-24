@@ -1,12 +1,16 @@
 #pragma once
 
+#include "App/GraphicsDevice.h"
+#include "App/RenderWindow.h"
+#include "App/Events.h"
+
 class IGame
 {
 public:
 	virtual ~IGame() = default;
 
 	// content loading / unloading
-	virtual void load_content() = 0;
+	virtual void load_content(GraphicsDevice* device, RenderWindow* window) = 0;
 	virtual void unload_content() = 0;
 
 	// on game specific logic update and rendering update

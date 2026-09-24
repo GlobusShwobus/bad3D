@@ -91,15 +91,32 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 	return intermediary;
 }
 
+Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory()
+{
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+	UINT create_factory_flags = 0;
+
+#if defined(_DEBUG)
+	create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+	execute_and_test_hresult(
+		CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory))
+	);
+
+	return factory;
+}
+
 Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp)
 {
 	assert(factory && "factory nullptr");
 
-	HRESULT hr = E_FAIL;
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4;
 	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
 	{
-		hr = factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4));
+		execute_and_test_hresult(
+			factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4))
+		);
 	}
 	else         // if not using WARP, need to look for an adapter
 	{
@@ -137,7 +154,9 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool 
 		}
 
 		// enumerate adapter by the best LUID
-		hr = factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4));
+		execute_and_test_hresult(
+			factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4))
+		);
 	}
 
 	return adapter4;
@@ -177,16 +196,4 @@ void throw_error_code_translation(DWORD error_code)
 	std::string msg((LPSTR)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 	throw std::runtime_error(msg);
-}
-
-void execute_and_test_hresult(HRESULT hr)
-{
-	if (FAILED(hr))
-		throw_error_code_translation(static_cast<DWORD>(hr));
-}
-
-void execute_and_test_BOOL(BOOL b)
-{
-	if (b == 0)
-		throw_error_code_translation(GetLastError());
 }

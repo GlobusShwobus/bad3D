@@ -38,11 +38,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		GraphicsDevice device;
 		RenderWindow window(events.get_state(), device, window_desc);
 
+		DemoCube2 demo;
+		demo.load_content(&device, &window);
+
 		while (events.pump_events())
 		{
-			window.begin();
 
-			window.present();
+			demo.on_update(); // the demo's on_update() method should always be independent from graphics operations.
+						      // if it does do maybe some compute / copy work for special logic, it must then handle sync itself using device given queues
+
+			window.begin(); // rendering begin
+
+			demo.on_render(); // on render, all demo related rendering (finalization) should occur here
+
+			window.present(); // rendering end
 		}
 		
 	}

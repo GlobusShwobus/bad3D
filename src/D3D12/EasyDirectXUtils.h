@@ -36,13 +36,19 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 	UINT64 byte_size
 );
 
+Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory();
+
 Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);
 
 bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature);
 
 void throw_error_code_translation(DWORD error_code);
-void execute_and_test_hresult(HRESULT hr);
-void execute_and_test_BOOL(BOOL b);
+
+constexpr void execute_and_test_hresult(HRESULT hr)
+{
+	if (FAILED(hr))
+		throw_error_code_translation(static_cast<DWORD>(hr));
+}
 
 template <typename TypeRect>
 constexpr auto rect_width(const TypeRect& rect) noexcept { return rect.right - rect.left; }

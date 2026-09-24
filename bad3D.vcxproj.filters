@@ -24,16 +24,10 @@
     <ClCompile Include="src\badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\SwapChain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\D3D12\Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\App\Application.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\D3D12\CommandQueue.cpp">
+    <ClCompile Include="src\App\CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
@@ -57,6 +51,15 @@
     <ClCompile Include="src\Model\ModelBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\App\Events.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\App\GraphicsDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\App\RenderWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Tools\Stopwatch.h">
@@ -65,19 +68,13 @@
     <ClInclude Include="src\Tools\ViewPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\App\IGame.h">
+    <ClInclude Include="src\Demo\IGame.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\Fence.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\CommandQueue.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\App\Application.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\D3D12\SwapChain.h">
+    <ClInclude Include="src\App\CommandQueue.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\badWin32.h">
@@ -104,13 +101,22 @@
     <ClInclude Include="src\D3D12\Resource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\App\AppState.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Tools\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Model\ModelBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\App\Events.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\App\GraphicsDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\App\RenderWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Tools\UniqueHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,7 +5,7 @@
 #include <random>
 
 // This class acts like a distribution factory class really just wrapping std::mt19937. Pure syntactic sugar.
-// The main pro of this wrapper is begin able to do the following
+// The main pro of this wrapper is begin able to do the following:
 //
 // 
 // Random random;
@@ -26,24 +26,24 @@ public:
 
 	result_type operator()()
 	{
-		return engine();
+		return mEngine();
 	}
 
 	Random()
-		:engine(std::random_device{}())
+		:mEngine(std::random_device{}())
 	{
 	}
 
 	int get(int min, int max)
 	{
 		assert(min <= max);
-		return std::uniform_int_distribution<int>(min, max)(engine);
+		return std::uniform_int_distribution<int>(min, max)(mEngine);
 	}
 
 	float get(float min, float max)
 	{
 		assert(min <= max);
-		return std::uniform_real_distribution<float>(min, max)(engine);
+		return std::uniform_real_distribution<float>(min, max)(mEngine);
 	}
 
 	auto get_int_distribution(int min, int max)
@@ -65,5 +65,5 @@ public:
 
 private:
 
-	std::mt19937 engine;
+	std::mt19937 mEngine;
 };

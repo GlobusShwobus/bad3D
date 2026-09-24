@@ -15,8 +15,8 @@ public:
 	DescriptorHeap(DescriptorHeap&&) noexcept = default;
 	DescriptorHeap& operator=(DescriptorHeap&&) noexcept = default;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE descriptor_at(SIZE_T index) const noexcept;
 	constexpr D3D12_CPU_DESCRIPTOR_HANDLE descriptor_begin() const noexcept { return mBegin; }
+	constexpr D3D12_CPU_DESCRIPTOR_HANDLE descriptor_at(SIZE_T index) const noexcept { return D3D12_CPU_DESCRIPTOR_HANDLE{ mBegin.ptr + index * mStride }; }
 
 	constexpr UINT stride() const noexcept { return mStride; }
 	constexpr UINT count() const noexcept  { return mCount; }

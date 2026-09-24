@@ -1,13 +1,18 @@
 #pragma once
 
+#include <memory>
 #include <string>
+#include <array>
+
+#include "App/badWin32.h" // FOR LEAN AND MEAN GO FIRST
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
-#include "App/AppState.h"
+#include "App/Events.h"
 #include "App/GraphicsDevice.h"
+#include "App/CommandQueue.h"
 #include "D3D12/DescriptorHeap.h"
 
 struct RENDER_WINDOW_DESC
@@ -25,67 +30,64 @@ struct RENDER_WINDOW_DESC
 
 class RenderWindow final
 {
-	struct ScreenToggle
-	{
-		RECT   window_rect{ 0,0,0,0 };
-		UINT   window_style = 0;
-		bool   is_fullscreen = false;
+	static constexpr DWORD SCONST_WINDOW_STYLE = WS_OVERLAPPEDWINDOW;
+	static constexpr UINT  SCONST_BACK_BUFFER_COUNT = 3u;
+	static constexpr bool  SCONST_IS_VSYNC = true;
 
-		void toggle_window_to(HWND hwnd, bool mode);
+	struct HwndDeleter
+	{
+		void operator()(HWND hwnd) const noexcept
+		{
+			if (hwnd && ::IsWindow(hwnd))
+				::DestroyWindow(hwnd);
+		}
 	};
+
+	using UniqueHWND = std::unique_ptr<std::remove_pointer_t<HWND>, HwndDeleter>;
+	using SwapChain = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
+	using BackBufferResource = std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, SCONST_BACK_BUFFER_COUNT>;
+	using BackBufferStatus = std::array<UINT64, SCONST_BACK_BUFFER_COUNT>;
+	using ClearColor = std::array<FLOAT, 4ull>;
 
 public:
 
-	static constexpr UINT BACK_BUFFER_COUNT = 3u;
-
+	RenderWindow() = delete;
 	RenderWindow(
 		AppState& events,
 		GraphicsDevice& device,
 		RENDER_WINDOW_DESC desc
 	);
+	~RenderWindow();
 
 	RenderWindow(const RenderWindow&) = delete;
 	RenderWindow& operator=(const RenderWindow&) = delete;
-
 	RenderWindow(RenderWindow&&) = delete;
 	RenderWindow& operator=(RenderWindow&&) = delete;
 
-	~RenderWindow()
-	{
-		mQueue.flush_execution();
-		if (mHwnd)
-			::DestroyWindow(mHwnd);
-	}
+	void begin(); // must be called before any execution or present
 
-	void set_clear_color(float r, float g, float b, float a);
+	CommandList get_command_list(); // get command lists to write into
 
-	CommandList get_command_list();
+	void submit_work(CommandList&& list); // write as many command list as desired to the command queue
 
-	void begin();
+	void present(); // call this to present to screen at the end of the frame
 
-	void submit_work(CommandList&& list);
+	void resize(UINT client_width, UINT client_height); // resize resolving method
 
-	void present();
+	void toggle_fullscreen(bool fullscreen); // toggles window mode fullscreen on/off
 
-	void resize(UINT client_width, UINT client_height);
-	void toggle_fullscreen(bool fullscreen);
+	ID3D12Resource* get_buffer() const;
+	constexpr D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { return mBufferViews.descriptor_at(mBufferIndex); }
+	constexpr UINT    get_buffer_width()  const noexcept { return mWidth; }
+	constexpr UINT    get_buffer_height() const noexcept { return mHeight; }
 
-	ID3D12Resource* get_buffer() const {
-		return mBackBuffers[mCurrentBufferIndex].Get();
-	}
-	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const { return mDescHeap.descriptor_at(mCurrentBufferIndex); }
+	void set_clear_color(float r, float g, float b, float a) { mClearColor = { r,g,b,a }; }
 
-	constexpr UINT              get_buffer_index()  const noexcept { return mCurrentBufferIndex; }
-	constexpr UINT              get_buffer_count()  const noexcept { return BACK_BUFFER_COUNT; }
-	constexpr UINT              get_buffer_width()  const noexcept { return mBufferWidth; }
-	constexpr UINT              get_buffer_height() const noexcept { return mBufferHeight; }
-	constexpr UINT64            get_buffer_signal() const noexcept { return mBackBufferCompletionTrackers[mCurrentBufferIndex]; }
+	constexpr const AppState& get_states() const noexcept { return mState; } // idk, temporary for demo to work simpler
 
 protected:
 
-	void update_back_buffers();
-
-	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool create_hwnd(const RENDER_WINDOW_DESC& desc);
 
 	static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -94,7 +96,6 @@ protected:
 			CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
 			self = (RenderWindow*)pCreate->lpCreateParams;
 			SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)self);
-			self->mHwnd = hwnd;
 		}
 		else {
 			self = (RenderWindow*)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
@@ -106,31 +107,36 @@ protected:
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	}
 
+	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+
+	void update_back_buffers();
+	void update_current_index();
+	constexpr UINT64 current_buffer_signal() const noexcept { return mBufferSignals[mBufferIndex]; }
+	constexpr void set_current_buffer_signal(const UINT64 value) noexcept{ mBufferSignals[mBufferIndex] = value; }
+
 private:
 
-	// window / swapchain stuff
-	HWND                                    mHwnd = nullptr;
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain = nullptr;
-	DescriptorHeap                          mDescHeap;
-	Microsoft::WRL::ComPtr<ID3D12Resource>  mBackBuffers[BACK_BUFFER_COUNT];
-	UINT64                                  mBackBufferCompletionTrackers[BACK_BUFFER_COUNT];
+	// window & swapchain
+	UniqueHWND   mHwnd;
+	SwapChain    mSwapChain;
+	RECT         mSavedWindowRect;
+	bool         mIsFullscreen;
+	bool         mIsTearingSupported;
+	bool         mInitialised;
+	ClearColor   mClearColor;
+
+
+	// buffer shit
+	DescriptorHeap      mBufferViews;
+	BackBufferResource  mBuffers;
+	BackBufferStatus    mBufferSignals;
+	UINT                mBufferIndex;
+	UINT                mWidth;
+	UINT                mHeight;
 
 	// borrowed stuff from device
-	ViewPtr<ID3D12Device4>                  mDevice = nullptr;
-	CommandQueue& mQueue;
+	ViewPtr<ID3D12Device4> mDevice;
+	ViewPtr<CommandQueue> mQueue;
 	AppState& mState;
-
-	// buffer info
-	UINT mCurrentBufferIndex = 0;
-	UINT mBufferWidth = 0;
-	UINT mBufferHeight = 0;
-
-	// stuffz
-	ScreenToggle       mScreenToggle;
-
-	bool mIsVSync = false;
-	bool mIsTearingSupported = false;
-	bool mInitialised = false;
-
-	FLOAT mClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 };

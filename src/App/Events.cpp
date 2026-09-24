@@ -21,7 +21,7 @@ bool Events::pump_events()
     return !mState.system().is_system_quit();
 }
 
-void Events::reset_logical_events(double delta)
+void Events::reset_logical_events(double delta) noexcept
 {
     mState.clock().update(delta);
     mState.window().reset();
