@@ -22,7 +22,13 @@ public:
 		UINT stride = device->GetDescriptorHandleIncrementSize(desc.Type);
 		D3D12_CPU_DESCRIPTOR_HANDLE begin = heap->GetCPUDescriptorHandleForHeapStart();
 
-		return std::unique_ptr<DescriptorHeap>(new DescriptorHeap(std::move(heap), stride, desc.NumDescriptors, desc.Type, begin)); //ILLEGALLY SEXY
+		// if new fails
+		try {
+			return std::unique_ptr<DescriptorHeap>(new DescriptorHeap(std::move(heap), stride, desc.NumDescriptors, desc.Type, begin));
+		}
+		catch (const std::bad_alloc&) {
+			return nullptr;
+		}
 	}
 
 	// dont wanna think about it atm
