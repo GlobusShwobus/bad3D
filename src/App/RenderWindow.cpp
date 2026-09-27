@@ -14,7 +14,6 @@ RenderWindow::RenderWindow(
 	:mDevice(device.get_device()),
 	mQueue(device.get_direct_queue()),
 	mState(events), 
-	mBufferViews(device.get_device(), easy::descriptor_heap_RTV(SCONST_BACK_BUFFER_COUNT)),
 	mIsFullscreen(false),
 	mInitialised(false),
 	mIsTearingSupported(false),
@@ -33,6 +32,10 @@ RenderWindow::RenderWindow(
 
 	if (!create_hwnd(desc))
 		throw std::runtime_error("failed to init HWND ( ::GetLastError() might help)");
+
+	mBufferViews = DescriptorHeap::create(device.get_device(), easy::descriptor_heap_RTV(SCONST_BACK_BUFFER_COUNT));
+	if (!mBufferViews)
+		throw std::runtime_error("failed to create descriptor heap");
 
 	::GetWindowRect(mHwnd.get(), &mSavedWindowRect);
 
@@ -362,8 +365,8 @@ LRESULT RenderWindow::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 void RenderWindow::update_back_buffers()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mBufferViews.descriptor_begin();
-	const UINT stride = mBufferViews.stride();
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mBufferViews->descriptor_begin();
+	const UINT stride = mBufferViews->stride();
 
 	for (UINT i = 0; i < SCONST_BACK_BUFFER_COUNT; i++)
 	{

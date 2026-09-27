@@ -5,7 +5,6 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include "D3D12/Fence.h"
 #include "Tools/ViewPtr.h"
 #include "Tools/UniqueHandle.h"
 

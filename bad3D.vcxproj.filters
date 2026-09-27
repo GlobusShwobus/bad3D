@@ -24,13 +24,7 @@
     <ClCompile Include="src\badMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\Fence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\App\CommandQueue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Demo\DemoCube2.cpp">
@@ -43,9 +37,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\Resource.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\App\badWin32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Model\ModelBuffer.cpp">
@@ -69,9 +60,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Demo\IGame.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\D3D12\Fence.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\CommandQueue.h">

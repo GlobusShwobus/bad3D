@@ -77,7 +77,7 @@ public:
 	void toggle_fullscreen(bool fullscreen); // toggles window mode fullscreen on/off
 
 	ID3D12Resource* get_buffer() const;
-	constexpr D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { return mBufferViews.descriptor_at(mBufferIndex); }
+	constexpr D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { return mBufferViews->descriptor_at(mBufferIndex); }
 	constexpr UINT    get_buffer_width()  const noexcept { return mWidth; }
 	constexpr UINT    get_buffer_height() const noexcept { return mHeight; }
 
@@ -128,7 +128,7 @@ private:
 
 
 	// buffer shit
-	DescriptorHeap      mBufferViews;
+	std::unique_ptr<DescriptorHeap>      mBufferViews;
 	BackBufferResource  mBuffers;
 	BackBufferStatus    mBufferSignals;
 	UINT                mBufferIndex;
