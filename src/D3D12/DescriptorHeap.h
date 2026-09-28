@@ -47,7 +47,7 @@ public:
 private:
 
 	DescriptorHeap(
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap,
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>&& heap,
 		UINT stride,
 		UINT count,
 		D3D12_DESCRIPTOR_HEAP_TYPE type,
