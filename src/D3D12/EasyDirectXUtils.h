@@ -14,7 +14,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 	D3D12_RESOURCE_STATES initial_state,
 	D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE,
 	const D3D12_CLEAR_VALUE* optimized_clear_value = nullptr
-);
+) noexcept;
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
 	ID3D12Device4* device,
@@ -24,7 +24,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
 	D3D12_RESOURCE_STATES initial_state,
 	D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE,
 	const D3D12_CLEAR_VALUE* optimized_clear_value = nullptr
-);
+) noexcept;
 
 
 Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(

@@ -14,13 +14,14 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 	D3D12_RESOURCE_STATES initial_state,
 	D3D12_HEAP_FLAGS flags,
 	const D3D12_CLEAR_VALUE* optimized_clear_value
-)
+) noexcept
 {
-	assert(device && "nullptr");
+	if (!device)
+		return nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> resource = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
-	device->CreateCommittedResource(
+	HRESULT hr = device->CreateCommittedResource(
 		&heap_properties,
 		flags,
 		&resource_desc,
@@ -29,17 +30,28 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
 		IID_PPV_ARGS(&resource)
 	);
 
+	if (FAILED(hr))
+		return nullptr;
+
 	return resource;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(ID3D12Device4* device, ID3D12Heap* heap, UINT64 heap_offset, const D3D12_RESOURCE_DESC& resource_desc, D3D12_RESOURCE_STATES initial_state, D3D12_HEAP_FLAGS flags, const D3D12_CLEAR_VALUE* optimized_clear_value)
+Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
+	ID3D12Device4* device, 
+	ID3D12Heap* heap, 
+	UINT64 heap_offset, 
+	const D3D12_RESOURCE_DESC& resource_desc,
+	D3D12_RESOURCE_STATES initial_state, 
+	D3D12_HEAP_FLAGS flags,
+	const D3D12_CLEAR_VALUE* optimized_clear_value
+) noexcept
 {
-	assert(device && "nullptr");
-	assert(heap && "nullptr");
+	if (!device || !heap)
+		return nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> resource = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
-	device->CreatePlacedResource(
+	HRESULT hr = device->CreatePlacedResource(
 		heap,
 		heap_offset,
 		&resource_desc,
@@ -47,6 +59,9 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(ID3D12Device4* dev
 		optimized_clear_value,
 		IID_PPV_ARGS(&resource)
 	);
+
+	if (FAILED(hr))
+		return nullptr;
 
 	return resource;
 }
