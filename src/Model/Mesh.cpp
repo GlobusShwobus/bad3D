@@ -2,18 +2,20 @@
 
 #include <assert.h>
 
-Mesh::Mesh(ViewPtr<VertexBuffer> vertex_buffer, ViewPtr<IndexBuffer> index_buffer)
+Mesh::Mesh(ViewPtr<Resource> vertex_buffer, ViewPtr<Resource> index_buffer)
 	:Mesh(vertex_buffer, 0, vertex_buffer->size_in_bytes(), index_buffer, 0, index_buffer->size_in_bytes())
 {
 }
 
 Mesh::Mesh(
-	ViewPtr<VertexBuffer> vertex_buffer,
+	ViewPtr<Resource> vertex_buffer,
 	UINT64 vertex_byte_position,
 	UINT vertex_byte_count,
-	ViewPtr<IndexBuffer> index_buffer,
+	UINT vertex_stride,
+	ViewPtr<Resource> index_buffer,
 	UINT64 index_byte_position,
-	UINT index_byte_count
+	UINT index_byte_count,
+	DXGI_FORMAT index_format
 )
 	:mVertexBuffer(vertex_buffer), mIndexBuffer(index_buffer)
 {

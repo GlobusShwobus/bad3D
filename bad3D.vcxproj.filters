@@ -47,9 +47,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Tools\Stopwatch.h">
-      <Filter>memes</Filter>
-    </ClInclude>
     <ClInclude Include="src\Tools\ViewPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -80,13 +77,10 @@
     <ClInclude Include="src\Demo\DemoCube2.h">
       <Filter>demos</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\Resource.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Tools\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Model\BufferViews.h">
+    <ClInclude Include="src\D3D12\BufferViews.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\Events.h">
@@ -99,6 +93,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Tools\UniqueHandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Tools\Stopwatch.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

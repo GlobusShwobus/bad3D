@@ -185,6 +185,7 @@ dxgi.lib
     <ClInclude Include="src\App\Events.h" />
     <ClInclude Include="src\App\GraphicsDevice.h" />
     <ClInclude Include="src\App\RenderWindow.h" />
+    <ClInclude Include="src\D3D12\Resource.h" />
     <ClInclude Include="src\Tools\UniqueHandle.h" />
     <ClInclude Include="src\CommandList.h" />
     <ClInclude Include="src\App\CommandQueue.h" />
@@ -193,9 +194,8 @@ dxgi.lib
     <ClInclude Include="src\D3D12\EasyDirectXUtils.h" />
     <ClInclude Include="src\D3D12\EasyDirectX.h" />
     <ClInclude Include="src\Demo\IGame.h" />
-    <ClInclude Include="src\Model\BufferViews.h" />
+    <ClInclude Include="src\D3D12\BufferViews.h" />
     <ClInclude Include="src\Model\Mesh.h" />
-    <ClInclude Include="src\D3D12\Resource.h" />
     <ClInclude Include="src\Tools\Random.h" />
     <ClInclude Include="src\Tools\ViewPtr.h" />
     <ClInclude Include="src\Tools\Stopwatch.h" />
