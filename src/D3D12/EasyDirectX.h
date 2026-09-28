@@ -107,7 +107,7 @@ namespace easy
 			return desc;
 		}
 
-		constexpr D3D12_HEAP_PROPERTIES heal_properties(
+		constexpr D3D12_HEAP_PROPERTIES heap_properties(
 			D3D12_HEAP_TYPE type,
 			D3D12_CPU_PAGE_PROPERTY cpu_page_property,
 			D3D12_MEMORY_POOL memPoolPreference,
@@ -350,7 +350,7 @@ namespace easy
 		UINT creationNodeMask = 1U, UINT visibleNodeMask = 1U
 	) noexcept
 	{
-		return custom::heal_properties(D3D12_HEAP_TYPE_DEFAULT, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
+		return custom::heap_properties(D3D12_HEAP_TYPE_DEFAULT, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
 	}
 
 	constexpr D3D12_HEAP_PROPERTIES heap_property_upload(
@@ -360,7 +360,7 @@ namespace easy
 		UINT visibleNodeMask = 1U
 	) noexcept
 	{
-		return custom::heal_properties(D3D12_HEAP_TYPE_UPLOAD, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
+		return custom::heap_properties(D3D12_HEAP_TYPE_UPLOAD, cpu_page_property, memPoolPreference, creationNodeMask, visibleNodeMask);
 	}
 
 	constexpr D3D12_RESOURCE_DESC resource_desc_buffer(UINT64 byte_width, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE) noexcept
