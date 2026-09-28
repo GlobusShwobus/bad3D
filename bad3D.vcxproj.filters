@@ -36,12 +36,6 @@
     <ClCompile Include="src\Model\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\Resource.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Model\ModelBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\App\Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -92,7 +86,7 @@
     <ClInclude Include="src\Tools\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Model\ModelBuffer.h">
+    <ClInclude Include="src\Model\BufferViews.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\Events.h">
