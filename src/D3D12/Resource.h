@@ -14,9 +14,9 @@ public:
     Resource() = delete;
     Resource(const Resource&) = delete;
     Resource& operator=(const Resource&) = delete;
-
-    Resource(Resource&&) = default;
-    Resource& operator=(Resource&&) = default;
+    Resource(Resource&&) noexcept = default;
+    Resource& operator=(Resource&&) noexcept = default;
+    ~Resource() noexcept = default;
 
     Resource(
         ID3D12Device4* device,
@@ -45,32 +45,22 @@ public:
         mDesc = resource_desc;
     }
 
-    inline ID3D12Resource* get() const noexcept { return mResource.Get(); }
-    inline const D3D12_RESOURCE_DESC& desc() const noexcept { return mDesc; }
-    inline D3D12_GPU_VIRTUAL_ADDRESS address() const noexcept { return mAddress; }
+    ID3D12Resource* get() const noexcept {
+        return mResource.Get(); 
+    }
 
-    inline D3D12_RESOURCE_STATES exchange_state(D3D12_RESOURCE_STATES after) noexcept
-    {
+    const D3D12_RESOURCE_DESC& desc() const noexcept {
+        return mDesc; 
+    }
+
+    D3D12_GPU_VIRTUAL_ADDRESS address() const noexcept { 
+        return mAddress;
+    }
+
+    D3D12_RESOURCE_STATES exchange_state(D3D12_RESOURCE_STATES after) noexcept {
         D3D12_RESOURCE_STATES state = mState;
         mState = after;
         return state;
-    }
-
-    inline void transition_state(
-        ID3D12GraphicsCommandList2* list,
-        D3D12_RESOURCE_STATES after,
-        D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-        UINT sub_resource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
-    )
-    {
-        if (mState == after)
-            return;
-
-        auto barrier = easy::resource_barrier_transition(mResource.Get(), mState, after, flags, sub_resource);
-
-        list->ResourceBarrier(1, &barrier);
-
-        mState = after;
     }
 
 private:

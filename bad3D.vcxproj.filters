@@ -33,9 +33,6 @@
     <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Model\Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\App\Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -99,6 +96,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\App\InputCodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

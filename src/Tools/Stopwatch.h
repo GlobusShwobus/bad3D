@@ -13,39 +13,34 @@ class Stopwatch final
 	using Nanosec  = std::chrono::nanoseconds;
 
 public:
-	explicit Stopwatch()noexcept
+	explicit Stopwatch() noexcept
 		:time_point(std::chrono::steady_clock::now())
 	{
 	}
 
-	inline double delta() noexcept
-	{
+	double delta() noexcept {
 		return std::chrono::duration_cast<Valuesec>(elapsed()).count();
 	}
 
-	inline std::size_t millisec() noexcept
-	{
+	std::size_t millisec() noexcept {
 		return std::chrono::duration_cast<Millisec>(elapsed()).count();
 	}
 
-	inline std::size_t microsec() noexcept
-	{
+	std::size_t microsec() noexcept {
 		return std::chrono::duration_cast<Microsec>(elapsed()).count();
 	}
 
-	inline std::size_t nanosec() noexcept
-	{
+	std::size_t nanosec() noexcept {
 		return std::chrono::duration_cast<Nanosec>(elapsed()).count();
 	}
 
-	inline void reset()noexcept
-	{
+	void reset()noexcept {
 		time_point = std::chrono::steady_clock::now();
 	}
 
 protected:
 
-	inline std::chrono::steady_clock::duration elapsed() noexcept
+	std::chrono::steady_clock::duration elapsed() noexcept
 	{
 		const auto old = time_point;
 		time_point = std::chrono::steady_clock::now();

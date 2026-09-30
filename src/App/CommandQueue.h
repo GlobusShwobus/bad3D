@@ -38,12 +38,18 @@ public:
 
 	UINT64 execute( CommandList&& list );
 
-	UINT64 get_completed_value();
 	void wait_until_completion(UINT64 until, DWORD milliseconds = INFINITE);
 	void flush();
 
 	CommandList acquire_command_list();
-	ID3D12CommandQueue* get_queue() const noexcept;
+
+	UINT64 get_completed_value() const {
+		return mFence->GetCompletedValue();
+	}
+
+	ID3D12CommandQueue* get_queue() const noexcept { 
+		return mCommandQueue.Get(); 
+	}
 
 protected:
 

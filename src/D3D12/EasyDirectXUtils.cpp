@@ -66,30 +66,48 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
 	return resource;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(ID3D12Device4* device, ID3D12GraphicsCommandList2* command_list, ID3D12Resource* dest, UINT64 dest_offset, const void* data, UINT64 byte_size)
+Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(
+	ID3D12Device4* device,
+	ID3D12GraphicsCommandList2* command_list,
+	ID3D12Resource* dest, 
+	UINT64 dest_offset_in_bytes,
+	const void* data, 
+	UINT64 data_size_in_bytes
+)
 {
-	assert(device && "nullptr");
-	assert(command_list && "nullptr");
-	assert(dest && "nullptr");
+	if (!device || !command_list || !dest)
+		throw std::invalid_argument{"invalid nullptr argument"};
 
-	if (data == nullptr || byte_size == 0)
+	if (data_size_in_bytes == 0)
 		return nullptr;
+
+	if (!data)
+		throw std::invalid_argument{ "data is nullptr" };
+
+	const auto desc = dest->GetDesc();
+	if (desc.Width < dest_offset_in_bytes + data_size_in_bytes)
+		throw std::out_of_range{"out of range location specified"};
 
 	auto intermediary = create_commited_resource(
 		device,
 		easy::heap_property_upload(),
-		easy::resource_desc_buffer(byte_size),
+		easy::resource_desc_buffer(data_size_in_bytes),
 		D3D12_RESOURCE_STATE_GENERIC_READ
 	);
+
+	if (!intermediary)
+		throw std::runtime_error{"something went wrong with creating a commited resource"};//should not happen if gets to this point but still
 
 	void* CPU_local_pointer = nullptr;
 	D3D12_RANGE read_range{ 0, 0 };
 
 	// map CPU local pointer to the GPU, (with 0 read range)
-	intermediary->Map(0, &read_range, &CPU_local_pointer);
+	execute_and_test_hresult(
+		intermediary->Map(0, &read_range, &CPU_local_pointer)
+	);
 
 	// the CPU side pointer and resources internal pointers are mapped together, so now memcpy CPU side mem copies to the resource internal pointer
-	memcpy(CPU_local_pointer, data, byte_size);
+	memcpy(CPU_local_pointer, data, data_size_in_bytes);
 
 	// unmap the CPU local pointer
 	intermediary->Unmap(0, nullptr);
@@ -97,87 +115,85 @@ Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermedi
 	// issue command
 	command_list->CopyBufferRegion(
 		dest,
-		dest_offset,
+		dest_offset_in_bytes,
 		intermediary.Get(),
 		0,
-		byte_size
+		data_size_in_bytes
 	);
 
 	return intermediary;
 }
 
-Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory()
+Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory() noexcept
 {
-	Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
 	UINT create_factory_flags = 0;
-
 #if defined(_DEBUG)
 	create_factory_flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-	execute_and_test_hresult(
-		CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory))
-	);
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+	HRESULT hr = CreateDXGIFactory2(create_factory_flags, IID_PPV_ARGS(&factory));
+
+	if (FAILED(hr))
+		return nullptr;
 
 	return factory;
 }
 
-Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp)
+Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp) noexcept
 {
-	assert(factory && "factory nullptr");
+	if (!factory)
+		return nullptr;
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4;
-	if (use_warp) // since WARP is a specific adapter, just get it directly. EnumWarpAdapter takes type void as param, so query interface works as expected.
+	if (use_warp) 
 	{
-		execute_and_test_hresult(
-			factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter4))
-		);
+		// CPU side rasterizer adapter thing provided by windows
+		Microsoft::WRL::ComPtr<IDXGIAdapter4> warp_adapter;
+		HRESULT hr = factory->EnumWarpAdapter(IID_PPV_ARGS(&warp_adapter));
+		
+		return FAILED(hr) ? nullptr : warp_adapter;
 	}
-	else         // if not using WARP, need to look for an adapter
+	else
 	{
-		// first, if looking for adapter manually, it is not possible to enumerate with Adapter4 since EnumAdapters and EnumAdapters1 take specific types.
-		// secondly, need to find adapter with a good amount of memory...
+		// if not using WARP, look for a GPU adapter with the largest memory pool, saving the LUID for the end
 		LUID best_luid = {};
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
 		SIZE_T largest_memory_pool = 0;
 
 		for (UINT adapterIndex = 0; ; ++adapterIndex)
 		{
-			// if reached end of the line
-			if (factory->EnumAdapters1(adapterIndex, &adapter1) == DXGI_ERROR_NOT_FOUND)
+			// if reached the end
+			Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+			if (factory->EnumAdapters1(adapterIndex, &adapter) == DXGI_ERROR_NOT_FOUND)
 				break;
 
 			DXGI_ADAPTER_DESC1 desc1;
-			adapter1->GetDesc1(&desc1);
+			adapter->GetDesc1(&desc1);
 
 			// ignore software adapters
-			if ((desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
+			if ((desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != FALSE)
+				continue;
+
+			// check if the call to create device succeeds without instantiating the obj
+			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
 			{
-				// call create device to check if it succeeds but don't instantiate the type, by passing nullptr to output
-				if (SUCCEEDED(D3D12CreateDevice(adapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
+				// if good, store for later
+				if (desc1.DedicatedVideoMemory > largest_memory_pool)
 				{
-					// if create device runs successfully then store the dedicated mem size and LUID and later actually enumerate the adapter by LUID
-					if (desc1.DedicatedVideoMemory > largest_memory_pool)
-					{
-						largest_memory_pool = desc1.DedicatedVideoMemory;
-						best_luid = desc1.AdapterLuid;
-					}
+					largest_memory_pool = desc1.DedicatedVideoMemory;
+					best_luid = desc1.AdapterLuid;
 				}
 			}
-
-			adapter1.Reset();
 		}
 
 		// enumerate adapter by the best LUID
-		execute_and_test_hresult(
-			factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter4))
-		);
-	}
+		Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter;
+		HRESULT hr = factory->EnumAdapterByLuid(best_luid, IID_PPV_ARGS(&adapter));
 
-	return adapter4;
+		return FAILED(hr) ? nullptr : adapter;
+	}
 }
 
-bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature)
+bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature) noexcept
 {
 	bool allow_tearing = false;
 	Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;

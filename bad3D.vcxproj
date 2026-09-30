@@ -178,12 +178,12 @@ dxgi.lib
     <ClCompile Include="src\App\CommandQueue.cpp" />
     <ClCompile Include="src\Demo\DemoCube2.cpp" />
     <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp" />
-    <ClCompile Include="src\Model\Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\App\badWin32.h" />
     <ClInclude Include="src\App\Events.h" />
     <ClInclude Include="src\App\GraphicsDevice.h" />
+    <ClInclude Include="src\App\InputCodes.h" />
     <ClInclude Include="src\App\RenderWindow.h" />
     <ClInclude Include="src\D3D12\Resource.h" />
     <ClInclude Include="src\Tools\UniqueHandle.h" />

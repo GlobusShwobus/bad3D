@@ -38,7 +38,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		GraphicsDevice device;
 		RenderWindow window(events.get_state(), device, window_desc);
 
-		DemoCube2 demo;
+		DemoCube2 demo(events.get_state());
 		demo.load_content(&device, &window);
 
 		while (events.pump_events())

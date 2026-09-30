@@ -18,7 +18,7 @@
 #include "Model/Mesh.h"
 #include "D3D12/Resource.h"
 
-class DemoCube2 :public IGame
+class DemoCube2 final :public IScene
 {
 	struct VertexPosColor
 	{
@@ -28,8 +28,20 @@ class DemoCube2 :public IGame
 
 public:
 
-	DemoCube2();
-	~DemoCube2()override;
+	DemoCube2(const AppState& read_events)
+		:IScene(read_events)
+	{
+		// check of directX math library support
+		if (!DirectX::XMVerifyCPUSupport())
+		{
+			throw std::runtime_error("memes");
+		}
+	}
+	~DemoCube2() override
+	{
+		// careful because on_update() in this demo unloads itself which is the better behavior than on destructor
+		// unload_content();
+	}
 
 	void load_content(GraphicsDevice* device, RenderWindow* window) override;
 	void unload_content() override;
@@ -71,10 +83,8 @@ private:
 	ViewPtr<ID3D12Device4> mDevice;
 	ViewPtr<RenderWindow>  mRenderWindow;
 
-	// CPU side cube data
-	VertexBuffer mVertexBuffer;
-	IndexBuffer mIndexBuffer;
-	Mesh mMeshViews[5];
+	// awooga 
+	std::unique_ptr<Mesh> mMesh;
 
 	// depth buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;

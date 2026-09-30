@@ -1,8 +1,8 @@
 #include "App/GraphicsDevice.h"
 
-#include <dxgi1_6.h>
-
 #include <stdexcept>
+
+#include <dxgi1_6.h>
 
 #include "D3D12/EasyDirectXUtils.h"
 
@@ -12,9 +12,13 @@ GraphicsDevice::GraphicsDevice(bool use_warp_adapter)
 {
 	// create DXGI factory
 	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4 = create_debug_factory();
+	if (!factory4)
+		throw std::runtime_error{"failed to create DXGI factory"};
 
 	// create adapter
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter4 = find_adapter(factory4.Get(), use_warp_adapter);
+	if (!adapter4)
+		throw std::runtime_error{ "failed to create DXGI adapter" };
 
 	// create device
 	execute_and_test_hresult(

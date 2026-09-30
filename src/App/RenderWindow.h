@@ -36,8 +36,7 @@ class RenderWindow final
 
 	struct HwndDeleter
 	{
-		void operator()(HWND hwnd) const noexcept
-		{
+		void operator()(HWND hwnd) const noexcept {
 			if (hwnd && ::IsWindow(hwnd))
 				::DestroyWindow(hwnd);
 		}
@@ -61,14 +60,15 @@ public:
 
 	RenderWindow(const RenderWindow&) = delete;
 	RenderWindow& operator=(const RenderWindow&) = delete;
-	RenderWindow(RenderWindow&&) = delete;
-	RenderWindow& operator=(RenderWindow&&) = delete;
+	RenderWindow(RenderWindow&&) noexcept = delete;
+	RenderWindow& operator=(RenderWindow&&) noexcept = delete;
 
 	void begin(); // must be called before any execution or present
 
-	CommandList get_command_list(); // get command lists to write into
-
-	void submit_work(CommandList&& list); // write as many command list as desired to the command queue
+	void submit_work(CommandList&& list)
+	{
+		mQueue->execute(std::move(list));
+	}
 
 	void present(); // call this to present to screen at the end of the frame
 
@@ -76,18 +76,34 @@ public:
 
 	void toggle_fullscreen(bool fullscreen); // toggles window mode fullscreen on/off
 
-	ID3D12Resource* get_buffer() const;
-	constexpr D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { return mBufferViews.descriptor_at(mBufferIndex); }
-	constexpr UINT    get_buffer_width()  const noexcept { return mWidth; }
-	constexpr UINT    get_buffer_height() const noexcept { return mHeight; }
+	CommandList get_command_list()
+	{
+		return mQueue->acquire_command_list();
+	}
 
-	void set_clear_color(float r, float g, float b, float a) { mClearColor = { r,g,b,a }; }
+	ID3D12Resource* get_buffer() const noexcept {
+		return mBuffers[mBufferIndex].Get(); 
+	}
 
-	constexpr const AppState& get_states() const noexcept { return mState; } // idk, temporary for demo to work simpler
+	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { 
+		return mBufferViews.descriptor_at(mBufferIndex);
+	}
+
+	UINT get_buffer_width() const noexcept { 
+		return mWidth;
+	}
+
+	UINT get_buffer_height() const noexcept {
+		return mHeight;
+	}
+
+	void set_clear_color(float r, float g, float b, float a) noexcept { 
+		mClearColor = { r,g,b,a }; 
+	}
 
 protected:
 
-	bool create_hwnd(const RENDER_WINDOW_DESC& desc);
+	bool create_hwnd(const RENDER_WINDOW_DESC& desc) noexcept;
 
 	static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -109,11 +125,19 @@ protected:
 
 	LRESULT on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-
 	void update_back_buffers();
-	void update_current_index();
-	constexpr UINT64 current_buffer_signal() const noexcept { return mBufferSignals[mBufferIndex]; }
-	constexpr void set_current_buffer_signal(const UINT64 value) noexcept{ mBufferSignals[mBufferIndex] = value; }
+
+	void update_current_index() { 
+		mBufferIndex = mSwapChain->GetCurrentBackBufferIndex(); 
+	}
+
+	UINT64 current_buffer_signal() const noexcept { 
+		return mBufferSignals[mBufferIndex]; 
+	}
+
+	void set_current_buffer_signal(const UINT64 value) noexcept {
+		mBufferSignals[mBufferIndex] = value; 
+	}
 
 private:
 
@@ -125,7 +149,6 @@ private:
 	bool         mIsTearingSupported;
 	bool         mInitialised;
 	ClearColor   mClearColor;
-
 
 	// buffer shit
 	DescriptorHeap      mBufferViews;

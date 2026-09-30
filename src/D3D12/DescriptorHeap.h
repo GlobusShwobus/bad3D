@@ -5,9 +5,17 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+#include "D3D12/EasyDirectXUtils.h"
+
 class DescriptorHeap final
 {
 public:
+	~DescriptorHeap() noexcept = default;
+	DescriptorHeap(const DescriptorHeap&) = delete;
+	DescriptorHeap& operator=(const DescriptorHeap&) = delete;
+	DescriptorHeap(DescriptorHeap&&) noexcept = default;
+	DescriptorHeap& operator=(DescriptorHeap&&) noexcept = default;
+
 	DescriptorHeap() = delete;
 
 	DescriptorHeap(ID3D12Device4* device, const D3D12_DESCRIPTOR_HEAP_DESC& desc)
@@ -25,24 +33,27 @@ public:
 		mType = desc.Type;
 	}
 
-	DescriptorHeap(const DescriptorHeap&) = delete;
-	DescriptorHeap& operator=(const DescriptorHeap&) = delete;
-	DescriptorHeap(DescriptorHeap&&) noexcept = default;
-	DescriptorHeap& operator=(DescriptorHeap&&) noexcept = default;
-
-	inline D3D12_CPU_DESCRIPTOR_HANDLE descriptor_begin() const noexcept
+	D3D12_CPU_DESCRIPTOR_HANDLE descriptor_begin() const noexcept
 	{
 		return mBegin;
 	}
 
-	inline D3D12_CPU_DESCRIPTOR_HANDLE descriptor_at(SIZE_T index) const noexcept 
+	D3D12_CPU_DESCRIPTOR_HANDLE descriptor_at(SIZE_T index) const noexcept 
 	{
 		return D3D12_CPU_DESCRIPTOR_HANDLE{ mBegin.ptr + index * mStride }; 
 	}
 
-	inline UINT stride() const noexcept { return mStride; }
-	inline UINT count() const noexcept  { return mCount; }
-	inline D3D12_DESCRIPTOR_HEAP_TYPE type() const noexcept { return mType; }
+	UINT stride() const noexcept { 
+		return mStride; 
+	}
+
+	UINT count() const noexcept  {
+		return mCount; 
+	}
+
+	D3D12_DESCRIPTOR_HEAP_TYPE type() const noexcept { 
+		return mType; 
+	}
 
 private:
 

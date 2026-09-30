@@ -7,20 +7,6 @@
 #include "D3D12/EasyDirectXUtils.h"
 #include <array>
 
-DemoCube2::DemoCube2()
-{
-	// check of directX math library support
-	if (!DirectX::XMVerifyCPUSupport())
-	{
-		throw std::runtime_error("memes");
-	}
-}
-DemoCube2::~DemoCube2()
-{
-	// careful because on_update() in this demo unloads itself which is the better behavior than on destructor
-	// unload_content();
-}
-
 void DemoCube2::load_content(GraphicsDevice* device, RenderWindow* window)
 {
 	// gets
@@ -85,14 +71,14 @@ void DemoCube2::load_content(GraphicsDevice* device, RenderWindow* window)
 
 	struct PipelineStateStream
 	{
-		easy::Pipeline_ROOT_SIGNATURE pRootSignature;
-		easy::Pipeline_INPUT_LAYOUT InputLayout;
-		easy::Pipeline_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-		easy::Pipeline_RASTERIZER Rasterizer;
-		easy::Pipeline_VERTEX_SHADER VS;
-		easy::Pipeline_PIXEL_SHADER PS;
-		easy::Pipeline_DSV_FORMAT DSVFormat;
-		easy::Pipeline_RTV_FORMATS RTVFormats;
+		Pipeline::ROOT_SIGNATURE pRootSignature;
+		Pipeline::INPUT_LAYOUT InputLayout;
+		Pipeline::PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		Pipeline::RASTERIZER Rasterizer;
+		Pipeline::VERTEX_SHADER VS;
+		Pipeline::PIXEL_SHADER PS;
+		Pipeline::DSV_FORMAT DSVFormat;
+		Pipeline::RTV_FORMATS RTVFormats;
 	} pipelineStateStream;
 
 	pipelineStateStream.pRootSignature = mRootSignature.Get();
@@ -150,9 +136,7 @@ void DemoCube2::unload_content()
 
 void DemoCube2::on_update()
 {
-	const auto& events = mRenderWindow->get_states();
-
-	if (events.system().is_system_quit())
+	if (mState.system().is_system_quit())
 	{
 		mRunning = false;
 	}
@@ -163,14 +147,13 @@ void DemoCube2::on_update()
 		kb_resolve();
 
 		// check if resize
-		if (events.window().is_resized())
+		if (mState.window().is_resized())
 		{
-			on_resize(events.window().width(), events.window().height());
+			on_resize(mState.window().width(), mState.window().height());
 		}
 
-
 		// update the model matrix
-		float angle = static_cast<float>(events.clock().age() * 90.0);
+		float angle = static_cast<float>(mState.clock().age() * 90.0);
 		const DirectX::XMVECTOR rotationAxis = DirectX::XMVectorSet(0, 1, 1, 0);
 		DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationAxis(rotationAxis, DirectX::XMConvertToRadians(angle));
 
@@ -234,14 +217,14 @@ void DemoCube2::on_render()
 		command_list->SetGraphicsRoot32BitConstants(1, matrix_32bit_value_count, &mProjectionMatrix, 0);
 
 		// THIS STUFF IS PER OBJECT
-		for (int i = 0; i < 5; ++i)
+		int modelMatrixIndex = 0;//THIS IS JUST A DEMO WHO GIVES A FUCK
+		for (const auto& mesh : *mMesh)
 		{
-			auto& mesh = mMeshViews[i];
-
-			command_list->IASetVertexBuffers(0, 1, &mesh.get_vertex_view());
-			command_list->IASetIndexBuffer(&mesh.get_index_view());
-			command_list->SetGraphicsRoot32BitConstants(2, matrix_32bit_value_count, &mModelMatrix[i], 0);
-			command_list->DrawIndexedInstanced(mesh.get_index_count(), 1, 0, 0, 0);
+			command_list->IASetVertexBuffers(0, 1, &mesh.vertex_view.view());
+			command_list->IASetIndexBuffer(&mesh.index_view.view());
+			command_list->SetGraphicsRoot32BitConstants(2, matrix_32bit_value_count, &mModelMatrix[modelMatrixIndex], 0);
+			command_list->DrawIndexedInstanced(mesh.index_view.element_count(), 1, 0, 0, 0);
+			modelMatrixIndex++;
 		}
 
 		// present. first submit the worked on list, then call present which finishes the loop
@@ -269,13 +252,10 @@ void DemoCube2::on_resize(int w, int h)
 
 void DemoCube2::kb_resolve()
 {
-	const auto& events = mRenderWindow->get_states();
-
 	static bool fullscreen = false;
 	static bool f11_previous = false;
 
-
-	const bool* keys = events.keyboard().keys();
+	const bool* keys = mState.keyboard().keys();
 
 	const bool f11_current = keys[VK_F11];
 
@@ -316,8 +296,7 @@ void DemoCube2::kb_resolve()
 
 void DemoCube2::mouse_resolve()
 {
-	const auto& events = mRenderWindow->get_states();
-	mFOV += events.mouse().wheel().normalized();
+	mFOV += mState.mouse().wheel().normalized();
 
 	if (mFOV < 1) // !!!!!!! crashes if fov is 0
 	{
@@ -512,13 +491,24 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 	}
 
 	// create vertex buffer
-	mVertexBuffer = VertexBuffer{device, vertex_bytes, PER_VERTEX_SIZE };
+	Resource raw_vertex_buffer = Resource{
+		device,
+		easy::heap_property_default(),
+		easy::resource_desc_buffer(vertex_bytes),
+		D3D12_RESOURCE_STATE_COMMON
+	};
 
-	// create index buffer
-	mIndexBuffer = IndexBuffer{ device, index_bytes, DXGI_FORMAT_R16_UINT };
+	Resource raw_index_buffer = Resource{
+		device,
+		easy::heap_property_default(),
+		easy::resource_desc_buffer(index_bytes),
+		D3D12_RESOURCE_STATE_COMMON
+	};
+
+	mMesh = std::make_unique<Mesh>(std::move(raw_vertex_buffer), std::move(raw_index_buffer));
+
 
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> intermediaries;
-	
 	// after creating resources with the exact size required to store all shapes 2 more steps are required
 	// 1) make a sub view of a specific shape. a range in other words
 	// 2) upload the data to the GPU side
@@ -529,25 +519,24 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 	{
 		auto& vertex_buffer = shapes[i].vertices;
 		auto& index_buffer = shapes[i].indices;
-		auto& mesh = mMeshViews[i];
 
 		const UINT vertex_bytes = static_cast<UINT>(vertex_buffer.size()) * PER_VERTEX_SIZE; // cast because d3d12 itself isnt consistent
 		const UINT index_bytes = static_cast<UINT>(index_buffer.size()) * PER_INDEX_SIZE;
 
-		mesh = Mesh{
-			ViewPtr<VertexBuffer>(&mVertexBuffer),
+		mMesh->add_submesh(
 			vertex_buffer_offset,
 			vertex_bytes,
-			ViewPtr<IndexBuffer>(&mIndexBuffer), 
-			index_buffer_offset, 
-			index_bytes 
-		};
+			PER_VERTEX_SIZE,
+			index_buffer_offset,
+			index_bytes,
+			DXGI_FORMAT_R16_UINT
+		);
 
 		intermediaries.emplace_back(
 			copy_buffer_to_resource_and_get_intermediary(
 				device,
 				list,
-				mVertexBuffer.get(),
+				mMesh->vertex_buffer(),
 				vertex_buffer_offset,
 				vertex_buffer.data(),
 				vertex_bytes
@@ -558,7 +547,7 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 			copy_buffer_to_resource_and_get_intermediary(
 				device,
 				list,
-				mIndexBuffer.get(),
+				mMesh->index_buffer(),
 				index_buffer_offset,
 				index_buffer.data(),
 				index_bytes

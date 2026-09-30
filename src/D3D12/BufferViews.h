@@ -3,13 +3,18 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include "Tools/ViewPtr.h"
 #include "D3D12/Resource.h"
 
 class VertexBufferView
 {
 public:
-    VertexBufferView() = delete;
+
+    constexpr VertexBufferView() noexcept 
+        :mView{ 0ull,0u,0u } 
+    {}
+    constexpr VertexBufferView(D3D12_VERTEX_BUFFER_VIEW view) noexcept 
+        :mView(view) 
+    {}
 
     VertexBufferView(Resource* const resource, UINT64 byte_offset, UINT byte_size, UINT stride)
     {
@@ -27,25 +32,41 @@ public:
         if (byte_offset + byte_size > desc.Width)
             throw std::out_of_range{ "view exceeds buffer" };
 
-        mResource = ViewPtr{ resource };
         mView = { resource->address() + byte_offset, byte_size, stride};
     }
 
-    inline UINT stride_in_bytes() const noexcept { return mView.StrideInBytes; }
-    inline UINT size_in_bytes() const noexcept { return mView.SizeInBytes; }
-    inline UINT element_count() const noexcept { return mView.SizeInBytes / mView.StrideInBytes; }
-    inline const D3D12_VERTEX_BUFFER_VIEW& view() const noexcept { return mView; }
-    inline ID3D12Resource* resource() const noexcept { return mResource->get(); }
+    UINT stride_in_bytes() const noexcept { 
+        return mView.StrideInBytes; 
+    }
+
+    UINT size_in_bytes() const noexcept { 
+        return mView.SizeInBytes; 
+    }
+
+    UINT element_count() const noexcept {
+        return mView.SizeInBytes / mView.StrideInBytes;
+    }
+
+    const D3D12_VERTEX_BUFFER_VIEW& view() const noexcept {
+        return mView; 
+    }
+
 private:
 
-    ViewPtr<Resource> mResource;
     D3D12_VERTEX_BUFFER_VIEW mView;
 };
 
 class IndexBufferView
 {
 public:
-    IndexBufferView() = delete;
+
+    constexpr IndexBufferView() noexcept 
+        :mView{ 0ull, 0, DXGI_FORMAT_R16_UINT }
+    {}
+
+    constexpr IndexBufferView(D3D12_INDEX_BUFFER_VIEW view) noexcept
+        :mView(view) 
+    {}
 
     IndexBufferView(Resource* const resource, UINT64 byte_offset, UINT byte_size, DXGI_FORMAT format)
     {
@@ -68,18 +89,24 @@ public:
         if (byte_offset + byte_size > desc.Width)
             throw std::out_of_range{ "view exceeds buffer" };
 
-        mResource = ViewPtr{ resource };
         mView = { resource->address() + byte_offset, byte_size, format };
     }
 
-    inline DXGI_FORMAT format() const noexcept { return mView.Format; }
-    inline UINT size_in_bytes() const noexcept { return mView.SizeInBytes; }
-    inline UINT element_count() const noexcept {
+    DXGI_FORMAT format() const noexcept { 
+        return mView.Format; 
+    }
+
+    UINT size_in_bytes() const noexcept {
+        return mView.SizeInBytes;
+    }
+
+    UINT element_count() const noexcept {
         return mView.SizeInBytes / index_stride_from_format(mView.Format);
     }
 
-    inline const D3D12_INDEX_BUFFER_VIEW& view() const noexcept { return mView; }
-    inline ID3D12Resource* resource() const noexcept { return mResource->get(); }
+    const D3D12_INDEX_BUFFER_VIEW& view() const noexcept {
+        return mView; 
+    }
 
 protected:
 
@@ -89,6 +116,5 @@ protected:
     }
 
 private:
-    ViewPtr<Resource> mResource;
     D3D12_INDEX_BUFFER_VIEW mView;
 };

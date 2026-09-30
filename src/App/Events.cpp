@@ -2,7 +2,7 @@
 
 #include "App/badWin32.h"
 
-bool Events::pump_events()
+bool Events::pump_events() noexcept
 {
     double delta = mClock.delta();
     reset_logical_events(delta);
@@ -19,12 +19,4 @@ bool Events::pump_events()
     }
 
     return !mState.system().is_system_quit();
-}
-
-void Events::reset_logical_events(double delta) noexcept
-{
-    mState.clock().update(delta);
-    mState.window().reset();
-    mState.mouse().hover().update(delta);
-    mState.mouse().wheel().reset();
 }

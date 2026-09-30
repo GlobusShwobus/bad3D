@@ -16,13 +16,24 @@ public:
 
 	GraphicsDevice(const GraphicsDevice&) = delete;
 	GraphicsDevice& operator=(const GraphicsDevice&) = delete;
-	GraphicsDevice(GraphicsDevice&&) = delete;
-	GraphicsDevice& operator=(GraphicsDevice&&) = delete;
+	GraphicsDevice(GraphicsDevice&&) noexcept = delete;
+	GraphicsDevice& operator=(GraphicsDevice&&) noexcept = delete;
 
-	ID3D12Device4* get_device() const noexcept{ return mDevice.Get(); }
-	CommandQueue*  get_direct_queue()  noexcept { return mDirect.get(); }
-	CommandQueue*  get_compute_queue() noexcept { return mCompute.get(); }
-	CommandQueue*  get_copy_queue()    noexcept { return mCopy.get(); }
+	ID3D12Device4* get_device() const noexcept  {
+		return mDevice.Get(); 
+	}
+
+	CommandQueue*  get_direct_queue()  noexcept { 
+		return mDirect.get(); 
+	}
+
+	CommandQueue*  get_compute_queue() noexcept {
+		return mCompute.get(); 
+	}
+
+	CommandQueue*  get_copy_queue()    noexcept { 
+		return mCopy.get(); 
+	}
 
 	void flush_all();
 

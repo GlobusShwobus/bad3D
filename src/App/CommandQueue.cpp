@@ -1,7 +1,5 @@
 #include "App/CommandQueue.h"
 
-#include <assert.h>
-
 #include <utility>
 #include <stdexcept>
 
@@ -67,19 +65,12 @@ UINT64 CommandQueue::execute( CommandList&& list )
 	return signal_value;
 }
 
-UINT64 CommandQueue::get_completed_value()
-{
-	return mFence->GetCompletedValue();
-}
-
 void CommandQueue::wait_until_completion(UINT64 until, DWORD milliseconds)
 {
 	if (get_completed_value() >= until)
 		return;
 
-	execute_and_test_hresult(
-		mFence->SetEventOnCompletion(until, mEventHandle.get())
-	);
+	mFence->SetEventOnCompletion(until, mEventHandle.get());
 
 	::WaitForSingleObject(mEventHandle.get(), milliseconds);
 }
@@ -159,9 +150,3 @@ CommandList CommandQueue::acquire_command_list()
 
 	return context;
 }
-
-ID3D12CommandQueue* CommandQueue::get_queue() const noexcept
-{
-	return mCommandQueue.Get();
-}
-

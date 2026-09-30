@@ -8,43 +8,43 @@
 #include <wrl/client.h>
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_commited_resource(
-	ID3D12Device4* device,
-	const D3D12_HEAP_PROPERTIES& heap_properties,
-	const D3D12_RESOURCE_DESC& resource_desc,
-	D3D12_RESOURCE_STATES initial_state,
-	D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE,
-	const D3D12_CLEAR_VALUE* optimized_clear_value = nullptr
+	ID3D12Device4*                device,
+	const D3D12_HEAP_PROPERTIES&  heap_properties,
+	const D3D12_RESOURCE_DESC&    resource_desc,
+	D3D12_RESOURCE_STATES         initial_state,
+	D3D12_HEAP_FLAGS              flags = D3D12_HEAP_FLAG_NONE,
+	const D3D12_CLEAR_VALUE*      optimized_clear_value = nullptr
 ) noexcept;
 
 Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
-	ID3D12Device4* device,
-	ID3D12Heap* heap,
-	UINT64 heap_offset,
-	const D3D12_RESOURCE_DESC& resource_desc,
-	D3D12_RESOURCE_STATES initial_state,
-	D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE,
-	const D3D12_CLEAR_VALUE* optimized_clear_value = nullptr
+	ID3D12Device4*              device,
+	ID3D12Heap*                 heap,
+	UINT64                      heap_offset,
+	const D3D12_RESOURCE_DESC&  resource_desc,
+	D3D12_RESOURCE_STATES       initial_state,
+	D3D12_HEAP_FLAGS            flags = D3D12_HEAP_FLAG_NONE,
+	const D3D12_CLEAR_VALUE*    optimized_clear_value = nullptr
 ) noexcept;
 
 
 Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(
-	ID3D12Device4* device,
+	ID3D12Device4*              device,
 	ID3D12GraphicsCommandList2* command_list,
-	ID3D12Resource* dest,
-	UINT64 dest_offset, 
-	const void* data,
-	UINT64 byte_size
+	ID3D12Resource*             dest,
+	UINT64                      dest_offset_in_bytes, 
+	const void*                 data,
+	UINT64                      data_size_in_bytes
 );
 
-Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory();
+Microsoft::WRL::ComPtr<IDXGIFactory4> create_debug_factory() noexcept;
 
-Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp);
+Microsoft::WRL::ComPtr<IDXGIAdapter4> find_adapter(IDXGIFactory4* factory, bool use_warp) noexcept;
 
-bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature);
+bool check_feature_support(IDXGIFactory4* factory, DXGI_FEATURE feature) noexcept;
 
 void throw_error_code_translation(DWORD error_code);
 
-constexpr void execute_and_test_hresult(HRESULT hr)
+inline void execute_and_test_hresult(HRESULT hr)
 {
 	if (FAILED(hr))
 		throw_error_code_translation(static_cast<DWORD>(hr));

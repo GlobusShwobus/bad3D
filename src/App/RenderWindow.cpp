@@ -31,13 +31,14 @@ RenderWindow::RenderWindow(
 	if (!mDevice || !mQueue || !mQueue->get_queue())
 		throw std::invalid_argument("invalid application args");
 
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory = create_debug_factory();
+	if (!factory)
+		throw std::runtime_error{ "failed to create DXGI factory" };
+
 	if (!create_hwnd(desc))
 		throw std::runtime_error("failed to init HWND ( ::GetLastError() might help)");
 
 	::GetWindowRect(mHwnd.get(), &mSavedWindowRect);
-
-	// since graphics device does not cache the factory, create one again... and check feature support
-	Microsoft::WRL::ComPtr<IDXGIFactory4> factory = create_debug_factory();
 
 	mIsTearingSupported = check_feature_support(factory.Get(), DXGI_FEATURE_PRESENT_ALLOW_TEARING);
 
@@ -94,11 +95,6 @@ RenderWindow::~RenderWindow()
 		mQueue->flush();
 }
 
-CommandList RenderWindow::get_command_list()
-{
-	return mQueue->acquire_command_list();
-}
-
 void RenderWindow::begin()
 {
 	auto command_list = get_command_list();
@@ -113,11 +109,6 @@ void RenderWindow::begin()
 	command_list.command_list->ClearRenderTargetView(get_buffer_desc(), mClearColor.data(), 0, nullptr);
 
 	mQueue->execute(std::move(command_list));
-}
-
-void RenderWindow::submit_work(CommandList&& list)
-{
-	mQueue->execute(std::move(list)); 
 }
 
 void RenderWindow::present()
@@ -238,12 +229,7 @@ void RenderWindow::toggle_fullscreen(bool mode)
 	}
 }
 
-ID3D12Resource* RenderWindow::get_buffer() const
-{
-	return mBuffers[mBufferIndex].Get();
-}
-
-bool RenderWindow::create_hwnd(const RENDER_WINDOW_DESC& desc)
+bool RenderWindow::create_hwnd(const RENDER_WINDOW_DESC& desc) noexcept
 {
 	WNDCLASSEX register_desc = {};
 	register_desc.cbSize = sizeof(WNDCLASSEX);
@@ -376,9 +362,4 @@ void RenderWindow::update_back_buffers()
 
 		heapPos.ptr += stride;
 	}
-}
-
-void RenderWindow::update_current_index()
-{ 
-	mBufferIndex = mSwapChain->GetCurrentBackBufferIndex(); 
 }
