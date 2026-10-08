@@ -77,7 +77,7 @@ void CommandQueue::wait_until_completion(UINT64 until, DWORD milliseconds)
 
 UINT64 CommandQueue::signal()
 {
-	const UINT64 value = mFenceValue++;
+	const UINT64 value = ++mFenceValue;
 
 	mCommandQueue->Signal(mFence.Get(), value);
 
