@@ -7,7 +7,8 @@
 #include <wrl/client.h>
 
 #include "D3D12/Resource.h"
-#include "D3D12/BufferViews.h"
+#include "D3D12/IndexView.h"
+#include "D3D12/VertexView.h"
 
 struct Submesh
 {

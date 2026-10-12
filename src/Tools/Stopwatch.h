@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #include <chrono>
 
 // This class gives only delta times from the last time a method was called.
@@ -60,21 +59,23 @@ private:
 * \returns if func return type is void, returns time
 * \returns if func return type is T, returns std::pair<time, T>
 */
-template <typename Func, typename... Args>
-auto time_my_func(Func&& func, Args&&... args)
-	requires std::invocable<Func, Args...>
-{
-	Stopwatch timer;
-
-	if constexpr (std::is_void_v<std::invoke_result_t<Func, Args...>>)
-	{
-		std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
-		return timer.delta();
-	}
-	else
-	{
-		auto result = std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
-
-		return std::pair{ timer.delta(), std::move(result) };
-	}
-}
+	
+//	#include <concepts>
+//	template <typename Func, typename... Args>
+//	auto time_my_func(Func&& func, Args&&... args)
+//		requires std::invocable<Func, Args...>
+//	{
+//		Stopwatch timer;
+//	
+//		if constexpr (std::is_void_v<std::invoke_result_t<Func, Args...>>)
+//		{
+//			std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+//			return timer.delta();
+//		}
+//		else
+//		{
+//			auto result = std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+//	
+//			return std::pair{ timer.delta(), std::move(result) };
+//		}
+//	}
