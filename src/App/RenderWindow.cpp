@@ -2,9 +2,10 @@
 
 #include <stdexcept>
 
-#include <dxgi1_6.h>
-
+#include "D3D12/EasyDirectX.h"
 #include "D3D12/EasyDirectXUtils.h"
+#include "D3D12/CommandList.h"
+#include "App/CommandQueue.h"
 
 RenderWindow::RenderWindow(
 	AppState& events,
@@ -14,7 +15,7 @@ RenderWindow::RenderWindow(
 	:mDevice(device.get_device()),
 	mQueue(device.get_direct_queue()),
 	mState(events), 
-	mBufferViews{device.get_device(), easy::descriptor_heap_RTV(SCONST_BACK_BUFFER_COUNT) },
+	mBufferViews{device.get_device(), easy::descriptor_heap_RTV(sccBufferCount) },
 	mIsFullscreen(false),
 	mInitialised(false),
 	mIsTearingSupported(false),
@@ -55,7 +56,7 @@ RenderWindow::RenderWindow(
 	swap_chain_desc.Stereo = FALSE;
 	swap_chain_desc.SampleDesc = { 1,0 };
 	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swap_chain_desc.BufferCount = SCONST_BACK_BUFFER_COUNT;
+	swap_chain_desc.BufferCount = sccBufferCount;
 	swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
 	swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -97,38 +98,28 @@ RenderWindow::~RenderWindow()
 
 void RenderWindow::begin()
 {
-	auto command_list = get_command_list();
+	auto command_list = mQueue->get_command_list();
 
-	D3D12_RESOURCE_BARRIER barrier = easy::resource_barrier_transition(
-		get_buffer(),
-		D3D12_RESOURCE_STATE_PRESENT,
-		D3D12_RESOURCE_STATE_RENDER_TARGET
-	);
-	command_list.command_list->ResourceBarrier(1, &barrier);
+	command_list->transition(get_buffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	command_list->clear_RTV(get_buffer_desc(), mClearColor.data());
 
-	command_list.command_list->ClearRenderTargetView(get_buffer_desc(), mClearColor.data(), 0, nullptr);
-
-	mQueue->execute(std::move(command_list));
+	mQueue->submit(std::move(command_list));
 }
 
 void RenderWindow::present()
 {
-	auto command_list = get_command_list();
+	auto command_list = mQueue->get_command_list();
 
-	D3D12_RESOURCE_BARRIER barrier = easy::resource_barrier_transition(
-		get_buffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT
-	);
+	command_list->transition(get_buffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-	command_list.command_list->ResourceBarrier(1, &barrier);
+	mQueue->submit(std::move(command_list));
 
 	set_current_buffer_signal(
-		mQueue->execute(std::move(command_list))
+		mQueue->execute()
 	);
 
 	// determine sync interval and flags
-	UINT syncInterval = SCONST_IS_VSYNC ? 1 : 0;
+	UINT syncInterval = sccVSYNC ? 1 : 0;
 	UINT presentFlags = (mIsTearingSupported && !syncInterval) ? DXGI_PRESENT_ALLOW_TEARING : 0;
 
 	// present the current buffer. swap chain will internally change the current writable buffer index
@@ -150,7 +141,7 @@ void RenderWindow::resize(UINT client_width, UINT client_height)
 
 	// Any references to the back buffers must be released
 	// before the swap chain can be resized.
-	for (int i = 0; i < SCONST_BACK_BUFFER_COUNT; i++)
+	for (int i = 0; i < sccBufferCount; i++)
 	{
 		mBuffers[i].Reset();
 		mBufferSignals[i] = current_buffer_signal();
@@ -162,7 +153,7 @@ void RenderWindow::resize(UINT client_width, UINT client_height)
 	);
 	execute_and_test_hresult(
 		mSwapChain->ResizeBuffers(
-			SCONST_BACK_BUFFER_COUNT,
+			sccBufferCount,
 			client_width,
 			client_height,
 			scDesc.BufferDesc.Format,
@@ -214,7 +205,7 @@ void RenderWindow::toggle_fullscreen(bool mode)
 	else
 	{
 		// turn back on all the decor
-		::SetWindowLongPtrW(hwnd, GWL_STYLE, SCONST_WINDOW_STYLE);
+		::SetWindowLongPtrW(hwnd, GWL_STYLE, sccWindowStyle);
 
 		// set the pos of the window to old pos
 		int x, y, w, h;
@@ -248,7 +239,7 @@ bool RenderWindow::create_hwnd(const RENDER_WINDOW_DESC& desc) noexcept
 
 
 	RECT window_rect{ static_cast<LONG>(desc.x), static_cast<LONG>(desc.y), static_cast<LONG>(desc.x + desc.width), static_cast<LONG>(desc.y + desc.height) };
-	::AdjustWindowRect(&window_rect, SCONST_WINDOW_STYLE, FALSE);
+	::AdjustWindowRect(&window_rect, sccWindowStyle, FALSE);
 
 	const int win_x = static_cast<int>(std::max<LONG>(window_rect.left, 0));
 	const int win_y = static_cast<int>(std::max<LONG>(window_rect.top, 0));
@@ -260,7 +251,7 @@ bool RenderWindow::create_hwnd(const RENDER_WINDOW_DESC& desc) noexcept
 			NULL,
 			register_desc.lpszClassName,
 			desc.window_name.c_str(),
-			SCONST_WINDOW_STYLE,
+			sccWindowStyle,
 			win_x,
 			win_y,
 			win_w,
@@ -348,10 +339,10 @@ LRESULT RenderWindow::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 void RenderWindow::update_back_buffers()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mBufferViews.descriptor_begin();
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mBufferViews.handle();
 	const UINT stride = mBufferViews.stride();
 
-	for (UINT i = 0; i < SCONST_BACK_BUFFER_COUNT; i++)
+	for (UINT i = 0; i < sccBufferCount; i++)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer;
 		mSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));

@@ -4,9 +4,11 @@
 #include <stdexcept>
 
 #include "D3D12/EasyDirectXUtils.h"
+#include "D3D12/CommandList.h"
+#include "Tools/UniqueHandle.h"
 
-CommandQueue::CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
-	:mFenceValue(0ull), mType(type), mDevice(device)
+CommandQueue::CommandQueue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE type)
+	: mType(type), mDevice(device), mFenceValue(0ull)
 {
 	if (mType != D3D12_COMMAND_LIST_TYPE_DIRECT && mType != D3D12_COMMAND_LIST_TYPE_COMPUTE && mType != D3D12_COMMAND_LIST_TYPE_COPY)
 		throw std::runtime_error{"invalid command list type"};
@@ -29,124 +31,121 @@ CommandQueue::CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYP
 	execute_and_test_hresult(
 		mDevice->CreateFence(mFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence))
 	);
-
-	mEventHandle.reset(::CreateEventW(nullptr, FALSE, FALSE, nullptr));
-	if (!mEventHandle)
-		throw_error_code_translation( GetLastError() );
 }
 
-CommandQueue::~CommandQueue() noexcept
+CommandQueue::~CommandQueue()
 {
 	if (mCommandQueue && mFence)
 		flush();
 }
 
-UINT64 CommandQueue::execute( CommandList&& list )
+void CommandQueue::submit(std::unique_ptr<CommandList> list)
 {
-	// close the list
-	list.command_list->Close();
+	if (!list)
+		throw std::invalid_argument("nullptr list not allowed");
 
-	// because command queue wants lists not a list
-	ID3D12CommandList* const command_lists[] = { list.command_list.Get() };
-
-	// execute list(s)
-	mCommandQueue->ExecuteCommandLists(_countof(command_lists), command_lists);
-
-	// signal command queue
-	UINT64 signal_value = signal();
-
-	// store the allocator and list. MOVE command allocator, don't copy. avoiding magic ref count
-	mAllocatorQueue.emplace(
-		CommandAllocatorEntry{ signal_value , std::move(list.command_allocator)}
+	execute_and_test_hresult(
+		list->command_list->Close()
 	);
 
-	mListQueue.push( std::move(list.command_list));
-
-	return signal_value;
+	std::lock_guard lock(mLock);
+	mSubmitList.push_back(std::move(list));
 }
 
-void CommandQueue::wait_until_completion(UINT64 until, DWORD milliseconds)
+UINT64 CommandQueue::execute( )
 {
-	if (get_completed_value() >= until)
-		return;
+	std::lock_guard lock(mLock);
 
-	mFence->SetEventOnCompletion(until, mEventHandle.get());
+	// if nothing is pending, early out
+	if (mSubmitList.empty())
+		return mFenceValue;
 
-	::WaitForSingleObject(mEventHandle.get(), milliseconds);
+	// create a contiguous array command lists
+	std::vector<ID3D12CommandList*> execution_list;
+	execution_list.reserve(mSubmitList.size());
+
+	for (const auto& l : mSubmitList)
+		execution_list.push_back(l->command_list.Get());
+
+	mCommandQueue->ExecuteCommandLists(static_cast<UINT>(execution_list.size()), execution_list.data());
+
+	const UINT64 fence_value = signal();
+
+	for (auto& l : mSubmitList)
+		mFlightQueue.push(CommandListEntry{ fence_value, std::move(l) });
+
+	mSubmitList.clear();
+
+	return fence_value;
+}
+
+bool CommandQueue::wait_until_completion(UINT64 until, DWORD milliseconds)
+{
+	if (mFence->GetCompletedValue() >= until)
+		return true;
+
+	UniqueHandle event_handle(::CreateEventW(nullptr, FALSE, FALSE, nullptr));
+
+	if (!event_handle)
+		throw std::runtime_error("Failed to create fence event handle");
+
+	execute_and_test_hresult(
+		mFence->SetEventOnCompletion(until, event_handle.get())
+	);
+
+	return ::WaitForSingleObject(event_handle.get(), milliseconds) == WAIT_OBJECT_0;
 }
 
 UINT64 CommandQueue::signal()
 {
 	const UINT64 value = ++mFenceValue;
 
-	mCommandQueue->Signal(mFence.Get(), value);
+	execute_and_test_hresult(
+		mCommandQueue->Signal(mFence.Get(), value)
+	);
 
 	return value;
 }
 
 void CommandQueue::flush()
 {
-	wait_until_completion(
-		signal(), INFINITE
-	);
-}
-
-Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CommandQueue::create_command_allocator() const
-{
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
-
-	execute_and_test_hresult(
-		mDevice->CreateCommandAllocator(mType, IID_PPV_ARGS(&allocator))
-	);
-
-	return allocator;
-}
-
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::create_command_list2() const
-{
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> list;
-
-	execute_and_test_hresult(
-		mDevice->CreateCommandList1(NULL, mType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&list))
-	);
-
-	return list;
-}
-
-CommandList CommandQueue::acquire_command_list()
-{
-	CommandList context;
-
-	// if there is at least allocator in the queue attempt to reuse it.
-	// ID3D2CommandQueue internal signal counter always increments sequentially.
-	// Since the queue is first in first out it works out generally but the second check for value is still required for safety.
-	if (!mAllocatorQueue.empty() && (get_completed_value() >= mAllocatorQueue.front().fence_value))
+	UINT64 value;
 	{
-		context.command_allocator = mAllocatorQueue.front().command_allocator;
-		mAllocatorQueue.pop();
-
-		execute_and_test_hresult(
-			context.command_allocator->Reset() // indicates to re-use memory, not to let go of the ptr
-		);
+		std::lock_guard lock(mLock);
+		value = signal();
 	}
-	else // otherwise create a new allocator
+	wait_until_completion( value, INFINITE );
+}
+
+std::unique_ptr<CommandList> CommandQueue::get_command_list()
+{
+	std::unique_ptr<CommandList> list;
+
 	{
-		context.command_allocator = create_command_allocator();
+		// only lock the pop. the list is local so after this case it's thread safe
+		std::lock_guard lock(mLock);
+		if (!mFlightQueue.empty() && mFence->GetCompletedValue() >= mFlightQueue.front().fence_value)
+		{
+			list = std::move(mFlightQueue.front().list);
+			mFlightQueue.pop();
+		}
 	}
 
-	if (!mListQueue.empty())
+	if (list)
 	{
-		context.command_list = mListQueue.front();
-		mListQueue.pop();
+		execute_and_test_hresult(list->command_allocator->Reset());
 	}
 	else
 	{
-		context.command_list = create_command_list2();
+		list = std::make_unique<CommandList>(
+			create_command_allocator(mDevice.get(), mType),
+			create_command_list2(mDevice.get(), mType, D3D12_COMMAND_LIST_FLAG_NONE)
+		);
 	}
 
 	execute_and_test_hresult(
-		context.command_list->Reset(context.command_allocator.Get(), nullptr)
+		list->command_list->Reset(list->command_allocator.Get(), nullptr)
 	);
 
-	return context;
+	return list;
 }

@@ -1,74 +1,75 @@
 #pragma once
 
+#include <mutex>
+#include <atomic>
+#include <memory>
 #include <queue>
+#include <vector>
 
 #include <d3d12.h>
 #include <wrl/client.h>
 
 #include "Tools/ViewPtr.h"
-#include "Tools/UniqueHandle.h"
+#include "D3D12/FenceView.h"
 
-#include "CommandList.h"
+// todo:: submit does not check if submitted list is of the same type as the queue... fix it
 
-// TODO: thread safety review
-// TODO: add execute_lists ( maybe execute(commandlists* lists, size_t size))
+class CommandList;
 
 class CommandQueue final
 {
-	// keep track of command allocators that are executed
-	struct CommandAllocatorEntry
-	{
-		UINT64                                         fence_value       = 0ull;
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> command_allocator = nullptr;
-	};
-
-	using QAllocEntry = std::queue<CommandAllocatorEntry>;
-	using QListEntry  = std::queue<Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2>>;
-
 public:
 
 	CommandQueue() = delete;
-	CommandQueue(ViewPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type);
-	~CommandQueue() noexcept;
+	CommandQueue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE type);
+	~CommandQueue();
 
 	CommandQueue(const CommandQueue&) = delete;
 	CommandQueue& operator=(const CommandQueue&) = delete;
 	CommandQueue(CommandQueue&&) noexcept = delete;
 	CommandQueue& operator=(CommandQueue&&) noexcept = delete;
 
-	UINT64 execute( CommandList&& list );
+	void submit(std::unique_ptr<CommandList> list);
 
-	void wait_until_completion(UINT64 until, DWORD milliseconds = INFINITE);
+	UINT64 execute();
+
+	bool wait_until_completion(UINT64 until, DWORD milliseconds = INFINITE);
+
 	void flush();
 
-	CommandList acquire_command_list();
-
-	UINT64 get_completed_value() const {
-		return mFence->GetCompletedValue();
-	}
+	std::unique_ptr<CommandList> get_command_list();
 
 	ID3D12CommandQueue* get_queue() const noexcept { 
 		return mCommandQueue.Get(); 
+	}
+
+	FenceView get_fence_view() const noexcept {
+		return FenceView{ mFence.Get(), mFenceValue };
 	}
 
 protected:
 
 	UINT64 signal();
 	
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> create_command_allocator() const;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> create_command_list2() const;
-
 private:
 
-	D3D12_COMMAND_LIST_TYPE mType;
+	struct CommandListEntry
+	{
+		UINT64                        fence_value = 0ull;
+		std::unique_ptr<CommandList>  list = nullptr;
+	};
+
+	using InFlightListQueue = std::queue<CommandListEntry>;
+	using SubmissionVector = std::vector<std::unique_ptr<CommandList>>;
+
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
+	D3D12_COMMAND_LIST_TYPE mType;
+	ViewPtr<ID3D12Device4> mDevice;
 
 	Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
-	UniqueHandle mEventHandle;
-	UINT64 mFenceValue;
+	std::atomic<UINT64> mFenceValue;
+	std::mutex mLock;
 
-	QAllocEntry mAllocatorQueue;
-	QListEntry mListQueue;
-
-	ViewPtr<ID3D12Device4> mDevice;
+	InFlightListQueue mFlightQueue;
+	SubmissionVector mSubmitList;
 };

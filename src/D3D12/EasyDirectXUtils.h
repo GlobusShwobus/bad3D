@@ -27,6 +27,18 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
 ) noexcept;
 
 
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> create_command_allocator(
+	ID3D12Device4* device,
+	D3D12_COMMAND_LIST_TYPE type
+) noexcept;
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> create_command_list2(
+	ID3D12Device4* device,
+	D3D12_COMMAND_LIST_TYPE type, 
+	D3D12_COMMAND_LIST_FLAGS flags,
+	UINT node_mask = 0u
+) noexcept;
+
 Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(
 	ID3D12Device4*              device,
 	ID3D12GraphicsCommandList2* command_list,

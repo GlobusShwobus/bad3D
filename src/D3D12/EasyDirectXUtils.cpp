@@ -66,6 +66,41 @@ Microsoft::WRL::ComPtr<ID3D12Resource> create_placed_resource(
 	return resource;
 }
 
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> create_command_allocator(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE type) noexcept
+{
+	if (!device)
+		return nullptr;
+	
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
+
+	HRESULT hr = device->CreateCommandAllocator(type, IID_PPV_ARGS(&allocator));
+
+	if (FAILED(hr))
+		return nullptr;
+
+	return allocator;
+}
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> create_command_list2(
+	ID3D12Device4* device,
+	D3D12_COMMAND_LIST_TYPE type,
+	D3D12_COMMAND_LIST_FLAGS flags,
+	UINT node_mask
+) noexcept
+{
+	if (!device)
+		return nullptr;
+	
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> list;
+
+	HRESULT hr = device->CreateCommandList1(node_mask,type, flags, IID_PPV_ARGS(&list));
+
+	if (FAILED(hr))
+		return nullptr;
+
+	return list;
+}
+
 Microsoft::WRL::ComPtr<ID3D12Resource> copy_buffer_to_resource_and_get_intermediary(
 	ID3D12Device4* device,
 	ID3D12GraphicsCommandList2* command_list,

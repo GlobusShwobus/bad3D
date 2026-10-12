@@ -4,6 +4,7 @@
 
 #include <dxgi1_6.h>
 
+#include "App/CommandQueue.h"
 #include "D3D12/EasyDirectXUtils.h"
 
 GraphicsDevice::GraphicsDevice() :GraphicsDevice(false) {}
@@ -68,10 +69,9 @@ GraphicsDevice::GraphicsDevice(bool use_warp_adapter)
 	}
 #endif
 
-	ViewPtr<ID3D12Device4> device_ = ViewPtr{ mDevice.Get() };
-	mDirect = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_DIRECT );
-	mCompute = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_COMPUTE );
-	mCopy = std::make_unique<CommandQueue>( device_, D3D12_COMMAND_LIST_TYPE_COPY );
+	mDirect = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT );
+	mCompute = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE );
+	mCopy = std::make_unique<CommandQueue>(mDevice.Get(), D3D12_COMMAND_LIST_TYPE_COPY );
 
 	if (!mDirect || !mCompute || !mCopy)
 		throw std::runtime_error("failed to create command queue(s)");

@@ -12,8 +12,8 @@
 
 #include "App/Events.h"
 #include "App/GraphicsDevice.h"
-#include "App/CommandQueue.h"
 #include "D3D12/DescriptorHeap.h"
+#include "Tools/ViewPtr.h"
 
 struct RENDER_WINDOW_DESC
 {
@@ -28,26 +28,11 @@ struct RENDER_WINDOW_DESC
 	HCURSOR hCursor = nullptr;	          // can be left as null
 };
 
+
+class CommandQueue;
+
 class RenderWindow final
 {
-	static constexpr DWORD SCONST_WINDOW_STYLE = WS_OVERLAPPEDWINDOW;
-	static constexpr UINT  SCONST_BACK_BUFFER_COUNT = 3u;
-	static constexpr bool  SCONST_IS_VSYNC = true;
-
-	struct HwndDeleter
-	{
-		void operator()(HWND hwnd) const noexcept {
-			if (hwnd && ::IsWindow(hwnd))
-				::DestroyWindow(hwnd);
-		}
-	};
-
-	using UniqueHWND = std::unique_ptr<std::remove_pointer_t<HWND>, HwndDeleter>;
-	using SwapChain = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
-	using BackBufferResource = std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, SCONST_BACK_BUFFER_COUNT>;
-	using BackBufferStatus = std::array<UINT64, SCONST_BACK_BUFFER_COUNT>;
-	using ClearColor = std::array<FLOAT, 4ull>;
-
 public:
 
 	RenderWindow() = delete;
@@ -65,28 +50,18 @@ public:
 
 	void begin(); // must be called before any execution or present
 
-	void submit_work(CommandList&& list)
-	{
-		mQueue->execute(std::move(list));
-	}
-
 	void present(); // call this to present to screen at the end of the frame
 
 	void resize(UINT client_width, UINT client_height); // resize resolving method
 
 	void toggle_fullscreen(bool fullscreen); // toggles window mode fullscreen on/off
 
-	CommandList get_command_list()
-	{
-		return mQueue->acquire_command_list();
-	}
-
 	ID3D12Resource* get_buffer() const noexcept {
 		return mBuffers[mBufferIndex].Get(); 
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { 
-		return mBufferViews.descriptor_at(mBufferIndex);
+		return mBufferViews.handle(mBufferIndex);
 	}
 
 	UINT get_buffer_width() const noexcept { 
@@ -140,6 +115,24 @@ protected:
 	}
 
 private:
+
+	static constexpr const DWORD sccWindowStyle = WS_OVERLAPPEDWINDOW;
+	static constexpr const UINT  sccBufferCount = 3u;
+	static constexpr const bool  sccVSYNC = true;
+
+	struct HwndDeleter
+	{
+		void operator()(HWND hwnd) const noexcept {
+			if (hwnd && ::IsWindow(hwnd))
+				::DestroyWindow(hwnd);
+		}
+	};
+
+	using UniqueHWND = std::unique_ptr<std::remove_pointer_t<HWND>, HwndDeleter>;
+	using SwapChain = Microsoft::WRL::ComPtr<IDXGISwapChain4>;
+	using BackBufferResource = std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, sccBufferCount>;
+	using BackBufferStatus = std::array<UINT64, sccBufferCount>;
+	using ClearColor = std::array<FLOAT, 4ull>;
 
 	// window & swapchain
 	UniqueHWND   mHwnd;
