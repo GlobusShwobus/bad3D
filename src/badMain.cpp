@@ -9,6 +9,7 @@
 #include "App/Events.h"
 #include <DirectXMath.h>
 
+#include "D3D12/EasyDirectX.h"
 #include "D3D12/EasyDirectXUtils.h"
 
 #include "Demo/DemoCube2.h"

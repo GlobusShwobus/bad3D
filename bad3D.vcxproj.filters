@@ -42,6 +42,21 @@
     <ClCompile Include="src\App\RenderWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\D3D12\UploadBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\DescriptorRange.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\DynamicDescriptorHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\DescriptorFreeListHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Tools\ViewPtr.h">
@@ -56,7 +71,7 @@
     <ClInclude Include="src\App\badWin32.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CommandList.h">
+    <ClInclude Include="src\D3D12\CommandList.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\EasyDirectX.h">
@@ -77,7 +92,7 @@
     <ClInclude Include="src\Tools\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\BufferViews.h">
+    <ClInclude Include="src\D3D12\IndexView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\Events.h">
@@ -99,6 +114,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\InputCodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\UploadBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Tools\Align.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\FenceView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\DescriptorRange.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\DescriptorFreeListHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\VertexView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

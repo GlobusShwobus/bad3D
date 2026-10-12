@@ -5,20 +5,22 @@
 #include <d3dcompiler.h>
 #include "D3D12/EasyDirectX.h"
 #include "D3D12/EasyDirectXUtils.h"
+#include "D3D12/CommandList.h"
 #include <array>
 
 void DemoCube2::load_content(GraphicsDevice* device, RenderWindow* window)
 {
 	// gets
 	mGraphicsDevice = ViewPtr{ device };
+	mCommandQueue = ViewPtr{ device->get_direct_queue() };
 	mDevice = ViewPtr{ device->get_device() };
 	mRenderWindow = ViewPtr{ window };
 
 	auto copy_command_queue = device->get_copy_queue();
-	auto copy_command_list = copy_command_queue->acquire_command_list();
+	auto copy_command_list = copy_command_queue->get_command_list();
 
 	// prepare mesh
-	auto uploads = prepare_buffers(mDevice.get(), copy_command_list.command_list.Get());
+	auto uploads = prepare_buffers(mDevice.get(), copy_command_list->command_list.Get());
 
 	// create the descriptor heap for the depth stencil view
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = easy::descriptor_heap_DSV(1);
@@ -98,8 +100,10 @@ void DemoCube2::load_content(GraphicsDevice* device, RenderWindow* window)
 		mDevice->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&mPipelineState))
 	);
 
+	copy_command_queue->submit(std::move(copy_command_list));
+
 	copy_command_queue->wait_until_completion(
-		copy_command_queue->execute(std::move(copy_command_list))
+		copy_command_queue->execute()
 	);
 
 	//other
@@ -192,12 +196,12 @@ void DemoCube2::on_render()
 	if (mRunning)
 	{
 		// find a command list either via render window helper or caching queue directly, makes not a lot of difference atm (later queue should accept batch work)
-		auto command_context = mRenderWindow->get_command_list();
-		ID3D12GraphicsCommandList2* command_list = command_context.command_list.Get();
+		auto command_context = mCommandQueue->get_command_list();
+		ID3D12GraphicsCommandList2* command_list = command_context->command_list.Get();
 
 		// clear DSV
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_desc = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
-		command_context.clear_DSV(dsv_desc, 1.0f);
+		command_context->clear_DSV(dsv_desc, 1.0f);
 
 		// THIS STUFF IS SET ONCE
 		// pre stuff, in this case vertex and pixel shaders stuff
@@ -228,7 +232,7 @@ void DemoCube2::on_render()
 		}
 
 		// present. first submit the worked on list, then call present which finishes the loop
-		mRenderWindow->submit_work(std::move(command_context));
+		mCommandQueue->submit(std::move(command_context));
 	}
 }
 
@@ -462,6 +466,8 @@ std::vector<WORD> DemoCube2::prism_index()
 
 std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(ID3D12Device4* device, ID3D12GraphicsCommandList2* list)
 {
+	if (!list)
+		throw std::runtime_error("nullptr list");
 	// setup variables
 	const UINT PER_VERTEX_SIZE = sizeof(VertexPosColor);
 	const UINT PER_INDEX_SIZE = sizeof(WORD);

@@ -80,6 +80,7 @@ private:
 	FLOAT color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 	ViewPtr<GraphicsDevice> mGraphicsDevice;
+	ViewPtr<CommandQueue> mCommandQueue;
 	ViewPtr<ID3D12Device4> mDevice;
 	ViewPtr<RenderWindow>  mRenderWindow;
 
