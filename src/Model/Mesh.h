@@ -6,7 +6,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include "D3D12/Resource.h"
+#include "D3D12/GPUResource.h"
 #include "D3D12/IndexView.h"
 #include "D3D12/VertexView.h"
 
@@ -18,13 +18,20 @@ struct Submesh
 
 // as things go ideally shit is not as exposed
 
+// calling get desck in add submesh for resource size. resource size cache somehow??? probably IN mesh class because
+
 class Mesh // mesh for textured objects????? idk
 {
 public:
 
-	Mesh(Resource&& vertex_buffer, Resource&& index_buffer) noexcept
-		:mVertexBuffer(std::move(vertex_buffer)), mIndexBuffer(std::move(index_buffer))
+	Mesh(GPUResource&& vertex_buffer, GPUResource&& index_buffer) noexcept
+		:mVertexBuffer(std::move(vertex_buffer)), mIndexBuffer(std::move(index_buffer)), mVBufSize(0), mIBufSize(0)
 	{
+		const auto vertex_desc = mVertexBuffer->GetDesc();
+		const auto index_desc = mIndexBuffer->GetDesc();
+
+		mVBufSize = vertex_desc.Width;
+		mIBufSize = index_desc.Width;
 	}
 
 	void add_submesh(Submesh submesh)
@@ -44,13 +51,15 @@ public:
 		mObjects.emplace_back
 		(
 			VertexBufferView(
-				&mVertexBuffer,
+				mVBufSize,
+				mVertexBuffer.address(),
 				vertex_offset,
 				vertex_size,
 				vertex_stride
 			),
 			IndexBufferView(
-				&mIndexBuffer,
+				mIBufSize,
+				mIndexBuffer.address(),
 				index_offset,
 				index_size,
 				index_format
@@ -58,11 +67,11 @@ public:
 		);
     }
 
-	const Resource* const vertex_resource() const noexcept { 
+	const GPUResource* const vertex_resource() const noexcept {
 		return &mVertexBuffer; 
 	}
 
-	const Resource* const index_resource() const noexcept  { 
+	const GPUResource* const index_resource() const noexcept  {
 		return &mIndexBuffer; 
 	
 	}
@@ -88,8 +97,11 @@ public:
 	}
 
 private:
-	Resource mVertexBuffer;
-	Resource mIndexBuffer;
+	GPUResource mVertexBuffer;
+	GPUResource mIndexBuffer;
+
+	UINT64 mVBufSize;
+	UINT64 mIBufSize;
 
 	std::vector<Submesh> mObjects;
 };

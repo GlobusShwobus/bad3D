@@ -497,14 +497,14 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> DemoCube2::prepare_buffers(I
 	}
 
 	// create vertex buffer
-	Resource raw_vertex_buffer = Resource{
+	GPUResource raw_vertex_buffer = GPUResource{
 		device,
 		easy::heap_property_default(),
 		easy::resource_desc_buffer(vertex_bytes),
 		D3D12_RESOURCE_STATE_COMMON
 	};
 
-	Resource raw_index_buffer = Resource{
+	GPUResource raw_index_buffer = GPUResource{
 		device,
 		easy::heap_property_default(),
 		easy::resource_desc_buffer(index_bytes),

@@ -16,7 +16,7 @@
 #include "App/RenderWindow.h"
 
 #include "Model/Mesh.h"
-#include "D3D12/Resource.h"
+#include "D3D12/GPUResource.h"
 
 class DemoCube2 final :public IScene
 {

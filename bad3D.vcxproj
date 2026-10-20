@@ -180,9 +180,10 @@ dxgi.lib
     <ClCompile Include="src\D3D12\DynamicDescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12\DescriptorRange.cpp" />
+    <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp" />
     <ClCompile Include="src\Demo\DemoCube2.cpp" />
     <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp" />
-    <ClCompile Include="src\D3D12\UploadBuffer.cpp" />
+    <ClCompile Include="src\D3D12\GPUResourceBumpAllocator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\App\badWin32.h" />
@@ -194,10 +195,12 @@ dxgi.lib
     <ClInclude Include="src\App\GraphicsDevice.h" />
     <ClInclude Include="src\App\InputCodes.h" />
     <ClInclude Include="src\App\RenderWindow.h" />
-    <ClInclude Include="src\D3D12\Resource.h" />
-    <ClInclude Include="src\D3D12\UploadBuffer.h" />
+    <ClInclude Include="src\D3D12\GPUResource.h" />
+    <ClInclude Include="src\D3D12\GPUResourceBumpAllocator.h" />
+    <ClInclude Include="src\D3D12\DynamicUploadBuffer.h" />
     <ClInclude Include="src\D3D12\VertexView.h" />
     <ClInclude Include="src\Tools\Align.h" />
+    <ClInclude Include="src\Tools\PageSize.h" />
     <ClInclude Include="src\Tools\UniqueHandle.h" />
     <ClInclude Include="src\D3D12\CommandList.h" />
     <ClInclude Include="src\App\CommandQueue.h" />

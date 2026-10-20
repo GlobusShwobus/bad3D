@@ -7,17 +7,17 @@
 
 #include "D3D12/EasyDirectXUtils.h"
 
-class Resource
+class GPUResource
 {
 public:
-    Resource() = delete;
-    Resource(const Resource&) = delete;
-    Resource& operator=(const Resource&) = delete;
-    Resource(Resource&&) noexcept = default;
-    Resource& operator=(Resource&&) noexcept = default;
-    ~Resource() noexcept = default;
+    GPUResource() = delete;
+    GPUResource(const GPUResource&) = delete;
+    GPUResource& operator=(const GPUResource&) = delete;
+    GPUResource(GPUResource&&) noexcept = default;
+    GPUResource& operator=(GPUResource&&) noexcept = default;
+    ~GPUResource() noexcept = default;
 
-    Resource(
+    GPUResource(
         ID3D12Device4* device,
         const D3D12_HEAP_PROPERTIES& heap_properties,
         const D3D12_RESOURCE_DESC& resource_desc,
@@ -41,15 +41,10 @@ public:
         );
         mAddress = mResource->GetGPUVirtualAddress();
         mState = initial_state;
-        mDesc = resource_desc;
     }
 
     ID3D12Resource* get() const noexcept {
         return mResource.Get(); 
-    }
-
-    const D3D12_RESOURCE_DESC& desc() const noexcept {
-        return mDesc; 
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS address() const noexcept { 
@@ -62,9 +57,22 @@ public:
         return state;
     }
 
+    explicit operator bool() const noexcept {
+        return mResource != nullptr;
+    }
+
+    ID3D12Resource* operator->() noexcept {
+        return mResource.Get();
+    }
+
+    const ID3D12Resource* operator->() const noexcept {
+        return mResource.Get();
+    }
+
 private:
     Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
-    D3D12_RESOURCE_DESC mDesc;
-    D3D12_GPU_VIRTUAL_ADDRESS mAddress;
+
     D3D12_RESOURCE_STATES mState;
+
+    D3D12_GPU_VIRTUAL_ADDRESS mAddress;
 };

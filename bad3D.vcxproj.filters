@@ -42,7 +42,7 @@
     <ClCompile Include="src\App\RenderWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\UploadBuffer.cpp">
+    <ClCompile Include="src\D3D12\GPUResourceBumpAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
@@ -55,6 +55,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\DescriptorFreeListHeap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -110,13 +113,13 @@
     <ClInclude Include="src\Tools\Stopwatch.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\Resource.h">
+    <ClInclude Include="src\D3D12\GPUResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\App\InputCodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\UploadBuffer.h">
+    <ClInclude Include="src\D3D12\GPUResourceBumpAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Tools\Align.h">
@@ -135,6 +138,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\VertexView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\DynamicUploadBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Tools\PageSize.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
