@@ -48,16 +48,19 @@
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\DescriptorRange.cpp">
+    <ClCompile Include="src\D3D12\DescriptorAlloc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\DynamicDescriptorHeap.cpp">
+    <ClCompile Include="src\D3D12\DescriptorBook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12\DescriptorFreeListHeap.cpp">
+    <ClCompile Include="src\D3D12\DescriptorPage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12\RootSignature.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -128,13 +131,13 @@
     <ClInclude Include="src\D3D12\FenceView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\DescriptorRange.h">
+    <ClInclude Include="src\D3D12\DescriptorAlloc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h">
+    <ClInclude Include="src\D3D12\DescriptorBook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12\DescriptorFreeListHeap.h">
+    <ClInclude Include="src\D3D12\DescriptorPage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\VertexView.h">
@@ -144,6 +147,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Tools\PageSize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\GPUResourceAlloc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\RootSignature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

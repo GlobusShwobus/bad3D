@@ -1,8 +1,8 @@
-#include "D3D12/DynamicDescriptorheap.h"
+#include "D3D12/DescriptorBook.h"
 
 #include <stdexcept>
 
-DescriptorAllocator::DescriptorAllocator(
+DescriptorBook::DescriptorBook(
 	ID3D12Device4* device,
 	FenceView fence_view, 
 	D3D12_DESCRIPTOR_HEAP_TYPE type, 
@@ -17,18 +17,19 @@ DescriptorAllocator::DescriptorAllocator(
 		throw std::invalid_argument("device nullptr");
 }
 
-DescriptorRange DescriptorAllocator::allocate(uint32_t size)
+DescriptorAlloc DescriptorBook::allocate_descriptors(UINT size)
 {
-	std::lock_guard<std::mutex> lock(mAllocationMutex);
+	std::lock_guard<std::mutex> lock(mLock);
 
-	DescriptorRange allocation;
+	DescriptorAlloc allocation;
 
 	for (auto iter = mAvailableHeaps.begin(); iter != mAvailableHeaps.end(); ++iter)
 	{
-		DescriptorFreeListHeap* heap = mHeapPool[*iter].get();
+		DescriptorPage* heap = mHeapPool[*iter].get();
 
 		// try to allocate from the heap, it may fail if there are not enough available slots
-		allocation = heap->allocate(size);
+		// note: heap->has_space() may be called before allocate, but allocate will return a null descriptor anyway if there's not enough space
+		allocation = heap->freelist_allocate(size);
 
 		// if no free handles are left, the heap is full --> remove the index from the set
 		if (heap->count_of_free_elements() == 0)
@@ -45,19 +46,21 @@ DescriptorRange DescriptorAllocator::allocate(uint32_t size)
 		auto tempSize = mSizePerHeap;
 
 		mSizePerHeap = max(mSizePerHeap, size);
-		DescriptorFreeListHeap* heap = create_allocator_heap();
+		DescriptorPage* heap = create_allocator_heap();
 
 		mSizePerHeap = tempSize;
 
-		allocation = heap->allocate(size);
+		allocation = heap->freelist_allocate(size);
+		// maybe should run the check if count of free elements is 0 here as well 
+		// though i think it's not super neccessary
 	}
 
 	return allocation;
 }
 
-void DescriptorAllocator::release_stale_descriptors()
+void DescriptorBook::release_stale_descriptors()
 {
-	std::lock_guard<std::mutex>lock(mAllocationMutex);
+	std::lock_guard<std::mutex>lock(mLock);
 
 	for (std::size_t i = 0; i < mHeapPool.size(); ++i)
 	{
@@ -70,11 +73,11 @@ void DescriptorAllocator::release_stale_descriptors()
 	}
 }
 
-DescriptorFreeListHeap* DescriptorAllocator::create_allocator_heap()
+DescriptorPage* DescriptorBook::create_allocator_heap()
 {
-	auto new_free_list_heap = std::unique_ptr<DescriptorFreeListHeap>(new DescriptorFreeListHeap(mDevice.get(), mFenceView, mHeapType, mSizePerHeap));
+	auto new_free_list_heap = std::make_unique<DescriptorPage>(mDevice.get(), mFenceView, mHeapType, mSizePerHeap);
 
-	DescriptorFreeListHeap* pHeap = new_free_list_heap.get();
+	DescriptorPage* pHeap = new_free_list_heap.get();
 
 	mHeapPool.emplace_back(std::move(new_free_list_heap));
 	mAvailableHeaps.insert(mHeapPool.size() - 1);

@@ -11,24 +11,9 @@ DynamicUploadBuffer::DynamicUploadBuffer(ID3D12Device4* device, PageSize page_si
 		throw std::invalid_argument("nullptr device");
 }
 
-DynGPUAlloc DynamicUploadBuffer::allocate(UINT64 size_in_bytes, UINT64 alignment)
+ViewPtr<GPUResourceBumpAllocator> DynamicUploadBuffer::request_page()
 {
-	// if requested size does not fit even a new page, then it's a bad request
-	if (size_in_bytes > mPageSize)
-		throw std::bad_alloc();
-
-	// If there is no current page, or the requested allocation exceeds the
-	// remaining space in the current page, request a new page.
-	if (!mCurrentPage || !mCurrentPage->has_space(size_in_bytes, alignment))
-		mCurrentPage = request_page();
-
-	// bump offset
-	return mCurrentPage->allocate(size_in_bytes, alignment);
-}
-
-ViewPtr<GPUBumpAllocator> DynamicUploadBuffer::request_page()
-{
-	std::shared_ptr<GPUBumpAllocator> page;
+	std::shared_ptr<GPUResourceBumpAllocator> page;
 
 	// if there are available pages in the free page list, get one from there, otherwise create one and 
 	// push it to the all pages pool
@@ -38,7 +23,7 @@ ViewPtr<GPUBumpAllocator> DynamicUploadBuffer::request_page()
 		mFreePages.pop_front();
 	}
 	else {
-		page = std::make_shared<GPUBumpAllocator>(
+		page = std::make_shared<GPUResourceBumpAllocator>(
 			GPUResource{ mDevice.get(),
 				easy::heap_property_upload(),
 				easy::resource_desc_buffer(mPageSize),
@@ -51,6 +36,21 @@ ViewPtr<GPUBumpAllocator> DynamicUploadBuffer::request_page()
 	}
 
 	return ViewPtr{ page.get() };
+}
+
+GPUResourceAlloc DynamicUploadBuffer::bump_allocate(std::size_t size_in_bytes, std::size_t alignment)
+{
+	// if requested size does not fit even a new page, then it's a bad request
+	if (size_in_bytes > mPageSize)
+		throw std::bad_alloc();
+
+	// If there is no current page, or the requested allocation exceeds the
+	// remaining space in the current page, request a new page.
+	if (!mCurrentPage || !mCurrentPage->has_space(size_in_bytes, alignment))
+		mCurrentPage = request_page();
+
+	// bump offset
+	return mCurrentPage->bump_allocate(size_in_bytes, alignment);
 }
 
 void DynamicUploadBuffer::reset()

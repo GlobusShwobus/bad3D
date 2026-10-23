@@ -176,11 +176,12 @@ dxgi.lib
     <ClCompile Include="src\App\RenderWindow.cpp" />
     <ClCompile Include="src\badMain.cpp" />
     <ClCompile Include="src\App\CommandQueue.cpp" />
-    <ClCompile Include="src\D3D12\DescriptorFreeListHeap.cpp" />
-    <ClCompile Include="src\D3D12\DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="src\D3D12\DescriptorPage.cpp" />
+    <ClCompile Include="src\D3D12\DescriptorBook.cpp" />
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp" />
-    <ClCompile Include="src\D3D12\DescriptorRange.cpp" />
+    <ClCompile Include="src\D3D12\DescriptorAlloc.cpp" />
     <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp" />
+    <ClCompile Include="src\D3D12\RootSignature.cpp" />
     <ClCompile Include="src\Demo\DemoCube2.cpp" />
     <ClCompile Include="src\D3D12\EasyDirectXUtils.cpp" />
     <ClCompile Include="src\D3D12\GPUResourceBumpAllocator.cpp" />
@@ -188,9 +189,11 @@ dxgi.lib
   <ItemGroup>
     <ClInclude Include="src\App\badWin32.h" />
     <ClInclude Include="src\App\Events.h" />
-    <ClInclude Include="src\D3D12\DescriptorFreeListHeap.h" />
     <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h" />
-    <ClInclude Include="src\D3D12\DescriptorRange.h" />
+    <ClInclude Include="src\D3D12\GPUResourceAlloc.h" />
+    <ClInclude Include="src\D3D12\DescriptorPage.h" />
+    <ClInclude Include="src\D3D12\DescriptorBook.h" />
+    <ClInclude Include="src\D3D12\DescriptorAlloc.h" />
     <ClInclude Include="src\D3D12\FenceView.h" />
     <ClInclude Include="src\App\GraphicsDevice.h" />
     <ClInclude Include="src\App\InputCodes.h" />
@@ -198,6 +201,7 @@ dxgi.lib
     <ClInclude Include="src\D3D12\GPUResource.h" />
     <ClInclude Include="src\D3D12\GPUResourceBumpAllocator.h" />
     <ClInclude Include="src\D3D12\DynamicUploadBuffer.h" />
+    <ClInclude Include="src\D3D12\RootSignature.h" />
     <ClInclude Include="src\D3D12\VertexView.h" />
     <ClInclude Include="src\Tools\Align.h" />
     <ClInclude Include="src\Tools\PageSize.h" />

@@ -1,66 +1,64 @@
-#include "D3D12/DescriptorFreeListHeap.h"
+#include "D3D12/DescriptorPage.h"
 
-DescriptorFreeListHeap::DescriptorFreeListHeap(
+DescriptorPage::DescriptorPage(
 	ID3D12Device4* device,
 	FenceView fence_view,
 	D3D12_DESCRIPTOR_HEAP_TYPE type,
 	UINT size_per_heap)
 	:mD3D12DescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_DESC{ type, size_per_heap, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0u })
 	, mFenceView(fence_view)
+	, mFreeCount(size_per_heap)
 {
 	// if DescriptorHeap constructor didn't throw then we're gucci
 	// initalize the free list
-	add_new_block(0, mD3D12DescriptorHeap.size());
+	add_new_block(0, size_per_heap);
 }
 
-DescriptorRange DescriptorFreeListHeap::allocate(UINT size)
+DescriptorAlloc DescriptorPage::freelist_allocate(UINT size)
 {
 	std::lock_guard<std::mutex> lock(mMutex);
 
-	// if the demand is too big to satisfy, return null descriptor so the manager can try another page
+	// if the demand is too big to satisfy, return null descriptor
 	if (size > mFreeCount)
-		return DescriptorRange();
+		return DescriptorAlloc();
 
 	// find the first contiguous block that satisfies the size, if no such block exists return null descriptor
-	const auto bySizeIt = mSizeMap.lower_bound(size);
-	if (bySizeIt == mSizeMap.end())
-		return DescriptorRange();
+	// (same as has_space() but the iterator is needed)
+	const auto fitting_block = mSizeMap.lower_bound(size);
+	if (fitting_block == mSizeMap.end())
+		return DescriptorAlloc();
 
-	// the size of the smallest block that satisfies the request
-	const auto current_block_size = bySizeIt->first;
+	// The fitting block may be larger than the requested amount which means the fitting block must be split. 
+	// The fitting block will be removed from the bimap and a resized one reinserted. For this some values need caching.
+	const auto old_block_size = fitting_block->first;
+	const auto fitting_block_offset = fitting_block->second;
+	const auto old_block_offset = fitting_block_offset->first; 
 
-	// offset iterator from size info
-	const auto byOffsetIt = bySizeIt->second;
+	mSizeMap.erase(fitting_block);
+	mOffsetMap.erase(fitting_block_offset);
 
-	// the offsetr in the desc heap
-	const auto current_block_offset = byOffsetIt->first;
+	// Compute the resized block offset and size and reinsert it if size is not 0.
+	const auto reinserted_block_offset = old_block_offset + size;
+	const auto reinserted_block_size = old_block_size - size;   
 
-	// before returning a range to the user, using current_block_size and size function parameter
-	// potentially a new block may need to be reinserted if the bySizeIt.size > size. the dangling block at the end is reinserted into the map
-	const auto resized_block_offset = current_block_offset + size;
-	const auto resized_block_size = current_block_size - size;
+	if (reinserted_block_size > 0)
+		add_new_block(reinserted_block_offset, reinserted_block_size);
 
-	// erase current block
-	mSizeMap.erase(bySizeIt);
-	mOffsetMap.erase(byOffsetIt);
-
-	// add new block
-	if (resized_block_size > 0)
-		add_new_block(resized_block_offset, resized_block_size);
-
-	// decrement free handles
+	// decrement free handles counter and return a valid range
 	mFreeCount -= size;
 
-	// return a valid range
-	return DescriptorRange(
-		mD3D12DescriptorHeap.handle(current_block_offset),
-		size,
+	const auto allocation_offset = old_block_offset;
+	const auto allocation_size = size;
+
+	return DescriptorAlloc(
+		mD3D12DescriptorHeap.handle(allocation_offset),
+		allocation_size,
 		mD3D12DescriptorHeap.stride(),
 		this
 	);
 }
 
-void DescriptorFreeListHeap::free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size)
+void DescriptorPage::free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size)
 {
 	const auto offset = compute_offset(handle);
 
@@ -69,7 +67,7 @@ void DescriptorFreeListHeap::free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size)
 	mStaleDescriptors.emplace(offset, size, mFenceView.get_next_signal_value());
 }
 
-void DescriptorFreeListHeap::release_stale_descriptors()
+void DescriptorPage::release_stale_descriptors()
 {
 	std::lock_guard<std::mutex> lock(mMutex);
 
@@ -91,7 +89,7 @@ void DescriptorFreeListHeap::release_stale_descriptors()
 	}
 }
 
-void DescriptorFreeListHeap::add_new_block(UINT offset, UINT size)
+void DescriptorPage::add_new_block(UINT offset, UINT size)
 {
 	// make a bidirectional view
 	auto offsetIt = mOffsetMap.emplace(offset, size);
@@ -99,7 +97,7 @@ void DescriptorFreeListHeap::add_new_block(UINT offset, UINT size)
 	offsetIt.first->second.FreeListBySizeIt = sizeIt;
 }
 
-void DescriptorFreeListHeap::free_block(UINT offset, UINT size)
+void DescriptorPage::free_block(UINT offset, UINT size)
 {
 	// find the next free block in the offset list
 	auto nextBlockIt = mOffsetMap.upper_bound(offset);
@@ -135,7 +133,7 @@ void DescriptorFreeListHeap::free_block(UINT offset, UINT size)
 		mOffsetMap.erase(prevBlockIt);
 	}
 
-	// CASE 2: if the next block is immediately preceding the block being freed
+	// CASE 2: if the next block is immediately after the block being freed
 	if (nextBlockIt != mOffsetMap.end() && resized_block_offset + resized_block_size == nextBlockIt->first)
 	{
 		// increase the block size by the size of the merging with the next block

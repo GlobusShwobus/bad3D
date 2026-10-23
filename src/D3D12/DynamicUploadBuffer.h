@@ -8,6 +8,11 @@
 #include "Tools/PageSize.h"
 #include "D3D12/GPUResourceBumpAllocator.h"
 
+/**
+* DynamicUploadBuffer is not thread safe in of itself.
+*/
+
+
 class DynamicUploadBuffer
 {
 public:
@@ -27,7 +32,7 @@ public:
     // Use a memcpy or similar method to copy the
     // buffer data to CPU pointer in the Allocation structure returned from
     // this function. 
-    DynGPUAlloc allocate(std::size_t size_in_bytes, std::size_t alignment);
+    GPUResourceAlloc bump_allocate(std::size_t size_in_bytes, std::size_t alignment);
 
     // release all allocated pages. this should only be done when the command list 
     // is finished executing on the command queue
@@ -36,17 +41,17 @@ public:
 protected:
 
     // request a page from the pool of available pages or create a new page
-    ViewPtr<GPUBumpAllocator> request_page();
+    ViewPtr<GPUResourceBumpAllocator> request_page();
 
 private:
 
-    using PageDeque = std::deque<std::shared_ptr<GPUBumpAllocator>>;
+    using PageDeque = std::deque<std::shared_ptr<GPUResourceBumpAllocator>>;
 
     // a pool of memory pages
     PageDeque mAllPages;
     PageDeque mFreePages;
 
-    ViewPtr<GPUBumpAllocator> mCurrentPage;
+    ViewPtr<GPUResourceBumpAllocator> mCurrentPage;
 
     ViewPtr<ID3D12Device4> mDevice;
 

@@ -5,62 +5,65 @@
 #include <queue>
 
 #include <d3d12.h>
-#include <wrl/client.h>
 
 #include "D3D12/DescriptorHeap.h"
-#include "D3D12/DescriptorRange.h"
+#include "D3D12/DescriptorAlloc.h"
 #include "D3D12/FenceView.h"
 
-class DescriptorFreeListHeap final
+/**
+* Mutating methods of DescriptorFreeListAllocator are thread safe, but space checkers are not.
+*/
+class DescriptorPage final
 {
 public:
 
-	DescriptorFreeListHeap(const DescriptorFreeListHeap&) = delete;
-	DescriptorFreeListHeap& operator=(const DescriptorFreeListHeap&) = delete;
-	DescriptorFreeListHeap(DescriptorFreeListHeap&&) = delete;
-	DescriptorFreeListHeap& operator=(DescriptorFreeListHeap&&) = delete;
+	DescriptorPage(const DescriptorPage&) = delete;
+	DescriptorPage& operator=(const DescriptorPage&) = delete;
+	DescriptorPage(DescriptorPage&&) = delete;
+	DescriptorPage& operator=(DescriptorPage&&) = delete;
 
-	~DescriptorFreeListHeap() = default;
-
-	// checks if there is a large enough contiguous block of descriptors to satisfy demand
-	bool has_sapce(UINT size) const {
-		return mSizeMap.lower_bound(size) != mSizeMap.end();
-	}
-
-	UINT count_of_free_elements() const noexcept {
-		return mFreeCount;
-	}
-
-	// allocate a contiguous range of descriptors. if the allocation can not be satisfied a null descriptor is returned
-	DescriptorRange allocate(UINT size);
-
-	// frees an allocation. since the GPU may still be using the descriptors, actual release is deffered to release_stale_descriptors
-	void free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size);
-
-	// releases stale descriptors, if the GPU is done with the descriptors
-	void release_stale_descriptors();
-
-protected:
-
-	friend class DescriptorAllocator;
-
-	DescriptorFreeListHeap(
+	DescriptorPage(
 		ID3D12Device4* device,
 		FenceView fence_view,
 		D3D12_DESCRIPTOR_HEAP_TYPE type,
 		UINT size_per_heap
 	);
 
+	~DescriptorPage() = default;
+
+	// checks if there is a large enough contiguous block of descriptors to satisfy demand
+	bool has_sapce(UINT size) const {
+		return mSizeMap.lower_bound(size) != mSizeMap.end();
+	}
+
+	// returns the number of total elements, including fragmentation
+	UINT count_of_free_elements() const noexcept {
+		return mFreeCount;
+	}
+
+	// allocate a contiguous range of descriptors. if the allocation can not be satisfied a null descriptor is returned (thread safe)
+	DescriptorAlloc freelist_allocate(UINT size);
+
+	// frees an allocation pushing it to the deffered stale queue due to synchronization requirement. shoult not be called manually (thread safe)
+	void free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size);
+
+	// releases stale descriptors, if the GPU is done with the descriptors (thread safe)
+	void release_stale_descriptors();
+
+protected:
+
 	// Compute the offset of the descriptor handle from the start of the heap.
 	UINT compute_offset(D3D12_CPU_DESCRIPTOR_HANDLE handle) const noexcept {
 		return static_cast<UINT>(handle.ptr - mD3D12DescriptorHeap.handle().ptr) / mD3D12DescriptorHeap.stride();
 	}
 
-	// Adds a new block to the free list.
+	// Adds a new block to the free list. (not thread safe internal)
 	void add_new_block(UINT offset, UINT size);
 
-	// frees the block of descriptors called by release_stale_descriptors
+	// frees the block of descriptors called by release_stale_descriptors (not thread safe internal)
 	void free_block(UINT offset, UINT size);
+
+private:
 
 	using OffsetType = UINT;
 	using SizeType = UINT;
@@ -102,7 +105,6 @@ protected:
 
 	using StaleDescriptorQueue = std::queue<StaleDescriptorInfo>;
 
-private:
 
 	// members
 	DescriptorHeap mD3D12DescriptorHeap;

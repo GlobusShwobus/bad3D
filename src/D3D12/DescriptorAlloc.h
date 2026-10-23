@@ -4,33 +4,33 @@
 
 #include "Tools/ViewPtr.h"
 
-class DescriptorRange
+class DescriptorAlloc
 {
 public:
 
-	constexpr DescriptorRange() noexcept
+	constexpr DescriptorAlloc() noexcept
 		:mStride(0)
 		, mSize(0)
 		, mBegin(0)
-		, mHeap(nullptr)
+		, mSource(nullptr)
 	{
 	}
 
-	~DescriptorRange();
+	~DescriptorAlloc();
 
-	DescriptorRange(const DescriptorRange&) = delete;
-	DescriptorRange& operator=(const DescriptorRange&) = delete;
+	DescriptorAlloc(const DescriptorAlloc&) = delete;
+	DescriptorAlloc& operator=(const DescriptorAlloc&) = delete;
 
-	DescriptorRange(DescriptorRange&& rhs) noexcept
-		: mBegin(rhs.mBegin), mSize(rhs.mSize), mStride(rhs.mStride), mHeap(rhs.mHeap)
+	DescriptorAlloc(DescriptorAlloc&& rhs) noexcept
+		: mBegin(rhs.mBegin), mSize(rhs.mSize), mStride(rhs.mStride), mSource(rhs.mSource)
 	{
 		rhs.mBegin.ptr = 0;
 		rhs.mSize = 0;
 		rhs.mStride = 0;
-		rhs.mHeap = nullptr;
+		rhs.mSource = nullptr;
 	}
 
-	DescriptorRange& operator=(DescriptorRange&& rhs) noexcept;
+	DescriptorAlloc& operator=(DescriptorAlloc&& rhs) noexcept;
 
 	bool is_null() const noexcept {
 		return mBegin.ptr == 0;
@@ -48,13 +48,13 @@ public:
 
 protected:
 
-	friend class DescriptorFreeListHeap;
+	friend class DescriptorPage;
 
-	DescriptorRange(
+	DescriptorAlloc(
 		D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
 		UINT num_handles,
 		UINT stride,
-		DescriptorFreeListHeap* page
+		DescriptorPage* source
 	);
 
 	void free();
@@ -66,5 +66,5 @@ private:
 	UINT mStride;
 
 	// A pointer back to the original page where this allocation came from.
-	ViewPtr<DescriptorFreeListHeap> mHeap;
+	ViewPtr<DescriptorPage> mSource;
 };
