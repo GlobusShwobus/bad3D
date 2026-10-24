@@ -30,7 +30,7 @@ public:
 			mPtr = rhs.mPtr;
 			rhs.mPtr = nullptr;
 		}
-		return this;
+		return *this;
 	}
 
 	~ViewPtr()noexcept { mPtr = nullptr; }
