@@ -33,6 +33,8 @@ public:
 		return this;
 	}
 
+	~ViewPtr()noexcept { mPtr = nullptr; }
+
 	constexpr ViewPtr& operator=(std::nullptr_t) noexcept {
 		mPtr = nullptr;
 		return *this;
