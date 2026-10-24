@@ -17,6 +17,22 @@ public:
 	constexpr ViewPtr(const ViewPtr&) noexcept = default;
 	constexpr ViewPtr& operator=(const ViewPtr&) noexcept = default;
 
+	constexpr ViewPtr(ViewPtr&& rhs) noexcept
+		:mPtr(rhs.mPtr)
+	{
+		rhs.mPtr = nullptr;
+	}
+
+	constexpr ViewPtr& operator=(ViewPtr&& rhs) noexcept
+	{
+		if (this != &rhs)
+		{
+			mPtr = rhs.mPtr;
+			rhs.mPtr = nullptr;
+		}
+		return this;
+	}
+
 	constexpr ViewPtr& operator=(std::nullptr_t) noexcept {
 		mPtr = nullptr;
 		return *this;
