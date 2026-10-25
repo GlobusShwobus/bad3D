@@ -30,8 +30,8 @@ public:
 	DescriptorBook(const DescriptorBook&) = delete;
 	DescriptorBook& operator=(const DescriptorBook&) = delete;
 
-	DescriptorBook(DescriptorBook&&)noexcept = default;
-	DescriptorBook& operator=(DescriptorBook&&)noexcept = default;
+	DescriptorBook(DescriptorBook&&)noexcept = delete; // since mutex is not movable
+	DescriptorBook& operator=(DescriptorBook&&)noexcept = delete;
 
 	virtual ~DescriptorBook() = default;
 

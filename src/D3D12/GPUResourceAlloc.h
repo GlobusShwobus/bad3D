@@ -40,7 +40,7 @@ protected:
 
 private:
 
-    ViewPtr<GPUResource> mResource;            // non owning view for related resource
+    ViewPtr<GPUResource> mResource;          // non owning view for related resource
     UINT64 mOffset;                          // offset from start of the buffer
     UINT64 mSize;                            // size of this alloc
 

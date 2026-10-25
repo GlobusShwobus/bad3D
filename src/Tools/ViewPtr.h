@@ -52,10 +52,6 @@ public:
 		return mPtr != nullptr; 
 	}
 
-	constexpr T& operator*() const {
-		assert(mPtr); 
-		return *mPtr;
-	}
 	constexpr T* operator->() const noexcept {
 		assert(mPtr);
 		return mPtr;

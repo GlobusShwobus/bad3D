@@ -32,7 +32,7 @@ public:
 	~DescriptorPage() = default;
 
 	// checks if there is a large enough contiguous block of descriptors to satisfy demand
-	bool has_sapce(UINT size) const {
+	bool has_space(UINT size) const {
 		return mSizeMap.lower_bound(size) != mSizeMap.end();
 	}
 

@@ -56,5 +56,6 @@ GPUResourceBumpAllocator::GPUResourceBumpAllocator(GPUResource&& rresource, UINT
 {
 	// GPUResource by this point must be valid
 	mGPUPtr = mResource.address();
-	mResource->Map(0, nullptr, *mCPUPtr);
+	void* p = mCPUPtr.get();
+	mResource->Map(0, nullptr, &p);
 }
