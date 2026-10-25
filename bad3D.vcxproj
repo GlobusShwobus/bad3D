@@ -176,8 +176,7 @@ dxgi.lib
     <ClCompile Include="src\App\RenderWindow.cpp" />
     <ClCompile Include="src\badMain.cpp" />
     <ClCompile Include="src\App\CommandQueue.cpp" />
-    <ClCompile Include="src\D3D12\DescriptorPage.cpp" />
-    <ClCompile Include="src\D3D12\DescriptorBook.cpp" />
+    <ClCompile Include="src\D3D12\DescriptorPageAllocator.cpp" />
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12\DescriptorAlloc.cpp" />
     <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp" />
@@ -191,8 +190,7 @@ dxgi.lib
     <ClInclude Include="src\App\Events.h" />
     <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h" />
     <ClInclude Include="src\D3D12\GPUResourceAlloc.h" />
-    <ClInclude Include="src\D3D12\DescriptorPage.h" />
-    <ClInclude Include="src\D3D12\DescriptorBook.h" />
+    <ClInclude Include="src\D3D12\DescriptorPageAllocator.h" />
     <ClInclude Include="src\D3D12\DescriptorAlloc.h" />
     <ClInclude Include="src\D3D12\FenceView.h" />
     <ClInclude Include="src\App\GraphicsDevice.h" />

@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "D3D12/DescriptorPage.h"
+#include "D3D12/DescriptorPageAllocator.h"
 
 DescriptorAlloc::~DescriptorAlloc() {
 	free();

@@ -1,4 +1,6 @@
-#include "D3D12/DescriptorPage.h"
+#include "D3D12/DescriptorPageAllocator.h"
+
+#include <stdexcept>
 
 DescriptorPage::DescriptorPage(
 	ID3D12Device4* device,
@@ -16,8 +18,6 @@ DescriptorPage::DescriptorPage(
 
 DescriptorAlloc DescriptorPage::freelist_allocate(UINT size)
 {
-	std::lock_guard<std::mutex> lock(mMutex);
-
 	// if the demand is too big to satisfy, return null descriptor
 	if (size > mFreeCount)
 		return DescriptorAlloc();
@@ -32,14 +32,14 @@ DescriptorAlloc DescriptorPage::freelist_allocate(UINT size)
 	// The fitting block will be removed from the bimap and a resized one reinserted. For this some values need caching.
 	const auto old_block_size = fitting_block->first;
 	const auto fitting_block_offset = fitting_block->second;
-	const auto old_block_offset = fitting_block_offset->first; 
+	const auto old_block_offset = fitting_block_offset->first;
 
 	mSizeMap.erase(fitting_block);
 	mOffsetMap.erase(fitting_block_offset);
 
 	// Compute the resized block offset and size and reinsert it if size is not 0.
 	const auto reinserted_block_offset = old_block_offset + size;
-	const auto reinserted_block_size = old_block_size - size;   
+	const auto reinserted_block_size = old_block_size - size;
 
 	if (reinserted_block_size > 0)
 		add_new_block(reinserted_block_offset, reinserted_block_size);
@@ -62,15 +62,13 @@ void DescriptorPage::free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size)
 {
 	const auto offset = compute_offset(handle);
 
-	std::lock_guard<std::mutex>lock(mMutex);
+	std::lock_guard<std::mutex>lock(mFreeLock);
 
 	mStaleDescriptors.emplace(offset, size, mFenceView.get_next_signal_value());
 }
 
 void DescriptorPage::release_stale_descriptors()
 {
-	std::lock_guard<std::mutex> lock(mMutex);
-
 	const auto completed_value = mFenceView.get_completed_value();
 
 	while (!mStaleDescriptors.empty())
@@ -149,4 +147,87 @@ void DescriptorPage::free_block(UINT offset, UINT size)
 
 	// add the freed and resized block into the free list
 	add_new_block(resized_block_offset, resized_block_size);
+}
+
+DescriptorPageAllocator::DescriptorPageAllocator(
+	ID3D12Device4* device,
+	FenceView fence_view, 
+	D3D12_DESCRIPTOR_HEAP_TYPE type, 
+	UINT size_per_heap
+)
+	:mHeapType(type)
+	, mFenceView(fence_view)
+	, mSizePerHeap(size_per_heap)
+	, mDevice(device)
+{
+	if (!mDevice)
+		throw std::invalid_argument("device nullptr");
+}
+
+DescriptorAlloc DescriptorPageAllocator::allocate_descriptors(UINT size)
+{
+	std::lock_guard<std::mutex> lock(mLock);
+
+	DescriptorAlloc allocation;
+
+	for (auto iter = mAvailableHeaps.begin(); iter != mAvailableHeaps.end(); ++iter)
+	{
+		DescriptorPage* heap = mHeapPool[*iter].get();
+
+		// try to allocate from the heap, it may fail if there are not enough available slots
+		// note: heap->has_space() may be called before allocate, but allocate will return a null descriptor anyway if there's not enough space
+		allocation = heap->freelist_allocate(size);
+
+		// if no free handles are left, the heap is full --> remove the index from the set
+		if (heap->count_of_free_elements() == 0)
+			iter = mAvailableHeaps.erase(iter);
+
+		// a valid alloc has been found
+		if (!allocation.is_null())
+			break;
+	}
+
+	// if no available heap could satisfy the requested number of descriptors
+	if (allocation.is_null())
+	{
+		auto tempSize = mSizePerHeap;
+
+		mSizePerHeap = max(mSizePerHeap, size);
+		DescriptorPage* heap = create_allocator_heap();
+
+		mSizePerHeap = tempSize;
+
+		allocation = heap->freelist_allocate(size);
+		// maybe should run the check if count of free elements is 0 here as well 
+		// though i think it's not super neccessary
+	}
+
+	return allocation;
+}
+
+void DescriptorPageAllocator::release_stale_descriptors()
+{
+	std::lock_guard<std::mutex>lock(mLock);
+
+	for (std::size_t i = 0; i < mHeapPool.size(); ++i)
+	{
+		auto* heap = mHeapPool[i].get();
+
+		heap->release_stale_descriptors();
+
+		if (heap->count_of_free_elements() > 0)
+			mAvailableHeaps.insert(i);
+	}
+}
+
+DescriptorPage* DescriptorPageAllocator::create_allocator_heap()
+{
+	auto new_free_list_heap = std::make_unique<DescriptorPage>(mDevice.get(), mFenceView, mHeapType, mSizePerHeap);
+
+	DescriptorPage* pHeap = new_free_list_heap.get();
+
+	mHeapPool.emplace_back(std::move(new_free_list_heap));
+	mAvailableHeaps.insert(mHeapPool.size() - 1);
+
+	return pHeap;
 }

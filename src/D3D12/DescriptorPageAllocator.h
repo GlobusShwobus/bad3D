@@ -1,18 +1,19 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
+#include <set>
+#include <vector>
 #include <map>
 #include <queue>
 
 #include <d3d12.h>
 
-#include "D3D12/DescriptorHeap.h"
 #include "D3D12/DescriptorAlloc.h"
+#include "D3D12/DescriptorHeap.h"
 #include "D3D12/FenceView.h"
+#include "Tools/ViewPtr.h"
 
-/**
-* Mutating methods of DescriptorFreeListAllocator are thread safe, but space checkers are not.
-*/
 class DescriptorPage final
 {
 public:
@@ -41,14 +42,11 @@ public:
 		return mFreeCount;
 	}
 
-	// allocate a contiguous range of descriptors. if the allocation can not be satisfied a null descriptor is returned (thread safe)
-	DescriptorAlloc freelist_allocate(UINT size);
+	DescriptorAlloc freelist_allocate(UINT size); // not thread safe
 
-	// frees an allocation pushing it to the deffered stale queue due to synchronization requirement. shoult not be called manually (thread safe)
-	void free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size);
+	void free(D3D12_CPU_DESCRIPTOR_HANDLE handle, UINT size); // thread safe
 
-	// releases stale descriptors, if the GPU is done with the descriptors (thread safe)
-	void release_stale_descriptors();
+	void release_stale_descriptors(); // not thread safe
 
 protected:
 
@@ -57,11 +55,9 @@ protected:
 		return static_cast<UINT>(handle.ptr - mD3D12DescriptorHeap.handle().ptr) / mD3D12DescriptorHeap.stride();
 	}
 
-	// Adds a new block to the free list. (not thread safe internal)
-	void add_new_block(UINT offset, UINT size);
+	void add_new_block(UINT offset, UINT size); // not thread safe
 
-	// frees the block of descriptors called by release_stale_descriptors (not thread safe internal)
-	void free_block(UINT offset, UINT size);
+	void free_block(UINT offset, UINT size); // not thread safe
 
 private:
 
@@ -70,9 +66,6 @@ private:
 
 	struct FreeBlockInfo;
 
-	// a bidirectional map system: 
-	// D3D12DescriptorHeap is a contiguous line. OffsetMap stores offsets as keys representing elements in the desc heap. Value represents the data of the block at the offset; the size of the block and a pointer to SizeMap
-	//                                           SizeMap stores sizes as keys representing size of each block. There may be duplicate sizes. The Value represents a pointer to the OffsetMap.
 	using OffsetMap = std::map<OffsetType, FreeBlockInfo>;
 	using SizeMap = std::multimap<SizeType, OffsetMap::iterator>;
 
@@ -87,8 +80,6 @@ private:
 		SizeMap::iterator FreeListBySizeIt;
 	};
 
-	// Stale descriptors are required because the GPU may be executing some of the descriptors meaning the blocks may not be immediately freed
-	// when called. instead they need to be stored (in this case a queue) to release explicitly calling release_stale_descriptors
 	struct StaleDescriptorInfo
 	{
 		StaleDescriptorInfo(OffsetType offset, SizeType size, UINT64 fence_value)
@@ -106,7 +97,6 @@ private:
 	using StaleDescriptorQueue = std::queue<StaleDescriptorInfo>;
 
 
-	// members
 	DescriptorHeap mD3D12DescriptorHeap;
 
 	// bidirectional mapping of free blocks
@@ -123,5 +113,50 @@ private:
 	FenceView mFenceView;
 
 	// for locking in case of multithreading
-	std::mutex mMutex;
+	std::mutex mFreeLock;
+};
+
+class DescriptorPageAllocator
+{
+public:
+
+	DescriptorPageAllocator(
+		ID3D12Device4* device,            // device for creation
+		FenceView fence_view,             // fence value for frame sync
+		D3D12_DESCRIPTOR_HEAP_TYPE type,  // type of heap
+		UINT size_per_heap = 256          // size of heap
+	);
+
+	DescriptorPageAllocator(const DescriptorPageAllocator&) = delete;
+	DescriptorPageAllocator& operator=(const DescriptorPageAllocator&) = delete;
+
+	DescriptorPageAllocator(DescriptorPageAllocator&&)noexcept = delete; // since mutex is not movable
+	DescriptorPageAllocator& operator=(DescriptorPageAllocator&&)noexcept = delete;
+
+	virtual ~DescriptorPageAllocator() = default;
+
+	// allocate a number of contiguous descriptors from a CPU visible descriptor heap
+	DescriptorAlloc allocate_descriptors(UINT size = 1);
+
+	// when the frame has completed, the stale descriptors can be released
+	void release_stale_descriptors();
+
+protected:
+
+	// create a new free list heap
+	DescriptorPage* create_allocator_heap();
+
+private:
+
+	std::vector<std::unique_ptr<DescriptorPage>> mHeapPool;
+	D3D12_DESCRIPTOR_HEAP_TYPE mHeapType;
+	UINT mSizePerHeap;
+
+	ViewPtr<ID3D12Device4> mDevice;
+
+	// indices of available heaps in the heap pool
+	std::set<UINT64> mAvailableHeaps;
+
+	FenceView mFenceView;
+	std::mutex mLock;
 };
