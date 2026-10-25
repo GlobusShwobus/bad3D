@@ -6,17 +6,8 @@
 class DescriptorHeap final
 {
 public:
-	DescriptorHeap() = delete;
 
 	DescriptorHeap(ID3D12Device4* device, const D3D12_DESCRIPTOR_HEAP_DESC& desc);
-
-	~DescriptorHeap() noexcept = default;
-
-	DescriptorHeap(const DescriptorHeap&) = delete;
-	DescriptorHeap& operator=(const DescriptorHeap&) = delete;
-
-	DescriptorHeap(DescriptorHeap&&) noexcept = default;
-	DescriptorHeap& operator=(DescriptorHeap&&) noexcept = default;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE handle(UINT index = 0) const noexcept {
 		return D3D12_CPU_DESCRIPTOR_HANDLE{ mBegin.ptr + (index * mStride) };

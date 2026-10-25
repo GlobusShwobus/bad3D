@@ -10,12 +10,15 @@
 class GPUResource
 {
 public:
-    GPUResource() = delete;
+
+    ~GPUResource() noexcept = default;
+
+    // this class caches state and state can not be copied
     GPUResource(const GPUResource&) = delete;
     GPUResource& operator=(const GPUResource&) = delete;
-    GPUResource(GPUResource&&) noexcept = default;
+
+    GPUResource(GPUResource&&)noexcept = default;
     GPUResource& operator=(GPUResource&&) noexcept = default;
-    ~GPUResource() noexcept = default;
 
     GPUResource(
         ID3D12Device4* device,

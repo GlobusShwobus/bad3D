@@ -20,6 +20,14 @@ public:
     // page_size - the size to use to allocate new pages in the GPU memory
     explicit DynamicUploadBuffer(ID3D12Device4* device, PageSize page_size = _2MB);
 
+    // shared ptrs allow for copies but copying should not be allowed. 
+    // it would imply different buffers own some of the same pages which though may be true would be weird
+    DynamicUploadBuffer(const DynamicUploadBuffer&) = delete;
+    DynamicUploadBuffer& operator=(const DynamicUploadBuffer&) = delete;
+
+    DynamicUploadBuffer(DynamicUploadBuffer&&) noexcept = default;
+    DynamicUploadBuffer& operator=(DynamicUploadBuffer&&) noexcept = default;
+
     virtual ~DynamicUploadBuffer() = default;
 
     // the maximum size of an allocation is the size of a single page

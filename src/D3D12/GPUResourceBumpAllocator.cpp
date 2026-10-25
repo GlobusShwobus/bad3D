@@ -37,7 +37,7 @@ GPUResourceAlloc GPUResourceBumpAllocator::bump_allocate(UINT64 size_in_bytes, U
 		&mResource,
 		mOffset,
 		size_in_bytes,
-		static_cast<uint8_t*>(mCPUPtr) + mOffset,
+		ViewPtr<void>(static_cast<uint8_t*>(mCPUPtr.get())+mOffset),
 		mGPUPtr + mOffset
 	);
 
@@ -56,5 +56,5 @@ GPUResourceBumpAllocator::GPUResourceBumpAllocator(GPUResource&& rresource, UINT
 {
 	// GPUResource by this point must be valid
 	mGPUPtr = mResource.address();
-	mResource->Map(0, nullptr, &mCPUPtr);
+	mResource->Map(0, nullptr, *mCPUPtr);
 }

@@ -18,7 +18,7 @@
 class GPUResourceBumpAllocator
 {
 public:
-    GPUResourceBumpAllocator() = delete;
+    // the allocator must stay stable for GPUResourceAlloc struct, which stores a view into the GPUResource
     GPUResourceBumpAllocator(const GPUResourceBumpAllocator&) = delete;
     GPUResourceBumpAllocator& operator=(const GPUResourceBumpAllocator&) = delete;
     GPUResourceBumpAllocator(GPUResourceBumpAllocator&&) = delete;
@@ -45,7 +45,7 @@ private:
     GPUResource mResource;
 
     //base ptr
-    void* mCPUPtr;
+    ViewPtr<void> mCPUPtr;
     D3D12_GPU_VIRTUAL_ADDRESS mGPUPtr;
 
     // allocated page size

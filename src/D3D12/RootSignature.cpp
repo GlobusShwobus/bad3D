@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <d3dcompiler.h>
+#include <assert.h>
 
 #include "D3D12/EasyDirectXUtils.h"
 
@@ -39,28 +40,36 @@ RootSignature::RootSignature(ID3D12Device* device, const std::wstring& file)
 	deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_1, &versioned);
 	const D3D12_ROOT_SIGNATURE_DESC1& desc = versioned->Desc_1_1;
 
-	// maybe throw is size is over 32...
-	for (UINT i = 0; i < desc.NumParameters && i < 32; i++) 
-	{
-		const D3D12_ROOT_PARAMETER1& p = desc.pParameters[i];
+	if (desc.NumParameters > 32)
+		throw std::invalid_argument{"invalid root parameter count"};
 
-		if (p.ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+	mParameterCount = desc.NumParameters;
+
+	// iterate over the whole top level root signature description
+	// the class only caches info if the parameter is a table, otherwise descriptors are inlined
+	// the positions of tables in the parameter array are stored as bits in bit maps (the tables may also be 2 different kinds)
+	for (UINT param = 0; param < desc.NumParameters; param++)
+	{
+		assert(desc.pParameters != nullptr);
+		
+		const D3D12_ROOT_PARAMETER1& root_param = desc.pParameters[param];
+
+		if (root_param.ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 			continue; // inline CBV/SRV/UAV and root constants do no need descriptors
 
-		const auto& table = p.DescriptorTable;
+		const D3D12_ROOT_DESCRIPTOR_TABLE1& root_table = root_param.DescriptorTable;
+		assert(root_table.pDescriptorRanges != nullptr);
 
-		UINT count = 0;
-		for (UINT r = 0; r < table.NumDescriptorRanges; r++)
-		{
-			count += table.pDescriptorRanges[r].NumDescriptors;
-		}
-
-		// D3D12 forbits mixing samplers and non-samplers in one table
-		if (table.pDescriptorRanges[0].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
-			mSamplerTableBitMask |= (1u << i);
+		// keep track of sampler descriptor tables separately from CBV_SRV_UAV descriptor tables
+		if (root_table.pDescriptorRanges->RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+			mSamplerTableBitMap |= (1u << param);
 		else
-			mTableBitMask |= (1u << i);
+			mDescriptorTableBitMap |= (1u << param);
 
-		mNumDescriptorsPerTable[i] = count;
+		for (UINT table_range = 0; table_range < root_table.NumDescriptorRanges; ++table_range) {
+			// the description allocations are contiguous, but in case a fuck up happens in the future or something gets redesigned
+			assert(root_table.pDescriptorRanges->OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+			mNumDescriptorsPerTable[param] += root_table.pDescriptorRanges[table_range].NumDescriptors;
+		}
 	}
 }
