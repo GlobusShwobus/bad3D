@@ -12,14 +12,16 @@ DescriptorAlloc::DescriptorAlloc(
 	D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
 	UINT num_handles,
 	UINT stride,
-	DescriptorPage* source
+	DescriptorPageAllocator* allocator,
+	UINT64 page_index
 )
 	:mStride(stride)
 	, mSize(num_handles)
 	, mBegin(descriptor)
-	, mSource(source)
+	, mAllocator(allocator)
+	, mPageIndex(page_index)
 {
-	if (!mSource)
+	if (!mAllocator)
 		throw std::invalid_argument("Source nullptr");
 }
 
@@ -32,25 +34,28 @@ DescriptorAlloc& DescriptorAlloc::operator=(DescriptorAlloc&& rhs) noexcept
 		mBegin = rhs.mBegin;
 		mSize = rhs.mSize;
 		mStride = rhs.mStride;
-		mSource = rhs.mSource;
+		mAllocator = rhs.mAllocator;
+		mPageIndex = rhs.mPageIndex;
 
 		rhs.mBegin.ptr = 0;
 		rhs.mSize = 0;
 		rhs.mStride = 0;
-		rhs.mSource = nullptr;
+		rhs.mAllocator = nullptr;
+		rhs.mPageIndex = 0;
 	}
 	return *this;
 }
 
 void DescriptorAlloc::free()
 {
-	if (!is_null() && mSource)
+	if (!is_null() && mAllocator)
 	{
-		mSource->free(mBegin, mSize); // source must free this range. page being shared ptr is fine. maybe viewptr is fine not sure
+		mAllocator->free_descriptor_alloc(mPageIndex, mBegin, mSize); // source must free this range. page being shared ptr is fine. maybe viewptr is fine not sure
 
 		mBegin.ptr = 0;
 		mSize = 0;
 		mStride = 0;
-		mSource = nullptr;
+		mAllocator = nullptr;
+		mPageIndex = 0;
 	}
 }

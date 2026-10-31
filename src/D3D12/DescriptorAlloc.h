@@ -12,7 +12,8 @@ public:
 		:mStride(0)
 		, mSize(0)
 		, mBegin(0)
-		, mSource(nullptr)
+		, mAllocator(nullptr)
+		, mPageIndex(0)
 	{
 	}
 
@@ -22,12 +23,13 @@ public:
 	DescriptorAlloc& operator=(const DescriptorAlloc&) = delete;
 
 	DescriptorAlloc(DescriptorAlloc&& rhs) noexcept
-		: mBegin(rhs.mBegin), mSize(rhs.mSize), mStride(rhs.mStride), mSource(rhs.mSource)
+		: mBegin(rhs.mBegin), mSize(rhs.mSize), mStride(rhs.mStride), mAllocator(rhs.mAllocator), mPageIndex(rhs.mPageIndex)
 	{
 		rhs.mBegin.ptr = 0;
 		rhs.mSize = 0;
 		rhs.mStride = 0;
-		rhs.mSource = nullptr;
+		rhs.mAllocator = nullptr;
+		rhs.mPageIndex = 0;
 	}
 
 	DescriptorAlloc& operator=(DescriptorAlloc&& rhs) noexcept;
@@ -48,13 +50,14 @@ public:
 
 protected:
 
-	friend class DescriptorPage;
+	friend class DescriptorPageAllocator;
 
 	DescriptorAlloc(
 		D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
 		UINT num_handles,
 		UINT stride,
-		DescriptorPage* source
+		DescriptorPageAllocator* allocator,
+		UINT64 page_index
 	);
 
 	void free();
@@ -66,5 +69,6 @@ private:
 	UINT mStride;
 
 	// A pointer back to the original page where this allocation came from.
-	ViewPtr<DescriptorPage> mSource;
+	ViewPtr<DescriptorPageAllocator> mAllocator;
+	UINT64 mPageIndex;
 };
