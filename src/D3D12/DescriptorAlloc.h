@@ -9,9 +9,10 @@ class DescriptorAlloc
 public:
 
 	constexpr DescriptorAlloc() noexcept
-		:mStride(0)
+		:mHandle{}
+		, mOffset(0)
 		, mSize(0)
-		, mBegin(0)
+		, mStride(0)
 		, mAllocator(nullptr)
 		, mPageIndex(0)
 	{
@@ -23,24 +24,27 @@ public:
 	DescriptorAlloc& operator=(const DescriptorAlloc&) = delete;
 
 	DescriptorAlloc(DescriptorAlloc&& rhs) noexcept
-		: mBegin(rhs.mBegin), mSize(rhs.mSize), mStride(rhs.mStride), mAllocator(rhs.mAllocator), mPageIndex(rhs.mPageIndex)
+		: mHandle(rhs.mHandle)
+		, mOffset(rhs.mOffset)
+		, mSize(rhs.mSize)
+		, mStride(rhs.mStride)
+		, mAllocator(rhs.mAllocator)
+		, mPageIndex(rhs.mPageIndex)
 	{
-		rhs.mBegin.ptr = 0;
-		rhs.mSize = 0;
-		rhs.mStride = 0;
 		rhs.mAllocator = nullptr;
-		rhs.mPageIndex = 0;
+		rhs.mHandle.ptr = 0;
 	}
 
 	DescriptorAlloc& operator=(DescriptorAlloc&& rhs) noexcept;
 
 	bool is_null() const noexcept {
-		return mBegin.ptr == 0;
+		return mHandle.ptr == 0;
 	}
 
 	// Get a descriptor at a particular offset in the allocation.
-	D3D12_CPU_DESCRIPTOR_HANDLE handle(UINT offset = 0) const noexcept {
-		return { mBegin.ptr + (mStride * offset) };
+	D3D12_CPU_DESCRIPTOR_HANDLE handle(UINT index = 0) const noexcept {
+		assert(index < mSize);
+		return { mHandle.ptr + (mStride * index) };
 	}
 
 	// Get the number of (consecutive) handles for this allocation.
@@ -48,27 +52,34 @@ public:
 		return mSize;
 	}
 
-protected:
+private:
 
 	friend class DescriptorPageAllocator;
 
 	DescriptorAlloc(
-		D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
-		UINT num_handles,
+		D3D12_CPU_DESCRIPTOR_HANDLE handle,
+		UINT offset,
+		UINT size,
 		UINT stride,
 		DescriptorPageAllocator* allocator,
-		UINT64 page_index
-	);
+		UINT page_index
+		)
+		:mHandle(handle)
+		, mOffset(offset)
+		, mSize(size)
+		, mStride(stride)
+		, mAllocator(allocator)
+		, mPageIndex(page_index)
+	{}
 
 	void free();
 
-private:
 
-	D3D12_CPU_DESCRIPTOR_HANDLE mBegin;
+	ViewPtr<DescriptorPageAllocator> mAllocator;
+	D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
+
+	UINT mPageIndex;
+	UINT mOffset;
 	UINT mSize;
 	UINT mStride;
-
-	// A pointer back to the original page where this allocation came from.
-	ViewPtr<DescriptorPageAllocator> mAllocator;
-	UINT64 mPageIndex;
 };
