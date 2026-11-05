@@ -14,7 +14,6 @@
 
 #include "Demo/DemoCube2.h"
 
-void write_my_root_sig_to_file1(ID3D12Device4* device);
 void find_centered_pos(UINT client_width, UINT client_height, UINT& xOut, UINT& yOut);
 HRESULT enable_GPU_debug_layer();
 
@@ -113,75 +112,57 @@ void find_centered_pos(UINT client_width, UINT client_height, UINT& xOut, UINT& 
 	yOut = y;
 }
 
-void write_my_root_sig_to_file1(ID3D12Device4* device)
-{
-	// create a root signature
-	// check for root sig version, 1.1 is recommended
-	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
-	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-	{
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-	}
-
-	// allow input layout and deny unnecessary acces to certain pipeline stages
-	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-	// root sig desc
-	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
-	rootsigdesc.Version = featureData.HighestVersion;
-
-	if (featureData.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1)
-	{
-		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
-		D3D12_ROOT_PARAMETER1 rootParameters11[3] = {
-			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 0,  matrix_32bit_value_count),
-			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 1,  matrix_32bit_value_count),
-			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 2,  matrix_32bit_value_count)
-		};
-
-		rootsigdesc.Desc_1_1 = D3D12_ROOT_SIGNATURE_DESC1{ _countof(rootParameters11), rootParameters11 , 0, nullptr, rootsigflags };
-	}
-	else
-	{
-		throw std::runtime_error{ "sad times" };
-	}
-
-	// serialize
-	Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
-	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-
-	HRESULT hr = D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob);
-	if (FAILED(hr) && errorBlob)
-	{
-		OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
-	}
-	execute_and_test_hresult(hr);
-
-	int x = 5;
-	std::ofstream file("DemoCubeRootSig.bin", std::ios::binary);
-	if (!file)
-	{
-		throw std::runtime_error{
-			"Failed to open root signature output file"
-		};
-	}
-	file.write(
-		static_cast<const char*>(rootSigBlob->GetBufferPointer()),
-		static_cast<std::streamsize>(rootSigBlob->GetBufferSize())
-	);
-	if (!file)
-	{
-		throw std::runtime_error{
-			"Failed to write root signature file"
-		};
-	}
-}
+//void LESSON_2_SIMPLE_ROOTSIG_THING(ID3D12Device4* device)
+//{
+//	// create a root signature
+//	// check for root sig version, 1.1 is recommended
+//	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+//	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+//
+//	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+//	{
+//		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+//	}
+//
+//	// allow input layout and deny unnecessary acces to certain pipeline stages
+//	D3D12_ROOT_SIGNATURE_FLAGS rootsigflags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+//		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+//		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+//		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+//		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+//
+//	// root sig desc
+//	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsigdesc = {};
+//	rootsigdesc.Version = featureData.HighestVersion;
+//
+//	if (featureData.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1)
+//	{
+//		const UINT matrix_32bit_value_count = sizeof(DirectX::XMMATRIX) / sizeof(UINT); //16
+//		D3D12_ROOT_PARAMETER1 rootParameters11[3] = {
+//			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 0,  matrix_32bit_value_count),
+//			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 1,  matrix_32bit_value_count),
+//			easy::root_parameter_32bit_constants(D3D12_SHADER_VISIBILITY_VERTEX, 2,  matrix_32bit_value_count)
+//		};
+//
+//		rootsigdesc.Desc_1_1 = D3D12_ROOT_SIGNATURE_DESC1{ _countof(rootParameters11), rootParameters11 , 0, nullptr, rootsigflags };
+//	}
+//	else
+//	{
+//		throw std::runtime_error{ "sad times" };
+//	}
+//
+//	// serialize
+//	Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
+//	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+//
+//	HRESULT hr = D3D12SerializeVersionedRootSignature(&rootsigdesc, &rootSigBlob, &errorBlob);
+//	if (FAILED(hr) && errorBlob)
+//	{
+//		OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+//	}
+//	execute_and_test_hresult(hr);
+//}
 
 //	static GRAPHICS_INIT_DESC ParseCommandLineArguments()
 //	{

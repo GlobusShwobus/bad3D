@@ -21,7 +21,7 @@ namespace easy
 	constexpr D3D12_ROOT_PARAMETER1 root_parameter_32bit_constants(
 		D3D12_SHADER_VISIBILITY visibility,
 		UINT                    shader_register,
-		UINT                    count,
+		UINT                    num32BitValues,
 		UINT                    register_space = 0U
 	) noexcept
 	{
@@ -29,7 +29,7 @@ namespace easy
 		desc.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		desc.ShaderVisibility = visibility;
 		desc.Constants.ShaderRegister = shader_register;
-		desc.Constants.Num32BitValues = count;
+		desc.Constants.Num32BitValues = num32BitValues;
 		desc.Constants.RegisterSpace = register_space;
 		return desc;
 	}
