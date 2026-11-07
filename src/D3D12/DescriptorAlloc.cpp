@@ -15,7 +15,7 @@ DescriptorAlloc& DescriptorAlloc::operator=(DescriptorAlloc&& rhs) noexcept
 		// Free this descriptor if it points to anything.
 		free();
 		mHandle = rhs.mHandle;
-		mOffset = rhs.mOffset;
+		mSourceHeapOffset = rhs.mSourceHeapOffset;
 		mSize = rhs.mSize;
 		mStride = rhs.mStride;
 		mAllocator = rhs.mAllocator;
@@ -31,7 +31,7 @@ void DescriptorAlloc::free()
 {
 	if (!is_null() && mAllocator)
 	{
-		mAllocator->free_descriptor_allocation(mPageIndex, mOffset, mSize);
+		mAllocator->free_descriptor_allocation(mPageIndex, mSourceHeapOffset, mSize);
 
 		mHandle.ptr = 0;
 		mAllocator = nullptr;

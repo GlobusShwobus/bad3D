@@ -10,7 +10,7 @@ public:
 
 	constexpr DescriptorAlloc() noexcept
 		:mHandle{}
-		, mOffset(0)
+		, mSourceHeapOffset(0)
 		, mSize(0)
 		, mStride(0)
 		, mAllocator(nullptr)
@@ -25,7 +25,7 @@ public:
 
 	DescriptorAlloc(DescriptorAlloc&& rhs) noexcept
 		: mHandle(rhs.mHandle)
-		, mOffset(rhs.mOffset)
+		, mSourceHeapOffset(rhs.mSourceHeapOffset)
 		, mSize(rhs.mSize)
 		, mStride(rhs.mStride)
 		, mAllocator(rhs.mAllocator)
@@ -58,14 +58,14 @@ private:
 
 	DescriptorAlloc(
 		D3D12_CPU_DESCRIPTOR_HANDLE handle,
-		UINT offset,
+		UINT source_heap_offset,
 		UINT size,
 		UINT stride,
 		DescriptorPageAllocator* allocator,
 		UINT page_index
 		)
 		:mHandle(handle)
-		, mOffset(offset)
+		, mSourceHeapOffset(source_heap_offset)
 		, mSize(size)
 		, mStride(stride)
 		, mAllocator(allocator)
@@ -79,7 +79,7 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
 
 	UINT mPageIndex;
-	UINT mOffset;
+	UINT mSourceHeapOffset;
 	UINT mSize;
 	UINT mStride;
 };
