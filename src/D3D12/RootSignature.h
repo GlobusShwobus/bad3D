@@ -33,7 +33,7 @@ public:
 		return mRootSig.Get(); 
 	}
 
-	UINT table_bitmap() const noexcept {
+	UINT CBV_SRV_UAV_table_bitmap () const noexcept {
 		return mDescriptorTableBitMap; 
 	}
 

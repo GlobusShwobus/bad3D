@@ -179,6 +179,7 @@ dxgi.lib
     <ClCompile Include="src\D3D12\DescriptorPageAllocator.cpp" />
     <ClCompile Include="src\D3D12\DescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12\DescriptorAlloc.cpp" />
+    <ClCompile Include="src\D3D12\GPUDescriptorStager.cpp" />
     <ClCompile Include="src\D3D12\DynamicUploadBuffer.cpp" />
     <ClCompile Include="src\D3D12\RootSignature.cpp" />
     <ClCompile Include="src\Demo\DemoCube2.cpp" />
@@ -188,7 +189,7 @@ dxgi.lib
   <ItemGroup>
     <ClInclude Include="src\App\badWin32.h" />
     <ClInclude Include="src\App\Events.h" />
-    <ClInclude Include="src\D3D12\DynamicDescriptorHeap.h" />
+    <ClInclude Include="src\D3D12\GPUDescriptorStager.h" />
     <ClInclude Include="src\D3D12\GPUResourceAlloc.h" />
     <ClInclude Include="src\D3D12\DescriptorPageAllocator.h" />
     <ClInclude Include="src\D3D12\DescriptorAlloc.h" />
