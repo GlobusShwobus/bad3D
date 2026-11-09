@@ -47,4 +47,16 @@ public:
 	{
 		command_list->ClearDepthStencilView(desc, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 	}
+
+	// memes from today
+	ID3D12GraphicsCommandList2* get_graphics_command_list() const noexcept {
+		return command_list.Get();
+	}
+
+	void set_descriptor_heap(D3D12_DESCRIPTOR_HEAP_TYPE heap_type, ID3D12DescriptorHeap* const heap) const{
+		ID3D12DescriptorHeap* const heaps[] = { heap };
+		command_list->SetDescriptorHeaps(_countof(heaps), heaps);
+	}
+
+
 };
