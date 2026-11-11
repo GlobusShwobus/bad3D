@@ -22,6 +22,10 @@ GPUDescriptorStager::GPUDescriptorStager(
 	, mCurrentGPUDescriptorHandle{0}
 	, mNumFreeHandles(0)
 {
+	if (mDescriptorHeapType != D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV && mDescriptorHeapType != D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) {
+		throw std::invalid_argument{"Invalid heap type for GPU visible heaps"};
+	}
+
 	mDescriptorStride = mDevice->GetDescriptorHandleIncrementSize(mDescriptorHeapType);
 
 	mDescriptorHandleCache = std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(mNumDescriptorsPerHeap);
@@ -31,7 +35,7 @@ void GPUDescriptorStager::stage_descriptors(UINT root_parameter_index, UINT offs
 {
 	// Cannot stage more than the maximum number of descriptors per heap. (meaning there can be multiple GPU visible heaps at the end but a single stage can't go over max)
 	// Cannot stage more than MaxDescriptorTables root parameters.
-	if (num_descriptors > mNumDescriptorsPerHeap || root_parameter_index >= MaxDescriptorTables)
+	if (num_descriptors > mNumDescriptorsPerHeap || root_parameter_index >= Globals::ROOT_PARAMETER_LIMIT)
 	{
 		throw std::bad_alloc{};
 	}
@@ -206,7 +210,7 @@ void GPUDescriptorStager::reset()
 	mStaleDescriptorTableBitMap = 0;
 
 	// reset the table cache
-	for (int i = 0; i < MaxDescriptorTables; i++)
+	for (int i = 0; i < Globals::ROOT_PARAMETER_LIMIT; i++)
 	{
 		mDescriptorTableCache[i].Reset();
 	}

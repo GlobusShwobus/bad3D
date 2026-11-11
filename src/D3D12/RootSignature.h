@@ -7,12 +7,7 @@
 #include <d3d12.h>
 #include <d3dcompiler.h>
 
-namespace Globals {
-	constexpr UINT ROOT_PARAMETER_LIMIT = 32u;
-	constexpr UINT ROOT_DWORD_LIMIT = 64u;
-	constexpr UINT NOT_ROOT_TABLE = 0xFFFFFFFF;
-}
-
+#include "D3D12/Globals.h"
 
 struct SerializedRootSignatureProduct
 {

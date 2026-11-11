@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 
 #include "Tools/ViewPtr.h"
+#include "D3D12/Globals.h"
 
 class CommandList;
 class RootSignature;
@@ -16,10 +17,8 @@ class RootSignature;
 class GPUDescriptorStager
 {
 public:
+
     GPUDescriptorStager(ID3D12Device4* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptorsPerHeap = 1024);
-
-	virtual ~GPUDescriptorStager();
-
 
 	// root_parameter_index - which root signature descriptor table recieves the descriptors
 	// offset - offset inside the table of the root signature
@@ -61,13 +60,11 @@ public:
     //Parse the root signature to determine which root parameters contain
     //descriptor tables and determine the number of descriptors needed for
     //each table.
-
     void parse_root_signature(const RootSignature& rootsig);
 
     //Reset used descriptors. This should only be done if any descriptors
     //that are being referenced by a command list has finished executing on the
     //command queue.
-
     void reset();
 
 private:
@@ -81,11 +78,6 @@ private:
     // Compute the number of stale descriptors that need to be copied
     // to GPU visible descriptor heap.
     UINT compute_stale_descriptor_count() const;
-
-    //The maximum number of descriptor tables per root signature.
-    //A 32-bit mask is used to keep track of the root parameter indices that
-    //are descriptor tables.
-    static constexpr UINT MaxDescriptorTables = 32;
 
     //A structure that represents a descriptor table entry in the root signature.
     struct DescriptorTableCache
@@ -110,26 +102,15 @@ private:
 
     ViewPtr<ID3D12Device4> mDevice;
 
-    // Describes the type of descriptors that can be staged using this 
-    // dynamic descriptor heap.
-    // Valid values are:
-    //   * D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-    //   * D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
-    // This parameter also determines the type of GPU visible descriptor heap to 
-    // create.
     D3D12_DESCRIPTOR_HEAP_TYPE mDescriptorHeapType;
-
-    // The number of descriptors to allocate in new GPU visible descriptor heaps.
     uint32_t mNumDescriptorsPerHeap;
-
-    // The increment size of a descriptor.
     uint32_t mDescriptorStride;
 
     // big fucking array that gets bumped up and reused
     std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> mDescriptorHandleCache;
 
     // Descriptor handle cache per descriptor table.
-    DescriptorTableCache mDescriptorTableCache[MaxDescriptorTables];
+    DescriptorTableCache mDescriptorTableCache[Globals::ROOT_PARAMETER_LIMIT];
 
     // Each bit in the bit mask represents the index in the root signature
     // that contains a descriptor table.

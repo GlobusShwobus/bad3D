@@ -63,6 +63,9 @@
     <ClCompile Include="src\D3D12\GPUDescriptorStager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\D3D12\ResourceStateTracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Tools\ViewPtr.h">
@@ -153,6 +156,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12\DescriptorPageAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\Globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12\ResourceStateTracker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
