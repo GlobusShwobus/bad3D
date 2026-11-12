@@ -19,7 +19,7 @@ will not be modified by multiple threads within the same command list.
 
 #include <d3d12.h>
 
-// todo make a resource state map instead of static global... then build trackers i guess. no statics tho plz GOD
+// todo: the thread safety is fucked up because of deviation from the guide
 
 class CommandList;
 class GPUResource;
@@ -74,13 +74,45 @@ class ResourceStateMap
 public:
 	ResourceStateMap() :mResourceStateMap{}, mLock{}, mIsLocked(false) {}
 
-	void lock();
+	void lock() {
+		mLock.lock();
+		mIsLocked = true;
+	}
 
-	void unlock();
+	void unlock() {
+		mLock.unlock();
+		mIsLocked = false;
+	}
 
-	void add_resource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state);
+	void add_resource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
+	{
+		if (resource != nullptr)
+		{
+			std::lock_guard lock(mLock);
+			mResourceStateMap[resource].set_subresource_state(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
+		}
+	}
 
-	void remove_resource(ID3D12Resource* resource);
+	void remove_resource(ID3D12Resource* resource)
+	{
+		if (resource != nullptr)
+		{
+			std::lock_guard lock(mLock);
+			mResourceStateMap.erase(resource);
+		}
+	}
+
+	bool is_locked()const noexcept { return mIsLocked; }
+
+	auto find(ID3D12Resource* resource)
+	{
+		return mResourceStateMap.find(resource);
+	}
+
+	auto end()
+	{
+		return mResourceStateMap.end();
+	}
 
 private:
 	std::unordered_map<ID3D12Resource*, ResourceState> mResourceStateMap;
@@ -118,7 +150,8 @@ public:
 	// push UAV resource barrier for the given resource
 	// non-null == for this specific resource
 	// null == for any UAV resource
-	void UAV_barrier(const GPUResource* resource = nullptr);
+	// but since im an asshole i don't allow null
+	void UAV_barrier(const GPUResource* resource);
 
 
 	// push an aliasing barrier for the given resource
@@ -130,10 +163,11 @@ public:
 	void alias_barrier(const GPUResource* resourceBefore = nullptr, const GPUResource* resourceAfter = nullptr);
 
 
-
 	// flush any pending resource barriers to the command list
-	uint32_t flush_pending_barriers(CommandList& commandList);
+	void push_batched_barriers(CommandList& commandList);
 
+	// flush pending shmending
+	uint32_t flush_pending_barriers(CommandList& list);
 
 	// commit final resource states to the global resource state map
 	// this must be called when the command list is closed
@@ -141,7 +175,12 @@ public:
 
 
 	// reset state stracking. this is done when the command list is reset
-	void reset();
+	void reset()
+	{
+		mPendingResourceBarriers.clear();
+		mResourceBarriers.clear();
+		mFinalResourceState.clear();
+	}
 
 private:
 
