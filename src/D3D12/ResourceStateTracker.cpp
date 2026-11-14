@@ -5,48 +5,47 @@
 
 void ResourceStateTracker::resource_barrier(const D3D12_RESOURCE_BARRIER& barrier)
 {
-	if (barrier.Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
-	{
-		const D3D12_RESOURCE_TRANSITION_BARRIER& transition_barrier = barrier.Transition;
+	// non transition barriers don't require state tracking
+	if (barrier.Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION) {
+		mResourceBarriers.push_back(barrier);
+		return;
+	}
 
-		const auto iter = mFinalResourceState.find(transition_barrier.pResource);
+	const D3D12_RESOURCE_TRANSITION_BARRIER& transition = barrier.Transition;
+	const auto it = mLocalResourceMap.find(transition.pResource);
 
-		// if the resource is already tracked in the list, then the before state may immediately be set for the queued barrier
-		if (iter != mFinalResourceState.end()) {
-			auto& resource_state = iter->second;
+	// if the resource is already tracked locally, meaning this is a second insertion, then we know the before state, which is the after state from the last time (also cancer)
+	if (it != mLocalResourceMap.end()) {
+		const ResourceState& state = it->second;
 
-			if (transition_barrier.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !resource_state.mSubResourceStates.empty())
-			{
-				for (auto& subresource_state : resource_state.mSubResourceStates) {
-
-					if (transition_barrier.StateAfter != subresource_state.second) {
-						D3D12_RESOURCE_BARRIER new_barrier = barrier;
-						new_barrier.Transition.Subresource = subresource_state.first;
-						new_barrier.Transition.StateBefore = subresource_state.second;
-						mResourceBarriers.push_back(new_barrier);
-					}
-
-				}
-			}
-			else {
-				auto final_state = resource_state.get_subresource_state(transition_barrier.Subresource);
-
-				if (transition_barrier.StateAfter != final_state) {
+		// if the new transition applies to all sub resources (and there are sub resources...)
+		// then a new transition must be pushed for each subresource transition (where after state does not already equal transions after state - slight optimization)
+		if (transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && state.is_subresourced()) {
+			for (const auto& subresource : state.get_subresource_map()) {
+				if (transition.StateAfter != subresource.second) {
 					D3D12_RESOURCE_BARRIER new_barrier = barrier;
-					new_barrier.Transition.StateBefore = final_state;
+					new_barrier.Transition.Subresource = subresource.first;
+					new_barrier.Transition.StateBefore = subresource.second;
 					mResourceBarriers.push_back(new_barrier);
 				}
 			}
 		}
-		else { // In this case, the resource is being used on the command list for the first time.
-			mPendingResourceBarriers.push_back(barrier);
-			mFinalResourceState[transition_barrier.pResource].set_subresource_state(transition_barrier.Subresource, transition_barrier.StateAfter);
+		else { // the transition applies to a single specific subresource then push only that
+			const D3D12_RESOURCE_STATES before_state_for_subresource = state.get_state(transition.Subresource);
+			if (transition.StateAfter != before_state_for_subresource) {
+				D3D12_RESOURCE_BARRIER new_barrier = barrier;
+				new_barrier.Transition.StateBefore = before_state_for_subresource;
+				mResourceBarriers.push_back(new_barrier);
+			}
 		}
+
 	}
-	else {
-		// non transition barriers don't require state tracking
-		mResourceBarriers.push_back(barrier);
+	else { // if the resource is not yet tracked locally, then we do not know the before state. push it to the pending barrier to resolve later
+		mPendingResourceBarriers.push_back(barrier);
 	}
+
+	// whether the resource has been tracked or not before this call, its final state is pushed, possibly replacing the previously known state of the resource
+	mLocalResourceMap[transition.pResource].set_state(transition.Subresource, transition.StateAfter);
 }
 
 void ResourceStateTracker::transition_barrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subResource)

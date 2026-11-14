@@ -24,112 +24,110 @@ will not be modified by multiple threads within the same command list.
 class CommandList;
 class GPUResource;
 
-// Tracks the state of a particular resource and all of its subresources.
-struct ResourceState
+// Tracks the state of a particular resource.
+// 
+// There is a base state of a resource and states for subresources that differ from the primary state.
+// 
+// For example a resource with 3 subresources: 
+//		if base state == subresource state; then the state of the subresources in this class IS NOT tracked
+//		if the user calls get_state(subresource), where base state and subresource state are equal
+//		the base state is returned
+class ResourceState
 {
-	// Initialize all of the subresources within a resource to the given state.
-	explicit ResourceState(D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON)
-		: mState(state)
+public:
+
+	explicit ResourceState(D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON) noexcept
+		: mBaseState(state)
 	{
 	}
 
-	// Set a subresource to a particular state.
-	void set_subresource_state(UINT subresource, D3D12_RESOURCE_STATES state)
+	void set_state(UINT subresource, D3D12_RESOURCE_STATES state)
 	{
 		if (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
 		{
-			mState = state;
-			mSubResourceStates.clear();
+			mBaseState = state;
+			mSubResourceState.clear();
 		}
 		else
 		{
-			mSubResourceStates[subresource] = state;
+			mSubResourceState[subresource] = state;
 		}
 	}
 
-	// Get the state of a (sub)resource within the resource.
-    // If the specified subresource is not found in the SubresourceState array (map)
-    // then the state of the resource (D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) is
-    // returned.
-	D3D12_RESOURCE_STATES get_subresource_state(UINT subresource) const
-	{
-		D3D12_RESOURCE_STATES state = mState;
-		const auto iter = mSubResourceStates.find(subresource);
-		if (iter != mSubResourceStates.end())
-		{
-			state = iter->second;
-		}
-		return state;
+	D3D12_RESOURCE_STATES get_state(UINT subresource) const noexcept {
+		auto it = mSubResourceState.find(subresource);
+
+		return it != mSubResourceState.end() ? it->second : mBaseState;
 	}
 
-	// If the SubresourceState array (map) is empty, then the State variable defines 
-	// the state of all of the subresources.
-	D3D12_RESOURCE_STATES mState;
-	std::map<UINT, D3D12_RESOURCE_STATES> mSubResourceStates;
+	bool is_subresourced() const noexcept {
+		return !mSubResourceState.empty();
+	}
+
+	const std::map<UINT, D3D12_RESOURCE_STATES>& get_subresource_map() const noexcept {
+		return mSubResourceState;
+	}
+
+private:
+
+	D3D12_RESOURCE_STATES mBaseState;
+	std::map<UINT, D3D12_RESOURCE_STATES> mSubResourceState;
 };
 
+// The main manager class for all GPU resources.
+// 
+// There should only ever be one ultimate point of truth for all resource states (this class could be static / singleton).
+// 
+// This class however does not own resources, instead manages the states as a fully independent external.
+// Any time a resource is created an entry should be added in the class to manage states.
+// 
+// Importantly, the class acts as a point of convergence between multiple command lists and threads (one command list per thread).
+// 
+// The command lists may record independent states which should be set to any resources, batch them, them pass them to the main manager.
+// 
+// for example:
+//		have 10 different texture resources
+//		have 10 different command lists all wanting to do something different with those textures
+//		the 10 command lists first record a state transition for all 10 resources, this may mean 10 different transitions on 10 different threads at the same time
+//		then the transitions are batched and synchronized with the main manager
+//		then the command list can record the actual desired commands and repeat
 
-class ResourceStateMap
+using ThreadLocalResourceStateMap = std::unordered_map<ID3D12Resource*, ResourceState>;
+
+class GlobalResourceStateMap 
 {
 public:
-	ResourceStateMap() :mResourceStateMap{}, mLock{}, mIsLocked(false) {}
+	GlobalResourceStateMap() = default;
 
-	void lock() {
-		mLock.lock();
-		mIsLocked = true;
-	}
-
-	void unlock() {
-		mLock.unlock();
-		mIsLocked = false;
-	}
-
-	void add_resource(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
+	bool try_emplace(ID3D12Resource* resource, D3D12_RESOURCE_STATES state)
 	{
-		if (resource != nullptr)
-		{
-			std::lock_guard lock(mLock);
-			mResourceStateMap[resource].set_subresource_state(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state);
-		}
+		if (!resource)
+			return false;
+
+		std::lock_guard lock(mLock);
+
+		return mResourceStateMap.try_emplace(resource, state).second;
 	}
 
-	void remove_resource(ID3D12Resource* resource)
+	bool erase(ID3D12Resource* resource)
 	{
-		if (resource != nullptr)
-		{
-			std::lock_guard lock(mLock);
-			mResourceStateMap.erase(resource);
-		}
-	}
+		if (!resource)
+			return false;
+		std::lock_guard lock(mLock);
 
-	bool is_locked()const noexcept { return mIsLocked; }
-
-	auto find(ID3D12Resource* resource)
-	{
-		return mResourceStateMap.find(resource);
-	}
-
-	auto end()
-	{
-		return mResourceStateMap.end();
+		return mResourceStateMap.erase(resource) > 0;
 	}
 
 private:
 	std::unordered_map<ID3D12Resource*, ResourceState> mResourceStateMap;
-
-	// The mutex protects shared access to the GlobalResourceState map.
 	std::mutex mLock;
-	bool mIsLocked;
 };
 
 
 class ResourceStateTracker
 {
 public:
-	ResourceStateTracker(ResourceStateMap& state_map)
-		:mStateMap(state_map)
-	{
-	}
+	ResourceStateTracker() = default;
 
 	//push a resource barrier to the resource state tracker
 	void resource_barrier(const D3D12_RESOURCE_BARRIER& barrier);
@@ -179,26 +177,22 @@ public:
 	{
 		mPendingResourceBarriers.clear();
 		mResourceBarriers.clear();
-		mFinalResourceState.clear();
+		mLocalResourceMap.clear();
 	}
 
+
 private:
-
-	ResourceStateMap& mStateMap;
-
-	// An array of resource barriers.
-	using ResourceBarriers = std::vector<D3D12_RESOURCE_BARRIER>;
 
 	// Pending resource transitions are committed before a command list
 	// is executed on the command queue. This guarantees that resources will
 	// be in the expected state at the beginning of a command list.
-	ResourceBarriers mPendingResourceBarriers;
+	std::vector<D3D12_RESOURCE_BARRIER> mPendingResourceBarriers;
 
 	// Resource barriers that need to be committed to the command list.
-	ResourceBarriers mResourceBarriers;
+	std::vector<D3D12_RESOURCE_BARRIER> mResourceBarriers;
 
 	// The final (last known state) of the resources within a command list.
     // The final resource state is committed to the global resource state when the 
     // command list is closed but before it is executed on the command queue.
-	std::unordered_map<ID3D12Resource*, ResourceState> mFinalResourceState;
+	ThreadLocalResourceStateMap mLocalResourceMap;
 };
