@@ -38,7 +38,6 @@ void ResourceStateTracker::resource_barrier(const D3D12_RESOURCE_BARRIER& barrie
 				mResourceBarriers.push_back(new_barrier);
 			}
 		}
-
 	}
 	else { // if the resource is not yet tracked locally, then we do not know the before state. push it to the pending barrier to resolve later
 		mPendingResourceBarriers.push_back(barrier);
@@ -107,8 +106,6 @@ void ResourceStateTracker::push_batched_barriers(CommandList& commandList)
 
 uint32_t ResourceStateTracker::flush_pending_barriers(CommandList& list)
 {
-	assert(mStateMap.is_locked());
-
 	// Resolve the pending resource barriers by checking the global state of the 
     // (sub)resources. Add barriers if the pending state and the global state do
     //  not match.
