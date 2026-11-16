@@ -18,10 +18,10 @@ void ResourceStateTracker::resource_barrier(const D3D12_RESOURCE_BARRIER& barrie
 	if (it != mLocalResourceMap.end()) {
 		const ResourceState& state = it->second;
 
-		// if the new transition applies to all sub resources (and there are sub resources...)
+		// if the new transition applies to all sub resources
 		// then a new transition must be pushed for each subresource transition (where after state does not already equal transions after state - slight optimization)
-		if (transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && state.is_subresourced()) {
-			for (const auto& subresource : state.get_subresource_map()) {
+		if (transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !state.is_uniform()) {
+			for (const auto& subresource : state) {
 				if (transition.StateAfter != subresource.second) {
 					D3D12_RESOURCE_BARRIER new_barrier = barrier;
 					new_barrier.Transition.Subresource = subresource.first;
@@ -92,89 +92,67 @@ void ResourceStateTracker::alias_barrier(const GPUResource* resourceBefore, cons
 	resource_barrier(alias);
 }
 
-void ResourceStateTracker::push_batched_barriers(CommandList& commandList)
+void push_barriers(CommandList& commandList, std::vector<D3D12_RESOURCE_BARRIER> barriers)
 {
-	UINT num_barreirs = static_cast<UINT>(mResourceBarriers.size());
+	UINT num_barreirs = static_cast<UINT>(barriers.size());
 
 	if (num_barreirs > 0) {
 		auto* d3d12commandlist = commandList.get_graphics_command_list();
 
-		d3d12commandlist->ResourceBarrier(num_barreirs, mResourceBarriers.data());
-		mResourceBarriers.clear();
+		d3d12commandlist->ResourceBarrier(num_barreirs, barriers.data());
 	}
 }
 
-uint32_t ResourceStateTracker::flush_pending_barriers(CommandList& list)
+std::vector<D3D12_RESOURCE_BARRIER> resolve_pending_barriers(std::vector<D3D12_RESOURCE_BARRIER> pending_barriers, const CentralResourceStateMap& central_map)
 {
-	// Resolve the pending resource barriers by checking the global state of the 
-    // (sub)resources. Add barriers if the pending state and the global state do
-    //  not match.
 	std::vector<D3D12_RESOURCE_BARRIER> resource_barriers;
-	resource_barriers.reserve(mPendingResourceBarriers.size());
+	resource_barriers.reserve(pending_barriers.size());
 
-	for (auto& pending_barriers : mPendingResourceBarriers)
+	for (const D3D12_RESOURCE_BARRIER& barrier : pending_barriers)
 	{
-		if (pending_barriers.Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
-		{
-			auto& pending_transition = pending_barriers.Transition;
+		// non transitions do not need to be resolved (though this case should not happen to begin with)
+		if (barrier.Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
+			continue;
 
-			const auto& iter = mStateMap.find(pending_transition.pResource);
+		const D3D12_RESOURCE_TRANSITION_BARRIER& transition = barrier.Transition;
+		const auto& it = central_map.find(transition.pResource);
 
-			if (iter != mStateMap.end()) {
-
-				// if all subresources are being transitioned and there are multiple subresources of the resource that are in different state
-				auto& resource_state = iter->second;
-				if (pending_transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !resource_state.mSubResourceStates.empty()) {
-					// transition all subresources
-					for (auto subresourceState : resource_state.mSubResourceStates)
-					{
-						if (pending_transition.StateAfter != subresourceState.second)
-						{
-							D3D12_RESOURCE_BARRIER new_barrier = pending_barriers;
-							new_barrier.Transition.Subresource = subresourceState.first;
-							new_barrier.Transition.StateBefore = subresourceState.second;
-							resource_barriers.push_back(new_barrier);
-						}
+		// resolve if the central map tracks the resource (which is always should...), otherwise not possible and something will break at somepoint
+		if (it != central_map.end()) {
+			// if all subresources are being transitioned and there are multiple subresources of the resource that are in different state
+			const ResourceState& state = it->second;
+			if (transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !state.is_uniform()) {
+				// transition all subresources
+				for (const auto& subresource : state) {
+					if (transition.StateAfter != subresource.second) {
+						D3D12_RESOURCE_BARRIER new_barrier = barrier;
+						new_barrier.Transition.Subresource = subresource.first;
+						new_barrier.Transition.StateBefore = subresource.second;
+						resource_barriers.push_back(new_barrier);
 					}
 				}
-
 			}
 			else {
 				// no subresources need to be transitioned. just add as single barrier if needed
-				auto globalstate = (iter->second).get_subresource_state(pending_transition.Subresource);
-				if (pending_transition.StateAfter != globalstate) {
-					//fix up the before state based on current global state of the resource
-					pending_barriers.Transition.StateBefore = globalstate;
-					resource_barriers.push_back(pending_barriers);
+				D3D12_RESOURCE_STATES state = (it->second).get_state(transition.Subresource);
+				if (transition.StateAfter != state) {
+					D3D12_RESOURCE_BARRIER new_barrier = barrier;
+					new_barrier.Transition.StateBefore = state;
+					resource_barriers.push_back(new_barrier);
 				}
-
 			}
-
 		}
 	}
 
-	UINT num_barriers = static_cast<UINT>(resource_barriers.size());
-
-	if (num_barriers > 0) {
-		auto* d3d12commandlsit = list.get_graphics_command_list();
-		d3d12commandlsit->ResourceBarrier(num_barriers, resource_barriers.data());
-	}
-
-	mPendingResourceBarriers.clear();
-
-	return num_barriers;
+	return resource_barriers;
 }
 
-void ResourceStateTracker::commit_final_resource_states()
+void sync_central_resource_tracker_with_local(CentralResourceStateMap& central, LocalResourceStateMap local)
 {
-	assert(mStateMap.is_locked());
-
 	// commit final resource states to the global resource state map
-	for (const auto& resource_state : mFinalResourceState)
+	for (const auto& resource_state : local)
 	{
-		auto iter = mStateMap.find(resource_state.first);
-		iter->second = resource_state.second;
+		auto it = central.find(resource_state.first);
+		it->second = resource_state.second;
 	}
-
-	mFinalResourceState.clear();
 }

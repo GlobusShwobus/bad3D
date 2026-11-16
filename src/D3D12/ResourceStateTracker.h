@@ -24,59 +24,82 @@ will not be modified by multiple threads within the same command list.
 class CommandList;
 class GPUResource;
 
-class SubresourceState 
+// This class represents the state of the resource, in two different ways:
+//		- there is a uniform state, a state that represents all (if any subresources) states
+//		- subresources are not tracked
+//		- the different states from the uniform state are tracked
+// 
+// The class does not know nor care how many potential subresources the resource actually has. It only cares about
+// states that are different from the uniform state. That is why set_state erases all entries in the map if D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES is used
+// and why get_state returns the uniform state if an unknown subresource is asked for.
+class ResourceState 
 {
 public:
 
-	SubresourceState(uint32_t subresource_count, D3D12_RESOURCE_STATES initial) 
-		:mStates(subresource_count, initial)
-	{
-	}
+	ResourceState(D3D12_RESOURCE_STATES initial = D3D12_RESOURCE_STATE_COMMON)
+		:mUniformState(initial)
+	{ }
 
 	void set_state(UINT subresource_index, D3D12_RESOURCE_STATES state) {
-
-		if (subresource_index == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
-			std::fill(mStates.begin(), mStates.end(), state);
-		else
-			mStates.at(subresource_index) = state;
+		if (subresource_index == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+			mUniformState = state;
+			mDifferenceMap.clear();
+		}
+		else {
+			mDifferenceMap[subresource_index] = state;
+		}
 	}
 
 	D3D12_RESOURCE_STATES get_state(UINT subresource_index) const {
-		return mStates.at(subresource_index);
+		D3D12_RESOURCE_STATES state = mUniformState;
+		const auto iter = mDifferenceMap.find(subresource_index);
+		if (iter != mDifferenceMap.end())
+			state = iter->second;
+
+		return state;
+	}
+
+	bool is_uniform() const noexcept {
+		return mDifferenceMap.empty();
 	}
 
 	auto begin() const noexcept {
-		return mStates.begin();
+		return mDifferenceMap.begin();
 	}
 
 	auto end() const noexcept {
-		return mStates.end();
-	}
-
-	uint32_t subresource_count() const noexcept {
-		return (uint32_t)mStates.size();
+		return mDifferenceMap.end();
 	}
 
 private:
-
-	std::vector<D3D12_RESOURCE_STATES> mStates;
+	D3D12_RESOURCE_STATES mUniformState;
+	std::map<uint32_t, D3D12_RESOURCE_STATES> mDifferenceMap;
 };
 
-using LocalResourceStateMap = std::unordered_map<ID3D12Resource*, SubresourceState>;
-using CentralResourceStateMap = std::unordered_map<ID3D12Resource*, SubresourceState>;
+using LocalResourceStateMap = std::unordered_map<ID3D12Resource*, ResourceState>;
+using CentralResourceStateMap = std::unordered_map<ID3D12Resource*, ResourceState>;
 
-struct LockedCentralResourceStateMap
+class LockedCentralResourceStateMap
 {
+public:
 	LockedCentralResourceStateMap(CentralResourceStateMap& map, std::mutex& lock)
 		:mCentralStateMap(map), mLock(lock)
 	{
 	}
+
+	auto find(ID3D12Resource* p)const {
+		return mCentralStateMap.find(p);
+	}
+
+	auto end() const noexcept {
+		return mCentralStateMap.end();
+	}
+
 	CentralResourceStateMap& mCentralStateMap;
+
+private:
 	std::unique_lock<std::mutex> mLock;
 };
-
-
-
 
 
 class ResourceStateTracker
@@ -116,25 +139,17 @@ public:
 	void alias_barrier(const GPUResource* resourceBefore = nullptr, const GPUResource* resourceAfter = nullptr);
 
 
-	// flush any pending resource barriers to the command list
-	void push_batched_barriers(CommandList& commandList);
-
-	// flush pending shmending
-	uint32_t flush_pending_barriers(CommandList& list);
-
-	// commit final resource states to the global resource state map
-	// this must be called when the command list is closed
-	void commit_final_resource_states();
-
-
-	// reset state stracking. this is done when the command list is reset
-	void reset()
-	{
-		mPendingResourceBarriers.clear();
-		mResourceBarriers.clear();
-		mLocalResourceMap.clear();
+	std::vector<D3D12_RESOURCE_BARRIER> pass_pending_barriers() noexcept {
+		return std::exchange(mPendingResourceBarriers, {});
 	}
 
+	std::vector<D3D12_RESOURCE_BARRIER> pass_resolved_barriers() noexcept {
+		return std::exchange(mResourceBarriers, {});
+	}
+
+	LocalResourceStateMap pass_final_states() noexcept {
+		return std::exchange(mLocalResourceMap, {});
+	}
 
 private:
 
@@ -151,3 +166,23 @@ private:
     // command list is closed but before it is executed on the command queue.
 	LocalResourceStateMap mLocalResourceMap;
 };
+
+
+// push an array of resource barriers to a command list
+// this function may be used multiple times in a frame by a single command list
+//
+// Intended use case: batch up transition barriers for an array of resources then push them all at once. After that other commands may be recorded.
+void push_barriers(CommandList& commandList, std::vector<D3D12_RESOURCE_BARRIER> barriers);
+
+// resolve pending barriers by looking up central map and then attaching the before states
+//
+// intended use case: resolve any pending barriers before passing the relevant command list to the command queue. 
+// new commands can't be in front of the command list so a new command list must be used to resolve the issue
+// (currently it seems as the resolve pending barriers must be done with every command list)
+std::vector<D3D12_RESOURCE_BARRIER> resolve_pending_barriers(std::vector<D3D12_RESOURCE_BARRIER> pending_barriers, const CentralResourceStateMap& central_map);
+
+
+// sync up command list local state map to the central state map
+//
+// intended use case: after resolving pending barriers and the relevant command list is closed
+void sync_central_resource_tracker_with_local(CentralResourceStateMap& central, LocalResourceStateMap local);
