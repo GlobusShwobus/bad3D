@@ -3,14 +3,21 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+#include <assert.h>
+
 class DescriptorHeap final
 {
 public:
 
 	DescriptorHeap(ID3D12Device4* device, const D3D12_DESCRIPTOR_HEAP_DESC& desc);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE handle(UINT index = 0) const noexcept {
-		return D3D12_CPU_DESCRIPTOR_HANDLE{ mBegin.ptr + (index * mStride) };
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle() const noexcept {
+		return mHeap->GetCPUDescriptorHandleForHeapStart();
+	}
+	
+	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle() const noexcept {
+		assert(mIsShaderVisible);
+		return mHeap->GetGPUDescriptorHandleForHeapStart();
 	}
 
 	UINT stride() const noexcept {
@@ -31,6 +38,5 @@ private:
 	UINT                                           mStride;
 	UINT                                           mSize;
 	D3D12_DESCRIPTOR_HEAP_TYPE                     mType;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE                    mBegin;
+	bool                                           mIsShaderVisible;
 };

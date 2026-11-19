@@ -13,8 +13,11 @@ DescriptorHeap::DescriptorHeap(ID3D12Device4* device, const D3D12_DESCRIPTOR_HEA
 		device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mHeap))
 	);
 
-	mBegin = mHeap->GetCPUDescriptorHandleForHeapStart();
 	mStride = device->GetDescriptorHandleIncrementSize(desc.Type);
 	mSize = desc.NumDescriptors;
 	mType = desc.Type;
+
+	mIsShaderVisible =
+		(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) &&
+		(desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 }

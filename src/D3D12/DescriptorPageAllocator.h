@@ -58,7 +58,7 @@ protected:
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE handle(UINT index = 0u) const noexcept {
-			return mHeap.handle(index);
+			return D3D12_CPU_DESCRIPTOR_HANDLE{ mHandle.ptr + (index * mHeap.stride()) };
 		}
 
 		UINT stride() const noexcept {
@@ -88,6 +88,7 @@ protected:
 		};
 
 		DescriptorHeap mHeap;
+		D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
 		UINT           mFreeDescCount;
 
 		OffsetMap      mOffsetMap;

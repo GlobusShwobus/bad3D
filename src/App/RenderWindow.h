@@ -61,7 +61,7 @@ public:
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE get_buffer_desc() const noexcept { 
-		return mBufferViews.handle(mBufferIndex);
+		return mDescHandles[mBufferIndex];
 	}
 
 	UINT get_buffer_width() const noexcept { 
@@ -144,7 +144,8 @@ private:
 	ClearColor   mClearColor;
 
 	// buffer shit
-	DescriptorHeap      mBufferViews;
+	DescriptorHeap      mDescHeap;
+	D3D12_CPU_DESCRIPTOR_HANDLE mDescHandles[sccBufferCount];
 	BackBufferResource  mBuffers;
 	BackBufferStatus    mBufferSignals;
 	UINT                mBufferIndex;

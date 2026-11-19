@@ -15,7 +15,7 @@ RenderWindow::RenderWindow(
 	:mDevice(device.get_device()),
 	mQueue(device.get_direct_queue()),
 	mState(events), 
-	mBufferViews{device.get_device(), easy::descriptor_heap_RTV(sccBufferCount) },
+	mDescHeap{device.get_device(), easy::descriptor_heap_RTV(sccBufferCount) },
 	mIsFullscreen(false),
 	mInitialised(false),
 	mIsTearingSupported(false),
@@ -339,8 +339,8 @@ LRESULT RenderWindow::on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 void RenderWindow::update_back_buffers()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mBufferViews.handle();
-	const UINT stride = mBufferViews.stride();
+	D3D12_CPU_DESCRIPTOR_HANDLE heapPos = mDescHeap.cpu_handle();
+	const UINT stride = mDescHeap.stride();
 
 	for (UINT i = 0; i < sccBufferCount; i++)
 	{
@@ -351,6 +351,7 @@ void RenderWindow::update_back_buffers()
 
 		mBuffers[i] = std::move(backBuffer);
 
+		mDescHandles[i] = heapPos;
 		heapPos.ptr += stride;
 	}
 }

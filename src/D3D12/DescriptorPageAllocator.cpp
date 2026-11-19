@@ -12,6 +12,7 @@ DescriptorPageAllocator::DescriptorPage::DescriptorPage(
 	:mHeap(device, D3D12_DESCRIPTOR_HEAP_DESC{type, size, flags, node_mask})
 	, mFreeDescCount(size)
 {
+	mHandle = mHeap.cpu_handle();
 	// if DescriptorHeap constructor didn't throw then we're gucci
 	// initalize the free list
 	add_new_block(0, mFreeDescCount);

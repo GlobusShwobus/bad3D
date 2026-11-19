@@ -50,7 +50,7 @@ void ResourceStateTracker::resource_barrier(const D3D12_RESOURCE_BARRIER& barrie
 void ResourceStateTracker::transition_barrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subResource)
 {
 	if (resource) {
-		D3D12_RESOURCE_BARRIER transition;
+		D3D12_RESOURCE_BARRIER transition{};
 		transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		transition.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		transition.Transition.pResource = resource;
@@ -67,10 +67,10 @@ void ResourceStateTracker::transition_barrier(const GPUResource& resource, D3D12
 
 void ResourceStateTracker::UAV_barrier(const GPUResource* resource)
 {
-	if (!resource && !resource->get())
+	if (!resource || !resource->get())
 		throw std::runtime_error{"nullptr"};
 	
-	D3D12_RESOURCE_BARRIER uav;
+	D3D12_RESOURCE_BARRIER uav{};
 	uav.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 	uav.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	uav.UAV.pResource = resource->get();
@@ -83,7 +83,7 @@ void ResourceStateTracker::alias_barrier(const GPUResource* resourceBefore, cons
 	ID3D12Resource* pResourceBefore = resourceBefore != nullptr ? resourceBefore->get() : nullptr;
 	ID3D12Resource* pResourceAfter = resourceAfter != nullptr ? resourceAfter->get() : nullptr;
 
-	D3D12_RESOURCE_BARRIER alias;
+	D3D12_RESOURCE_BARRIER alias{};
 	alias.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
 	alias.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	alias.Aliasing.pResourceAfter = pResourceAfter;
