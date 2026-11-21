@@ -14,8 +14,6 @@
 #include "D3D12/FenceView.h"
 #include "Tools/ViewPtr.h"
 
-// todo:: alloc class friend of this class then hide free? this forces behavior exactly
-
 class DescriptorPageAllocator
 {
 public:

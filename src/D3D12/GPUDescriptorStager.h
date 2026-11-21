@@ -14,65 +14,42 @@
 class CommandList;
 class RootSignature;
 
+/*
+* The class first parses a root signature and creates a mimic layout of the root sig inside itself.
+* 
+* The class contains two main structures: a simple scratch array of handles and the root signature mimic where
+* each root parameter (if it is a table...) will map into the scratch array caching size + location.
+* 
+* When CPU handles are staged, the root signature mimic is used to know where to stage into, not the scratch table itself
+* but since they are mapped via pointers, it is important to keep in mind when writing to the root signature table, it means
+* writing into the scratch array.
+* 
+* When all descriptors are staged, it is time to commit them and write (copy) them to a shader visible descriptor heap.
+* 
+*/
+
 class GPUDescriptorStager
 {
 public:
 
     GPUDescriptorStager(ID3D12Device4* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptorsPerHeap = 1024);
 
-	// root_parameter_index - which root signature descriptor table recieves the descriptors
-	// offset - offset inside the table of the root signature
-	// num_descriptors - amount of descriptors to stage
-	// begin - the first handle begin iteration
 	void stage_descriptors(UINT root_parameter_index, UINT offset, UINT num_descriptors, const D3D12_CPU_DESCRIPTOR_HANDLE begin);
-
-
-    //Copy all of the staged descriptors to the GPU visible descriptor heap and
-    //bind the descriptor heap and the descriptor tables to the command list.
-    //The passed-in function object is used to set the GPU visible descriptors
-    //on the command list. Two possible functions are:
-    //  * Before a draw    : ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable
-    //  * Before a dispatch: ID3D12GraphicsCommandList::SetComputeRootDescriptorTable
-    //
-    //Since the DynamicDescriptorHeap can't know which function will be used, it must
-    //be passed as an argument to the function.
 
     void commit_staged_descriptors(CommandList& commandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setfunc);
     void commit_staged_descriptors_draw(CommandList& commandList);
     void commit_staged_descriptors_dispatch(CommandList& commandList);
 
-
-    //Copies a single CPU visible descriptor to a GPU visible descriptor heap.
-    //This is useful for the
-    //  * ID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat
-    //  * ID3D12GraphicsCommandList::ClearUnorderedAccessViewUint
-    //methods which require both a CPU and GPU visible descriptors for a UAV
-    //resource.
-    //
-    //@param commandList The command list is required in case the GPU visible
-    //descriptor heap needs to be updated on the command list.
-    //@param cpuDescriptor The CPU descriptor to copy into a GPU visible
-    //descriptor heap.
-    //
-    //@return The GPU visible descriptor.
     D3D12_GPU_DESCRIPTOR_HANDLE copy_descriptor(CommandList& commandList, D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor);
 
-    //Parse the root signature to determine which root parameters contain
-    //descriptor tables and determine the number of descriptors needed for
-    //each table.
     void parse_root_signature(const RootSignature& rootsig);
 
-    //Reset used descriptors. This should only be done if any descriptors
-    //that are being referenced by a command list has finished executing on the
-    //command queue.
+    // reset used descriptors. This should only be done only when the command queue is not referencing any descs.
     void reset();
 
 private:
 
-    // Request a descriptor heap if one is available.
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> request_descriptor_heap();
-
-    // Create a new descriptor heap of no descriptor heap is available.
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> create_descriptor_heap();
 
     // Compute the number of stale descriptors that need to be copied
@@ -80,23 +57,19 @@ private:
     UINT compute_stale_descriptor_count() const;
 
     //A structure that represents a descriptor table entry in the root signature.
-    struct DescriptorTableCache
+    struct DescriptorTableEntry
     {
-        DescriptorTableCache()
-            :num_descriptors(0), base_descriptor(nullptr)
+        DescriptorTableEntry()
+            :size(0), base_descriptor(nullptr)
         {
         }
 
-        // Reset the table cache.
-        void Reset()
-        {
-            num_descriptors = 0;
+        void Reset() {
+            size = 0;
             base_descriptor = nullptr;
         }
 
-        // The number of descriptors in this descriptor table.
-        uint32_t num_descriptors;
-        // The pointer to the descriptor in the descriptor handle cache.
+        uint32_t size;
         D3D12_CPU_DESCRIPTOR_HANDLE* base_descriptor;
     };
 
@@ -106,26 +79,22 @@ private:
     uint32_t mNumDescriptorsPerHeap;
     uint32_t mDescriptorStride;
 
-    // big fucking array that gets bumped up and reused
-    std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> mDescriptorHandleCache;
+    // staged CPU side descriptor handles
+    std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> mHandleCache;
 
-    // Descriptor handle cache per descriptor table.
-    DescriptorTableCache mDescriptorTableCache[Globals::ROOT_PARAMETER_LIMIT];
-
-    // Each bit in the bit mask represents the index in the root signature
-    // that contains a descriptor table.
+    // root signature representation
+    DescriptorTableEntry mTableCache[Globals::ROOT_PARAMETER_LIMIT];
     uint32_t mDescriptorTableBitMap;
-    // Each bit set in the bit mask represents a descriptor table
-    // in the root signature that has changed since the last time the 
-    // descriptors were copied.
+
+    // bitmap of descriptors that need to be updated
     uint32_t mStaleDescriptorTableBitMap;
 
     using DescriptorHeapPool = std::queue<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>>;
 
     // all descriptor heaps created
-    DescriptorHeapPool mDescriptorHeapPool;
+    DescriptorHeapPool mHeapPool;
     // heaps available for reuse
-    DescriptorHeapPool mAvailableDescriptorHeaps;
+    DescriptorHeapPool mAvailableHeaps;
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCurrentDescriptorHeap;
     D3D12_GPU_DESCRIPTOR_HANDLE mCurrentGPUDescriptorHandle;

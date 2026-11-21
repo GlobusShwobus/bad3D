@@ -28,35 +28,25 @@ GPUDescriptorStager::GPUDescriptorStager(
 
 	mDescriptorStride = mDevice->GetDescriptorHandleIncrementSize(mDescriptorHeapType);
 
-	mDescriptorHandleCache = std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(mNumDescriptorsPerHeap);
+	mHandleCache = std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(mNumDescriptorsPerHeap);
 }
 
 void GPUDescriptorStager::stage_descriptors(UINT root_parameter_index, UINT offset, UINT num_descriptors, const D3D12_CPU_DESCRIPTOR_HANDLE begin)
 {
-	// Cannot stage more than the maximum number of descriptors per heap. (meaning there can be multiple GPU visible heaps at the end but a single stage can't go over max)
-	// Cannot stage more than MaxDescriptorTables root parameters.
 	if (num_descriptors > mNumDescriptorsPerHeap || root_parameter_index >= Globals::ROOT_PARAMETER_LIMIT)
-	{
 		throw std::bad_alloc{};
-	}
 
-	DescriptorTableCache& descriptorTableCache = mDescriptorTableCache[root_parameter_index];
+	DescriptorTableEntry& descriptorTableCache = mTableCache[root_parameter_index];
 
-	// Check that the number of descriptors to copy does not exceed the number
-	// of descriptors expected in the descriptor table.
-	if ((offset + num_descriptors) > descriptorTableCache.num_descriptors)
-	{
+	if ((offset + num_descriptors) > descriptorTableCache.size)
 		throw std::length_error{ "number of descriptors exeeds the number expected by the tabelerino" };
-	}
 
+	// keep in mind since the table cache is mapped to the handle cache, the handle cache is written here as well
 	D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = (descriptorTableCache.base_descriptor + offset);
 	for (UINT i = 0; i < num_descriptors; ++i)
-	{
 		dstDescriptor[i] = D3D12_CPU_DESCRIPTOR_HANDLE{ dstDescriptor->ptr + (i + mDescriptorStride) };
-	}
 
-	// Set the root parameter index bit to make sure the descriptor table 
-	// at that index is bound to the command list.
+	// Set the root parameter index bit to make sure the descriptor table at that index is bound to the command list.
 	mStaleDescriptorTableBitMap |= (1 << root_parameter_index);
 }
 
@@ -72,7 +62,6 @@ void GPUDescriptorStager::commit_staged_descriptors(CommandList& commandList, st
 	auto* d3d12GraphicsCommandList = commandList.get_graphics_command_list();
 	assert(d3d12GraphicsCommandList != nullptr);
 
-
 	// if the current heap is null or not enough space in it, request a new one
 	if (!mCurrentDescriptorHeap || mNumFreeHandles < numDescriptorsToCommit)
 	{
@@ -83,26 +72,23 @@ void GPUDescriptorStager::commit_staged_descriptors(CommandList& commandList, st
 
 		commandList.set_descriptor_heap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
 
-		// When updating the descriptor heap on the command list, all descriptor
-		// tables must be (re)recopied to the new descriptor heap (not just
-		// the stale descriptor tables).
+		// when changing the heap, all descriptors must be copied over, obviously because the new heap is new
 		mStaleDescriptorTableBitMap = mDescriptorTableBitMap;
 	}
 
-	// (re)set tables marked as stale
+	// copy staged descriptors to the shader visible heap and set the graphics/compute root descriptor table
 	DWORD root_index;
 	while (_BitScanForward(&root_index, mStaleDescriptorTableBitMap))
 	{
-		UINT num_src_descriptors = mDescriptorTableCache[root_index].num_descriptors;
-		D3D12_CPU_DESCRIPTOR_HANDLE* pSrcDescriptorhandle = mDescriptorTableCache[root_index].base_descriptor;
+		UINT num_src_descriptors = mTableCache[root_index].size;
+		D3D12_CPU_DESCRIPTOR_HANDLE* pSrcDescriptorhandle = mTableCache[root_index].base_descriptor;
 	
-		D3D12_CPU_DESCRIPTOR_HANDLE pDestDescriptorRnageStarts[] = { mCurrentCPUDescriptorHandle };
+		D3D12_CPU_DESCRIPTOR_HANDLE pDestDescriptorRangeStarts[] = { mCurrentCPUDescriptorHandle };
 		UINT pDestDescriptorRangeSizes[] = { num_src_descriptors };
 	
-		// todo: be a clever ass and copy once?
 		mDevice->CopyDescriptors(
 			1,
-			pDestDescriptorRnageStarts, 
+			pDestDescriptorRangeStarts,
 			pDestDescriptorRangeSizes,
 			num_src_descriptors,
 			pSrcDescriptorhandle,
@@ -166,28 +152,26 @@ D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptorStager::copy_descriptor(CommandList& co
 
 void GPUDescriptorStager::parse_root_signature(const RootSignature& rootsig)
 {
-	//if the root signature changes, all descriptors must be rebound to the command list
+	// if the root signature changes, all descriptors must be rebound to the command list
 	mStaleDescriptorTableBitMap = 0;
 
-	//const auto& rootSignatureDesc = rootSignature.GetRootSignatureDesc();
-
-	// Get a bit mask that represents the root parameter indices that match the 
-	// descriptor heap type for this dynamic descriptor heap.
 	mDescriptorTableBitMap = rootsig.CBV_SRV_UAV_table_bitmap();
-	uint32_t descriptorTableBitMask = mDescriptorTableBitMap;
 
+	uint32_t descriptorTableBitMask = mDescriptorTableBitMap;
 	uint32_t currentOffset = 0;
 	DWORD root_index;
 
-	// translate bit to index and also make sure the index does not go over the array
+	// extract index from the bitmap
+	// fill out the table cache entries that mimic the root signature
+	// once this is done the table cache is set and mapped to the handle cache
 	while (_BitScanForward(&root_index, descriptorTableBitMask) && root_index < rootsig.parameter_count())
 	{
 		const UINT num_descriptors = rootsig.num_descriptors_for_table(root_index);
 
-		DescriptorTableCache& descriptorTableCahce = mDescriptorTableCache[root_index];
-		descriptorTableCahce.num_descriptors = num_descriptors;
-		descriptorTableCahce.base_descriptor = mDescriptorHandleCache.get() + currentOffset;
-		// bump it up
+		DescriptorTableEntry& descriptorTableCahce = mTableCache[root_index];
+		descriptorTableCahce.size = num_descriptors;
+		descriptorTableCahce.base_descriptor = mHandleCache.get() + currentOffset;
+
 		currentOffset += num_descriptors;
 
 		// Flip the descriptor table bit so it's not scanned again for the current index.
@@ -201,7 +185,7 @@ void GPUDescriptorStager::parse_root_signature(const RootSignature& rootsig)
 
 void GPUDescriptorStager::reset()
 {
-	mAvailableDescriptorHeaps = mDescriptorHeapPool;
+	mAvailableHeaps = mHeapPool;
 	mCurrentDescriptorHeap.Reset();
 	mCurrentCPUDescriptorHandle = { 0 };
 	mCurrentGPUDescriptorHandle = { 0 };
@@ -211,23 +195,21 @@ void GPUDescriptorStager::reset()
 
 	// reset the table cache
 	for (int i = 0; i < Globals::ROOT_PARAMETER_LIMIT; i++)
-	{
-		mDescriptorTableCache[i].Reset();
-	}
+		mTableCache[i].Reset();
 }
 
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> GPUDescriptorStager::request_descriptor_heap()
 {
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 
-	if (!mAvailableDescriptorHeaps.empty())
+	if (!mAvailableHeaps.empty())
 	{
-		descriptorHeap = mAvailableDescriptorHeaps.front();
-		mAvailableDescriptorHeaps.pop();
+		descriptorHeap = mAvailableHeaps.front();
+		mAvailableHeaps.pop();
 	}
 	else {
 		descriptorHeap = create_descriptor_heap();
-		mDescriptorHeapPool.push(descriptorHeap);
+		mHeapPool.push(descriptorHeap);
 	}
 
 	return descriptorHeap;
@@ -251,13 +233,14 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> GPUDescriptorStager::create_descrip
 
 UINT GPUDescriptorStager::compute_stale_descriptor_count() const
 {
+	// compute the numer of handles that need to be updated
 	UINT num_stale_descriptors = 0;
 	DWORD i;
 	DWORD stale_descriptor_bitmap = mStaleDescriptorTableBitMap;
 
 	while (_BitScanForward(&i, stale_descriptor_bitmap))
 	{
-		num_stale_descriptors += mDescriptorTableCache[i].num_descriptors;
+		num_stale_descriptors += mTableCache[i].size;
 		stale_descriptor_bitmap ^= (1 << i);
 	}
 
