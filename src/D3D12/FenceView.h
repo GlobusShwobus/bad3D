@@ -16,7 +16,7 @@ public:
 		: mView(fence), mSignalCounter(counter)
 	{
 		if (!mView)
-			throw std::invalid_argument("Fence nullptr");
+			throw std::invalid_argument("nullptr");
 	}
 
 	auto get_completed_value() const {

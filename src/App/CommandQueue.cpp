@@ -11,10 +11,10 @@ CommandQueue::CommandQueue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE type)
 	: mType(type), mDevice(device), mFenceValue(0ull)
 {
 	if (mType != D3D12_COMMAND_LIST_TYPE_DIRECT && mType != D3D12_COMMAND_LIST_TYPE_COMPUTE && mType != D3D12_COMMAND_LIST_TYPE_COPY)
-		throw std::runtime_error{"invalid command list type"};
+		throw std::runtime_error{"invalid type"};
 
 	if (!mDevice)
-		throw std::runtime_error{ "device is nullptr" };
+		throw std::runtime_error{ "nullptr" };
 
 	// create command queue for graphics
 	D3D12_COMMAND_QUEUE_DESC command_queue_desc = {
@@ -42,7 +42,7 @@ CommandQueue::~CommandQueue()
 void CommandQueue::submit(std::unique_ptr<CommandList> list)
 {
 	if (!list)
-		throw std::invalid_argument("nullptr list not allowed");
+		throw std::invalid_argument("nullptr");
 
 	execute_and_test_hresult(
 		list->command_list->Close()

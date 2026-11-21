@@ -1,46 +1,19 @@
 #pragma once
 
-#include <memory>
-
 #include <d3d12.h>
-#include <wrl/client.h>
+#include "Tools/Viewptr.h"
 
 class CommandQueue;
 
-class GraphicsDevice
+namespace GFX
 {
-public:
-	GraphicsDevice();
-	GraphicsDevice(bool use_warp_adapter);
-	~GraphicsDevice() = default;
+	bool device_init(bool WARP_adapter);
+	bool device_destroy();
+	void device_flush_all();
 
-	GraphicsDevice(const GraphicsDevice&) = delete;
-	GraphicsDevice& operator=(const GraphicsDevice&) = delete;
-	GraphicsDevice(GraphicsDevice&&) noexcept = delete;
-	GraphicsDevice& operator=(GraphicsDevice&&) noexcept = delete;
+	ViewPtr<ID3D12Device4> get_device() noexcept;
 
-	ID3D12Device4* get_device() const noexcept  {
-		return mDevice.Get(); 
-	}
-
-	CommandQueue*  get_direct_queue()  noexcept { 
-		return mDirect.get(); 
-	}
-
-	CommandQueue*  get_compute_queue() noexcept {
-		return mCompute.get(); 
-	}
-
-	CommandQueue*  get_copy_queue()    noexcept { 
-		return mCopy.get(); 
-	}
-
-	void flush_all();
-
-private:
-
-	Microsoft::WRL::ComPtr<ID3D12Device4> mDevice;
-	std::unique_ptr<CommandQueue>         mDirect;
-	std::unique_ptr<CommandQueue>         mCompute;
-	std::unique_ptr<CommandQueue>         mCopy;
-};
+	ViewPtr<CommandQueue> get_direct_queue()  noexcept;
+	ViewPtr<CommandQueue> get_compute_queue() noexcept;
+	ViewPtr<CommandQueue> get_copy_queue()    noexcept;
+}

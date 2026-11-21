@@ -1,0 +1,5 @@
+1. once the command list is fully formed command queue execute must be reviewed (likely resource state resolution, maybe things)
+2. once the command list is fully formed command queue get_command_list must be reviewed, specifically the reset logic for both allocator and list
+3. once the command list is fully formed command queue submit should check for list type (minor but makes sense)
+
+*. Device init returns bool, but it can only return true, on any error it throws. To fix it meaningfully i need my error codes type.

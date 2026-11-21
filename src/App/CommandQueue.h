@@ -12,8 +12,6 @@
 #include "Tools/ViewPtr.h"
 #include "D3D12/FenceView.h"
 
-// todo:: submit does not check if submitted list is of the same type as the queue... fix it
-
 class CommandList;
 
 class CommandQueue final
